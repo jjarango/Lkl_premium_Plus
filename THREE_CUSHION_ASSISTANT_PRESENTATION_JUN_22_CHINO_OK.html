@@ -184,26 +184,14 @@
   }
  .cta h2{max-width:760px; margin:0 auto 12px}
  .cta p{max-width:750px; margin:10px auto 0}
- .btnRow{display:flex; justify-content:center; flex-wrap:wrap; gap:14px; margin-top:26px}
- .btn{
-    appearance:none; border:none; text-decoration:none;
-    display:inline-flex; align-items:center; justify-content:center; gap:10px;
-    border-radius:999px; padding:13px 20px;
-    font-weight:800; letter-spacing:.02em;
-    background:linear-gradient(180deg,#f2d08d,#d6b26d);
-    color:#151108;
-    box-shadow:0 12px 30px rgba(214,178,109,.18);
-  }
- .btn.secondary{background:transparent; color:var(--gold-soft); border:1px solid rgba(214,178,109,.35); box-shadow:none}
-
- .note{background:rgba(98,215,255,.07); border:1px solid rgba(98,215,255,.22); border-radius:14px; padding:14px 18px; margin:20px 0; font-size:15px}
+.note{background:rgba(98,215,255,.07); border:1px solid rgba(98,215,255,.22); border-radius:14px; padding:14px 18px; margin:20px 0; font-size:15px}
  .note b{color:var(--cyan)}
  .note.gold{background:rgba(214,178,109,.08); border-color:rgba(214,178,109,.3)}
  .note.gold b{color:var(--gold-soft)}
 
  .reveal{opacity:0; transform:translateY(18px); transition:opacity.75s ease, transform.75s ease}
  .reveal.on{opacity:1; transform:none}
-  footer{margin-top:70px; padding:34px 0 48px; border-top:1px solid var(--hair); color:var(--muted); font-size:13.5px; text-align:center}
+  footer{margin-top:70px; padding:34px 0 calc(76px + env(safe-area-inset-bottom)); border-top:1px solid var(--hair); color:var(--muted); font-size:13.5px; text-align:center}
   footer.dia{color:var(--diamond); letter-spacing:.6em; margin-bottom:10px}
 
 /* Mainland China localization: local system fonts, no Google Fonts dependency */
@@ -435,10 +423,6 @@ html[lang="zh-CN"] p,html[lang="zh-CN"] li,html[lang="zh-CN"] td{
 <div class="eyebrow" style="justify-content:center">LKL Premium</div>
 <h2>先把球想清楚，再真正出杆。</h2>
 <p>它并不承诺把每一杆都变成自动得分。它提供的是更现实、也更有价值的帮助：看得更清楚，练得更有方法，并减少书面系统与真实球台之间的摩擦。</p>
-<div class="btnRow">
-<a class="btn" href="#">申请使用</a>
-<a class="btn secondary" href="#motores">查看功能</a>
-</div>
 </div>
 </section>
 </main>
