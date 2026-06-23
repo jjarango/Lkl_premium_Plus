@@ -1553,6 +1553,17 @@
       }
     }
 
+
+    /* Strict touch lock: main-table loupe and nudge panel are never shown
+       on a device detected as touch-capable by JavaScript. */
+    html.touch-ui-device #loupe,
+    html.touch-ui-device #tableTouchNudgePanel{
+      display:none !important;
+      visibility:hidden !important;
+      opacity:0 !important;
+      pointer-events:none !important;
+    }
+
 </style>
 </head>
 <body>
@@ -1599,7 +1610,7 @@
 <button data-table-move="5,0" type="button">5 →</button>
 <button data-table-move="0,5" type="button">↓ 5</button>
 </div>
-<div class="tableTouchNudgeHint">Tap a ball to select it. Hold an arrow to move it continuously.</div>
+<div class="tableTouchNudgeHint">Drag a ball directly with your finger.</div>
 </div>
 </div>
 <div class="legend">
@@ -1999,6 +2010,10 @@
     );
   }
 
+  // Robust touch-device marker for iPhone, iPad and other touch devices,
+  // including cases where the browser reports desktop-style media features.
+  document.documentElement.classList.toggle('touch-ui-device', isTouchUiDevice());
+
   function isTouchPointer(e){
     return e && (e.pointerType === 'touch' || e.pointerType === 'pen' || isTouchUiDevice());
   }
@@ -2189,7 +2204,20 @@
   }
 
   function showTableTouchNudgePanel(key){
-    if(!key || !isTouchUiDevice()) return;
+    if(isTouchUiDevice()){
+      tablePrecisionBallKey = null;
+      const panel = ids('tableTouchNudgePanel');
+      if(panel){
+        panel.classList.remove('active');
+        panel.setAttribute('aria-hidden','true');
+        panel.style.display = 'none';
+      }
+      document.documentElement.classList.remove('table-ball-adjust-active');
+      document.body.classList.remove('table-ball-adjust-active');
+      hideLoupe();
+      return;
+    }
+    if(!key) return;
     tablePrecisionBallKey = key;
     const panel = ids('tableTouchNudgePanel');
     const label = ids('tableTouchNudgeBallName');
@@ -2220,6 +2248,10 @@
   }
 
   function showTablePrecisionLoupe(){
+    if(isTouchUiDevice()){
+      hideLoupe();
+      return;
+    }
     if(!tablePrecisionBallKey || dragKey) return;
     const p = balls[tablePrecisionBallKey];
     if(!p) return;
@@ -9983,6 +10015,14 @@ function drawStartMarks(){
   function roundRect(ctx,x,y,w,h,r){ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath()}
 
   function showLoupe(clientX, clientY){
+    if(isTouchUiDevice()){
+      const mainLoupe = ids('loupe');
+      if(mainLoupe){
+        mainLoupe.style.display = 'none';
+        mainLoupe.setAttribute('aria-hidden','true');
+      }
+      return;
+    }
     const loupeKey = dragKey || tablePrecisionBallKey;
     if(!loupeKey) return;
 
