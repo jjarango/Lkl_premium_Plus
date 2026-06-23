@@ -1536,6 +1536,23 @@
     .contiTooltipText{font-size:13px}
   }
 
+
+    /* ============================================================
+       BLOQUEO TOTAL DE AYUDAS DURANTE USO TÁCTIL
+       En teléfonos y tabletas nunca se muestran la lupa principal
+       ni el panel de corrección fina al mover bolas con el dedo.
+       La lupa del módulo fotográfico permanece intacta.
+       ============================================================ */
+    @media (hover:none), (pointer:coarse){
+      #loupe,
+      #tableTouchNudgePanel{
+        display:none !important;
+        visibility:hidden !important;
+        opacity:0 !important;
+        pointer-events:none !important;
+      }
+    }
+
 </style>
 </head>
 <body>
@@ -10110,6 +10127,12 @@ function drawStartMarks(){
         if(touchPanel){
           touchPanel.classList.remove('active');
           touchPanel.setAttribute('aria-hidden','true');
+          touchPanel.style.display = 'none';
+        }
+        const mainLoupe = ids('loupe');
+        if(mainLoupe){
+          mainLoupe.style.display = 'none';
+          mainLoupe.setAttribute('aria-hidden','true');
         }
         document.documentElement.classList.remove('table-ball-adjust-active');
         document.body.classList.remove('table-ball-adjust-active');
