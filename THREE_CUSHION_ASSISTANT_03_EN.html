@@ -1536,6 +1536,23 @@
     .contiTooltipText{font-size:13px}
   }
 
+
+    /* ============================================================
+       TOUCH INTERACTION FIX
+       On phones and tablets, balls can be dragged directly by touch.
+       The main-table loupe and fine-adjustment panel remain hidden.
+       The photo-location loupe is intentionally unaffected.
+       ============================================================ */
+    @media (hover:none), (pointer:coarse){
+      #loupe,
+      #tableTouchNudgePanel{
+        display:none !important;
+        visibility:hidden !important;
+        opacity:0 !important;
+        pointer-events:none !important;
+      }
+    }
+
 </style>
 </head>
 <body>
@@ -10104,11 +10121,30 @@ function drawStartMarks(){
       activeStartMarkSnap = null;
       loupeFixedCornerName = null;
       if(touchInput){
-        dragKey = null;
+        // Clean touch dragging: no loupe and no fine-adjustment panel.
+        tablePrecisionBallKey = null;
+
+        const touchPanel = ids('tableTouchNudgePanel');
+        if(touchPanel){
+          touchPanel.classList.remove('active');
+          touchPanel.setAttribute('aria-hidden','true');
+          touchPanel.style.display = 'none';
+        }
+
+        const mainLoupe = ids('loupe');
+        if(mainLoupe){
+          mainLoupe.style.display = 'none';
+          mainLoupe.setAttribute('aria-hidden','true');
+        }
+
+        document.documentElement.classList.remove('table-ball-adjust-active');
+        document.body.classList.remove('table-ball-adjust-active');
+        hideLoupe();
+
+        dragKey = best.key;
         tableViewportState.gesture = null;
-        showTableTouchNudgePanel(best.key);
-        showTablePrecisionLoupe();
-        recalculateAll('touch-ball-select');
+        try{ canvas.setPointerCapture(e.pointerId); }catch{}
+        recalculateAll('touch-ball-drag-start-clean');
         return;
       }
       dragKey=best.key;
@@ -10140,6 +10176,7 @@ function drawStartMarks(){
     }
 
     if(!dragKey) return;
+    if(isTouchPointer(e) && e.cancelable) e.preventDefault();
     const rect=canvas.getBoundingClientRect();
     const p=screenToWorld(e.clientX-rect.left,e.clientY-rect.top);
 
@@ -10149,7 +10186,9 @@ function drawStartMarks(){
 
     updatePositionInputs();
     recalculateAll('pointer-move');
-    showLoupe(e.clientX,e.clientY);
+    if(!isTouchPointer(e)){
+      showLoupe(e.clientX,e.clientY);
+    }
   }
   function onPointerUp(e){
     if(tableViewportState.pointers.has(e.pointerId)){
@@ -10175,7 +10214,9 @@ function drawStartMarks(){
 
     dragKey = null;
     activeStartMarkSnap = null;
-    if(tablePrecisionBallKey && isTouchPointer(e)){
+    if(isTouchPointer(e)){
+      hideLoupe();
+    } else if(tablePrecisionBallKey){
       showTablePrecisionLoupe();
     } else {
       hideLoupe();
