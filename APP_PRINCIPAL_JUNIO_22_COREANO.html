@@ -1536,6 +1536,32 @@
     .contiTooltipText{font-size:13px}
   }
 
+
+
+    /* ============================================================
+       터치 조작 최종 수정
+       휴대전화와 태블릿에서는 공을 손가락으로 바로 끌어 이동합니다.
+       메인 테이블의 확대경과 미세 조정 패널은 항상 숨깁니다.
+       사진 위치 지정용 확대경은 영향을 받지 않습니다.
+       ============================================================ */
+    @media (hover:none), (pointer:coarse){
+      #loupe,
+      #tableTouchNudgePanel{
+        display:none !important;
+        visibility:hidden !important;
+        opacity:0 !important;
+        pointer-events:none !important;
+      }
+    }
+
+    html.touch-ui-device #loupe,
+    html.touch-ui-device #tableTouchNudgePanel{
+      display:none !important;
+      visibility:hidden !important;
+      opacity:0 !important;
+      pointer-events:none !important;
+    }
+
 </style>
 </head>
 <body>
@@ -1582,7 +1608,7 @@
 <button data-table-move="5,0" type="button">5 →</button>
 <button data-table-move="0,5" type="button">↓ 5</button>
 </div>
-<div class="tableTouchNudgeHint">공을 탭해 선택하십시오. 화살표를 길게 누르면 연속 이동합니다.</div>
+<div class="tableTouchNudgeHint">공을 손가락으로 직접 끌어 이동하십시오.</div>
 </div>
 </div>
 <div class="legend">
@@ -1982,6 +2008,10 @@
     );
   }
 
+  // iPhone, iPad 및 기타 터치 장치를 안정적으로 표시합니다.
+  // 데스크톱형 미디어 특성을 보고하는 브라우저에서도 작동합니다.
+  document.documentElement.classList.toggle('touch-ui-device', isTouchUiDevice());
+
   function isTouchPointer(e){
     return e && (e.pointerType === 'touch' || e.pointerType === 'pen' || isTouchUiDevice());
   }
@@ -2172,7 +2202,20 @@
   }
 
   function showTableTouchNudgePanel(key){
-    if(!key || !isTouchUiDevice()) return;
+    if(isTouchUiDevice()){
+      tablePrecisionBallKey = null;
+      const panel = ids('tableTouchNudgePanel');
+      if(panel){
+        panel.classList.remove('active');
+        panel.setAttribute('aria-hidden','true');
+        panel.style.display = 'none';
+      }
+      document.documentElement.classList.remove('table-ball-adjust-active');
+      document.body.classList.remove('table-ball-adjust-active');
+      hideLoupe();
+      return;
+    }
+    if(!key) return;
     tablePrecisionBallKey = key;
     const panel = ids('tableTouchNudgePanel');
     const label = ids('tableTouchNudgeBallName');
@@ -2203,6 +2246,10 @@
   }
 
   function showTablePrecisionLoupe(){
+    if(isTouchUiDevice()){
+      hideLoupe();
+      return;
+    }
     if(!tablePrecisionBallKey || dragKey) return;
     const p = balls[tablePrecisionBallKey];
     if(!p) return;
@@ -9966,6 +10013,14 @@ function drawStartMarks(){
   function roundRect(ctx,x,y,w,h,r){ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath()}
 
   function showLoupe(clientX, clientY){
+    if(isTouchUiDevice()){
+      const mainLoupe = ids('loupe');
+      if(mainLoupe){
+        mainLoupe.style.display = 'none';
+        mainLoupe.setAttribute('aria-hidden','true');
+      }
+      return;
+    }
     const loupeKey = dragKey || tablePrecisionBallKey;
     if(!loupeKey) return;
 
@@ -10104,11 +10159,30 @@ function drawStartMarks(){
       activeStartMarkSnap = null;
       loupeFixedCornerName = null;
       if(touchInput){
-        dragKey = null;
+        // 터치에서는 확대경과 미세 조정 패널 없이 공을 바로 끌어 이동합니다.
+        tablePrecisionBallKey = null;
+
+        const touchPanel = ids('tableTouchNudgePanel');
+        if(touchPanel){
+          touchPanel.classList.remove('active');
+          touchPanel.setAttribute('aria-hidden','true');
+          touchPanel.style.display = 'none';
+        }
+
+        const mainLoupe = ids('loupe');
+        if(mainLoupe){
+          mainLoupe.style.display = 'none';
+          mainLoupe.setAttribute('aria-hidden','true');
+        }
+
+        document.documentElement.classList.remove('table-ball-adjust-active');
+        document.body.classList.remove('table-ball-adjust-active');
+        hideLoupe();
+
+        dragKey = best.key;
         tableViewportState.gesture = null;
-        showTableTouchNudgePanel(best.key);
-        showTablePrecisionLoupe();
-        recalculateAll('touch-ball-select');
+        try{ canvas.setPointerCapture(e.pointerId); }catch{}
+        recalculateAll('touch-ball-drag-start-clean');
         return;
       }
       dragKey=best.key;
@@ -10140,6 +10214,7 @@ function drawStartMarks(){
     }
 
     if(!dragKey) return;
+    if(isTouchPointer(e) && e.cancelable) e.preventDefault();
     const rect=canvas.getBoundingClientRect();
     const p=screenToWorld(e.clientX-rect.left,e.clientY-rect.top);
 
@@ -10149,7 +10224,9 @@ function drawStartMarks(){
 
     updatePositionInputs();
     recalculateAll('pointer-move');
-    showLoupe(e.clientX,e.clientY);
+    if(!isTouchPointer(e)){
+      showLoupe(e.clientX,e.clientY);
+    }
   }
   function onPointerUp(e){
     if(tableViewportState.pointers.has(e.pointerId)){
@@ -10175,7 +10252,9 @@ function drawStartMarks(){
 
     dragKey = null;
     activeStartMarkSnap = null;
-    if(tablePrecisionBallKey && isTouchPointer(e)){
+    if(isTouchPointer(e)){
+      hideLoupe();
+    } else if(tablePrecisionBallKey){
       showTablePrecisionLoupe();
     } else {
       hideLoupe();
