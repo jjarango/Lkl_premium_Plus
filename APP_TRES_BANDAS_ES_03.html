@@ -1582,7 +1582,7 @@
 <button data-table-move="5,0" type="button">5 →</button>
 <button data-table-move="0,5" type="button">↓ 5</button>
 </div>
-<div class="tableTouchNudgeHint">Toque una bola para seleccionarla. Mantenga presionada una flecha para moverla de forma continua.</div>
+<div class="tableTouchNudgeHint">Arrastre una bola con el dedo para ubicarla. Luego use las flechas para el ajuste fino de 1 o 5 píxeles.</div>
 </div>
 </div>
 <div class="legend">
@@ -10104,11 +10104,14 @@ function drawStartMarks(){
       activeStartMarkSnap = null;
       loupeFixedCornerName = null;
       if(touchInput){
-        dragKey = null;
+        // Corrección táctil: el dedo vuelve a arrastrar la bola directamente.
+        // El panel de flechas permanece disponible como ajuste fino posterior.
+        dragKey = best.key;
         tableViewportState.gesture = null;
+        try{ canvas.setPointerCapture(e.pointerId); }catch{}
         showTableTouchNudgePanel(best.key);
-        showTablePrecisionLoupe();
-        recalculateAll('touch-ball-select');
+        recalculateAll('touch-ball-drag-start');
+        showLoupe(e.clientX,e.clientY);
         return;
       }
       dragKey=best.key;
@@ -10140,6 +10143,7 @@ function drawStartMarks(){
     }
 
     if(!dragKey) return;
+    if(isTouchPointer(e) && e.cancelable) e.preventDefault();
     const rect=canvas.getBoundingClientRect();
     const p=screenToWorld(e.clientX-rect.left,e.clientY-rect.top);
 
