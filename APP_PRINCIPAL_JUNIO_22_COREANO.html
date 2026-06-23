@@ -12216,5 +12216,77 @@ function drawStartMarks(){
 })();
 </script>
 
+
+<!-- KO_TOUCH_FIX_FINAL_DOM_REMOVAL_V1 -->
+
+<script id="main-table-touch-helper-removal">
+(function(){
+  'use strict';
+
+  function removeMainTableTouchHelpers(){
+    document.documentElement.classList.add('touch-ui-device');
+
+    var mainLoupe = document.getElementById('loupe');
+    if(mainLoupe){
+      mainLoupe.style.setProperty('display', 'none', 'important');
+      mainLoupe.style.setProperty('visibility', 'hidden', 'important');
+      mainLoupe.style.setProperty('opacity', '0', 'important');
+      mainLoupe.setAttribute('aria-hidden', 'true');
+      mainLoupe.remove();
+    }
+
+    var nudgePanel = document.getElementById('tableTouchNudgePanel');
+    if(nudgePanel){
+      nudgePanel.classList.remove('active');
+      nudgePanel.style.setProperty('display', 'none', 'important');
+      nudgePanel.style.setProperty('visibility', 'hidden', 'important');
+      nudgePanel.style.setProperty('opacity', '0', 'important');
+      nudgePanel.setAttribute('aria-hidden', 'true');
+      nudgePanel.remove();
+    }
+
+    document.documentElement.classList.remove('table-ball-adjust-active');
+    if(document.body){
+      document.body.classList.remove('table-ball-adjust-active');
+    }
+  }
+
+  function touchCapableNow(){
+    return !!(
+      (navigator.maxTouchPoints && navigator.maxTouchPoints > 0) ||
+      ('ontouchstart' in window) ||
+      (window.matchMedia && (
+        window.matchMedia('(pointer: coarse)').matches ||
+        window.matchMedia('(any-pointer: coarse)').matches
+      ))
+    );
+  }
+
+  // Retiro inmediato al cargar en un teléfono o tableta.
+  if(touchCapableNow()){
+    if(document.readyState === 'loading'){
+      document.addEventListener('DOMContentLoaded', removeMainTableTouchHelpers, {once:true});
+    }else{
+      removeMainTableTouchHelpers();
+    }
+  }
+
+  // Retiro garantizado antes de que llegue el evento al manejador de la mesa.
+  document.addEventListener('touchstart', removeMainTableTouchHelpers, {
+    capture:true,
+    passive:true
+  });
+
+  document.addEventListener('pointerdown', function(event){
+    if(event.pointerType === 'touch' || event.pointerType === 'pen'){
+      removeMainTableTouchHelpers();
+    }
+  }, {
+    capture:true,
+    passive:true
+  });
+})();
+</script>
+
 </body>
 </html>
