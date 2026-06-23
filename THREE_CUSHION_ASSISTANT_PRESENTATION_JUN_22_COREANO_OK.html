@@ -181,26 +181,14 @@
   }
  .cta h2{max-width:760px; margin:0 auto 12px}
  .cta p{max-width:750px; margin:10px auto 0}
- .btnRow{display:flex; justify-content:center; flex-wrap:wrap; gap:14px; margin-top:26px}
- .btn{
-    appearance:none; border:none; text-decoration:none;
-    display:inline-flex; align-items:center; justify-content:center; gap:10px;
-    border-radius:999px; padding:13px 20px;
-    font-weight:800; letter-spacing:.02em;
-    background:linear-gradient(180deg,#f2d08d,#d6b26d);
-    color:#151108;
-    box-shadow:0 12px 30px rgba(214,178,109,.18);
-  }
- .btn.secondary{background:transparent; color:var(--gold-soft); border:1px solid rgba(214,178,109,.35); box-shadow:none}
-
- .note{background:rgba(98,215,255,.07); border:1px solid rgba(98,215,255,.22); border-radius:14px; padding:14px 18px; margin:20px 0; font-size:15px}
+.note{background:rgba(98,215,255,.07); border:1px solid rgba(98,215,255,.22); border-radius:14px; padding:14px 18px; margin:20px 0; font-size:15px}
  .note b{color:var(--cyan)}
  .note.gold{background:rgba(214,178,109,.08); border-color:rgba(214,178,109,.3)}
  .note.gold b{color:var(--gold-soft)}
 
  .reveal{opacity:0; transform:translateY(18px); transition:opacity.75s ease, transform.75s ease}
  .reveal.on{opacity:1; transform:none}
-  footer{margin-top:70px; padding:34px 0 48px; border-top:1px solid var(--hair); color:var(--muted); font-size:13.5px; text-align:center}
+  footer{margin-top:70px; padding:34px 0 calc(76px + env(safe-area-inset-bottom)); border-top:1px solid var(--hair); color:var(--muted); font-size:13.5px; text-align:center}
   footer.dia{color:var(--diamond); letter-spacing:.6em; margin-bottom:10px}
 
 /* Ajuste de tamaño de imágenes solicitado el 22 de junio */
@@ -416,10 +404,6 @@
 <div class="eyebrow" style="justify-content:center">LKL Premium</div>
 <h2>샷에 들어가기 전에 생각을 정리하게 해 주는 프로그램.</h2>
 <p>이 앱의 약속은 모든 샷을 자동 득점으로 만들겠다는 것이 아닙니다. 더 현실적이고 더 가치 있는 목표는, 눈으로 명확히 보고, 체계적으로 연습하며, 글로 배운 시스템과 살아 있는 테이블 사이의 마찰을 줄이는 것입니다.</p>
-<div class="btnRow">
-<a class="btn" href="#">이용 문의</a>
-<a class="btn secondary" href="#motores">기능 보기</a>
-</div>
 </div>
 </section>
 </main>
