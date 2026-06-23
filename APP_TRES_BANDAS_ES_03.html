@@ -10104,14 +10104,21 @@ function drawStartMarks(){
       activeStartMarkSnap = null;
       loupeFixedCornerName = null;
       if(touchInput){
-        // Corrección táctil: el dedo vuelve a arrastrar la bola directamente.
-        // El panel de flechas permanece disponible como ajuste fino posterior.
+        // Arrastre táctil limpio: sin lupa ni panel de corrección fina.
+        tablePrecisionBallKey = null;
+        const touchPanel = ids('tableTouchNudgePanel');
+        if(touchPanel){
+          touchPanel.classList.remove('active');
+          touchPanel.setAttribute('aria-hidden','true');
+        }
+        document.documentElement.classList.remove('table-ball-adjust-active');
+        document.body.classList.remove('table-ball-adjust-active');
+        hideLoupe();
+
         dragKey = best.key;
         tableViewportState.gesture = null;
         try{ canvas.setPointerCapture(e.pointerId); }catch{}
-        showTableTouchNudgePanel(best.key);
-        recalculateAll('touch-ball-drag-start');
-        showLoupe(e.clientX,e.clientY);
+        recalculateAll('touch-ball-drag-start-clean');
         return;
       }
       dragKey=best.key;
@@ -10153,7 +10160,9 @@ function drawStartMarks(){
 
     updatePositionInputs();
     recalculateAll('pointer-move');
-    showLoupe(e.clientX,e.clientY);
+    if(!isTouchPointer(e)){
+      showLoupe(e.clientX,e.clientY);
+    }
   }
   function onPointerUp(e){
     if(tableViewportState.pointers.has(e.pointerId)){
@@ -10179,7 +10188,9 @@ function drawStartMarks(){
 
     dragKey = null;
     activeStartMarkSnap = null;
-    if(tablePrecisionBallKey && isTouchPointer(e)){
+    if(isTouchPointer(e)){
+      hideLoupe();
+    } else if(tablePrecisionBallKey){
       showTablePrecisionLoupe();
     } else {
       hideLoupe();
