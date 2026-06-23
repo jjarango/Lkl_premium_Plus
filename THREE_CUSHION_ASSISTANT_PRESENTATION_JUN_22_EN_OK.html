@@ -184,26 +184,14 @@
   }
  .cta h2{max-width:760px; margin:0 auto 12px}
  .cta p{max-width:750px; margin:10px auto 0}
- .btnRow{display:flex; justify-content:center; flex-wrap:wrap; gap:14px; margin-top:26px}
- .btn{
-    appearance:none; border:none; text-decoration:none;
-    display:inline-flex; align-items:center; justify-content:center; gap:10px;
-    border-radius:999px; padding:13px 20px;
-    font-weight:800; letter-spacing:.02em;
-    background:linear-gradient(180deg,#f2d08d,#d6b26d);
-    color:#151108;
-    box-shadow:0 12px 30px rgba(214,178,109,.18);
-  }
- .btn.secondary{background:transparent; color:var(--gold-soft); border:1px solid rgba(214,178,109,.35); box-shadow:none}
-
- .note{background:rgba(98,215,255,.07); border:1px solid rgba(98,215,255,.22); border-radius:14px; padding:14px 18px; margin:20px 0; font-size:15px}
+.note{background:rgba(98,215,255,.07); border:1px solid rgba(98,215,255,.22); border-radius:14px; padding:14px 18px; margin:20px 0; font-size:15px}
  .note b{color:var(--cyan)}
  .note.gold{background:rgba(214,178,109,.08); border-color:rgba(214,178,109,.3)}
  .note.gold b{color:var(--gold-soft)}
 
  .reveal{opacity:0; transform:translateY(18px); transition:opacity.75s ease, transform.75s ease}
  .reveal.on{opacity:1; transform:none}
-  footer{margin-top:70px; padding:34px 0 48px; border-top:1px solid var(--hair); color:var(--muted); font-size:13.5px; text-align:center}
+  footer{margin-top:70px; padding:34px 0 calc(76px + env(safe-area-inset-bottom)); border-top:1px solid var(--hair); color:var(--muted); font-size:13.5px; text-align:center}
   footer.dia{color:var(--diamond); letter-spacing:.6em; margin-bottom:10px}
 
 /* Ajuste de tamaño de imágenes solicitado el 22 de junio */
@@ -262,7 +250,7 @@
 </nav>
 <header class="hero wrap">
 <div class="eyebrow">Program presentation</div>
-<h1>Three-cushion calculation, transformed into a <em>virtual table</em></h1>
+<h1>Three-cushion calculation, transformed into a <em>visual table</em></h1>
 <p class="lede">A digital assistant for three-cushion billiards practice on a professional table: position the balls, choose the cue ball, select the calculation system, and see a clear aiming path before stepping up to play the shot.</p>
 <div class="heroGrid reveal">
 <div class="heroCard">
@@ -419,10 +407,6 @@
 <div class="eyebrow" style="justify-content:center">LKL Premium</div>
 <h2>A program for thinking through the shot before playing it.</h2>
 <p>The promise is not to turn every shot into an automatic carom. It is more realistic and more valuable: see clearly, practice methodically, and reduce the friction between the written system and the living table.</p>
-<div class="btnRow">
-<a class="btn" href="#">Request access</a>
-<a class="btn secondary" href="#motores">View features</a>
-</div>
 </div>
 </section>
 </main>
