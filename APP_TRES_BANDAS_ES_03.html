@@ -12840,7 +12840,19 @@ function drawStartMarks(){
     const canvasStream = exportCanvas.captureStream(30);
     const combined = new MediaStream(canvasStream.getVideoTracks().concat(audioTracks));
 
-    const mimeCandidates = ['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm','video/mp4'];
+    // MP4 (H.264 + AAC) de primera opción: es el formato que WhatsApp acepta.
+    // Chrome y Edge lo graban de forma nativa desde la versión 126 (2024).
+    // Solo se elige MP4 si el navegador garantiza explícitamente H.264 + AAC
+    // (codecs avc1 + mp4a); un MP4 con otros códecs no serviría para WhatsApp.
+    // Si el navegador no lo ofrece, se cae automáticamente a WebM.
+    const mimeCandidates = [
+      'video/mp4;codecs=avc1.640028,mp4a.40.2',
+      'video/mp4;codecs=avc1.4D401F,mp4a.40.2',
+      'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
+      'video/webm;codecs=vp9,opus',
+      'video/webm;codecs=vp8,opus',
+      'video/webm'
+    ];
     let mime = '';
     if(MediaRecorder.isTypeSupported){
       mime = mimeCandidates.find(c => { try{ return MediaRecorder.isTypeSupported(c); }catch{ return false; } }) || '';
@@ -12872,17 +12884,21 @@ function drawStartMarks(){
         setVideoReplayStatus('La exportación no produjo datos. Intente de nuevo.', 'bad');
         return;
       }
-      const blob = new Blob(chunks, {type: chunks[0].type || 'video/webm'});
+      const outType = chunks[0].type || mime || 'video/webm';
+      const isMp4 = /mp4/i.test(outType);
+      const blob = new Blob(chunks, {type: outType});
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
       a.href = url;
-      a.download = 'jugada-con-trayectoria-' + stamp + '.webm';
+      a.download = 'jugada-con-trayectoria-' + stamp + (isMp4 ? '.mp4' : '.webm');
       document.body.appendChild(a);
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 4000);
-      setVideoReplayStatus('Video con trayectoria descargado: orientación corregida, marco de la mesa, anillos de las bolas, línea azul, punto de Ataque y audio incrustados. Se ve igual en cualquier reproductor.', 'good');
+      setVideoReplayStatus(isMp4
+        ? 'Video con trayectoria descargado en MP4 (H.264 + AAC), listo para enviar por WhatsApp: orientación corregida, marco de la mesa, anillos de las bolas, línea azul, punto de Ataque y audio incrustados.'
+        : 'Video con trayectoria descargado en WebM: este navegador no ofreció grabación MP4. Contiene la orientación corregida y toda la superposición incrustada; para WhatsApp úselo desde un Chrome o Edge actualizados, que exportan MP4 directamente.', 'good');
     };
 
     const drawExportFrame = () => {
