@@ -1999,7 +1999,7 @@
 </div>
 <div class="videoReplayGroup" id="videoReplayRecordPanel" style="display:none">
 <h3><span class="videoRecDot" id="videoReplayRecDot" style="display:none"></span>Grabación</h3>
-<p class="small" id="videoReplayRecHint">Cuando esté listo, pulse Iniciar grabación, ejecute la tacada y luego pulse Detener y revisar.</p>
+<p class="small" id="videoReplayRecHint">Al pulsar Iniciar grabación, un contador de 5 segundos le da tiempo de ubicarse en la mesa; la grabación empieza al llegar a cero, con un pitido de aviso.</p>
 <div class="videoReplayRow">
 <button class="cameraCaptureBtn" id="videoReplayStartBtn" style="margin:0" type="button">Iniciar grabación</button>
 </div>
@@ -12036,7 +12036,11 @@ function drawStartMarks(){
     fit:{cw:0, ch:0},
     duration:0,
     scrubbing:false,
-    hasAudio:false
+    hasAudio:false,
+    countdownUntil:0,
+    countdownTimerId:0,
+    flashUntil:0,
+    audioCtx:null
   };
 
   function loadVideoCalibration(){
@@ -12381,6 +12385,35 @@ function drawStartMarks(){
     } else if(videoReplay.mode === 'record'){
       const chk = ids('videoReplayShowGuideRec');
       if(!chk || chk.checked) drawVideoReplayOverlay(g, cw, ch, {route:true, handles:false});
+      if(videoReplay.countdownUntil){
+        // Número gigante, legible desde la mesa a varios metros.
+        const remaining = Math.max(1, Math.ceil((videoReplay.countdownUntil - Date.now())/1000));
+        g.save();
+        g.fillStyle = 'rgba(4,6,10,.35)';
+        g.fillRect(0, 0, cw, ch);
+        const size = Math.round(Math.min(cw, ch) * 0.62);
+        g.font = '900 ' + size + 'px ui-sans-serif, system-ui';
+        g.textAlign = 'center';
+        g.textBaseline = 'middle';
+        g.lineWidth = Math.max(6, size * 0.045);
+        g.strokeStyle = 'rgba(0,0,0,.85)';
+        g.fillStyle = '#ffffff';
+        g.strokeText(String(remaining), cw/2, ch/2);
+        g.fillText(String(remaining), cw/2, ch/2);
+        g.restore();
+      } else if(videoReplay.flashUntil && Date.now() < videoReplay.flashUntil){
+        const size = Math.round(Math.min(cw, ch) * 0.18);
+        g.save();
+        g.font = '900 ' + size + 'px ui-sans-serif, system-ui';
+        g.textAlign = 'center';
+        g.textBaseline = 'middle';
+        g.lineWidth = Math.max(5, size * 0.06);
+        g.strokeStyle = 'rgba(0,0,0,.85)';
+        g.fillStyle = '#ff4d4d';
+        g.strokeText('¡Grabando!', cw/2, ch/2);
+        g.fillText('¡Grabando!', cw/2, ch/2);
+        g.restore();
+      }
     } else if(videoReplay.mode === 'replay'){
       const chk = ids('videoReplayShowGuide');
       if(!chk || chk.checked) drawVideoReplayOverlay(g, cw, ch, {route:true, handles:false});
@@ -12425,8 +12458,11 @@ function drawStartMarks(){
     if(startBtn){ startBtn.disabled = false; startBtn.textContent = 'Iniciar grabación'; }
     if(stopBtn) stopBtn.disabled = true;
     if(dot) dot.style.display = 'none';
-    if(hint) hint.textContent = 'Cuando esté listo, pulse Iniciar grabación, ejecute la tacada y luego pulse Detener y revisar.';
+    if(hint) hint.textContent = 'Al pulsar Iniciar grabación, un contador de 5 segundos le da tiempo de ubicarse en la mesa; la grabación empieza al llegar a cero, con un pitido de aviso.';
     if(videoReplay.recTimerId){ clearInterval(videoReplay.recTimerId); videoReplay.recTimerId = 0; }
+    if(videoReplay.countdownTimerId){ clearInterval(videoReplay.countdownTimerId); videoReplay.countdownTimerId = 0; }
+    videoReplay.countdownUntil = 0;
+    videoReplay.flashUntil = 0;
   }
 
   async function openVideoReplayModal(startMode){
@@ -12488,6 +12524,9 @@ function drawStartMarks(){
     videoReplay.duration = 0;
     videoReplay.dragging = false;
     if(videoReplay.recTimerId){ clearInterval(videoReplay.recTimerId); videoReplay.recTimerId = 0; }
+    if(videoReplay.countdownTimerId){ clearInterval(videoReplay.countdownTimerId); videoReplay.countdownTimerId = 0; }
+    videoReplay.countdownUntil = 0;
+    videoReplay.flashUntil = 0;
   }
 
   function pickVideoReplayRecorderMime(){
@@ -12498,7 +12537,42 @@ function drawStartMarks(){
     return candidates.find(c => { try{ return MediaRecorder.isTypeSupported(c); }catch{ return false; } }) || '';
   }
 
+  function playVideoReplayBeep(){
+    // Pitido corto de aviso al llegar a cero. Queda tenuemente registrado al
+    // inicio del video y sirve como marca de sincronización.
+    try{
+      if(!videoReplay.audioCtx){
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if(!Ctx) return;
+        videoReplay.audioCtx = new Ctx();
+      }
+      const ctxA = videoReplay.audioCtx;
+      if(ctxA.state === 'suspended') ctxA.resume();
+      const osc = ctxA.createOscillator();
+      const gain = ctxA.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.0001, ctxA.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.5, ctxA.currentTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctxA.currentTime + 0.22);
+      osc.connect(gain);
+      gain.connect(ctxA.destination);
+      osc.start();
+      osc.stop(ctxA.currentTime + 0.25);
+    }catch{}
+  }
+
+  function cancelVideoReplayCountdown(silent){
+    if(videoReplay.countdownTimerId){ clearInterval(videoReplay.countdownTimerId); videoReplay.countdownTimerId = 0; }
+    videoReplay.countdownUntil = 0;
+    const startBtn = ids('videoReplayStartBtn');
+    if(startBtn){ startBtn.disabled = false; startBtn.textContent = 'Iniciar grabación'; }
+    if(!silent) setVideoReplayStatus('Cuenta regresiva cancelada. Pulse Iniciar grabación cuando esté listo.');
+  }
+
   function startVideoReplayRecording(){
+    // Si hay una cuenta regresiva en curso, el mismo botón la cancela.
+    if(videoReplay.countdownUntil){ cancelVideoReplayCountdown(false); return; }
     if(!videoReplay.stream){
       setVideoReplayStatus('La cámara no está abierta. Cierre esta ventana y vuelva a abrir el módulo.', 'bad');
       return;
@@ -12507,6 +12581,24 @@ function drawStartMarks(){
       setVideoReplayStatus('Este navegador no permite grabar video. Use una versión reciente de Chrome o Edge.', 'bad');
       return;
     }
+    // Cuenta regresiva de 5 segundos, dibujada en grande sobre el video en
+    // vivo, para que el jugador alcance a ubicarse en la mesa. La grabación
+    // real empieza al llegar a cero: el archivo queda limpio, sin la espera.
+    videoReplay.countdownUntil = Date.now() + 5000;
+    const startBtn = ids('videoReplayStartBtn');
+    if(startBtn) startBtn.textContent = 'Cancelar cuenta regresiva';
+    setVideoReplayStatus('Cuenta regresiva en marcha. La grabación empezará al llegar a cero, con un pitido de aviso.');
+    videoReplay.countdownTimerId = setInterval(() => {
+      if(Date.now() >= videoReplay.countdownUntil){
+        clearInterval(videoReplay.countdownTimerId);
+        videoReplay.countdownTimerId = 0;
+        videoReplay.countdownUntil = 0;
+        beginVideoReplayRecordingNow();
+      }
+    }, 100);
+  }
+
+  function beginVideoReplayRecordingNow(){
     videoReplay.chunks = [];
     const mime = pickVideoReplayRecorderMime();
     let recorder = null;
@@ -12514,6 +12606,8 @@ function drawStartMarks(){
       recorder = new MediaRecorder(videoReplay.stream, mime ? {mimeType:mime, videoBitsPerSecond:8000000} : undefined);
     }catch(error){
       setVideoReplayStatus('No fue posible iniciar la grabación: ' + (error && error.message ? error.message : error), 'bad');
+      const failBtn = ids('videoReplayStartBtn');
+      if(failBtn){ failBtn.disabled = false; failBtn.textContent = 'Iniciar grabación'; }
       return;
     }
     videoReplay.recorder = recorder;
@@ -12528,6 +12622,8 @@ function drawStartMarks(){
     if(startBtn){ startBtn.disabled = true; startBtn.textContent = 'Grabando…'; }
     if(stopBtn) stopBtn.disabled = false;
     if(dot) dot.style.display = '';
+    playVideoReplayBeep();
+    videoReplay.flashUntil = Date.now() + 1400;
     setVideoReplayStatus('Grabando. Ejecute la tacada y luego pulse Detener y revisar.', 'good');
     videoReplay.recTimerId = setInterval(() => {
       const hint = ids('videoReplayRecHint');
