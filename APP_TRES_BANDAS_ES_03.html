@@ -12048,7 +12048,8 @@ function drawStartMarks(){
     exportRaf:0,
     exportRecorder:null,
     exportChunks:[],
-    exportVideoEl:null
+    exportVideoEl:null,
+    focusLocked:false
   };
 
   function loadVideoCalibration(){
@@ -12152,6 +12153,45 @@ function drawStartMarks(){
     live.muted = true; // La vista en vivo queda silenciada para evitar acoples con los parlantes.
     await live.play();
     await waitForVideoReady(live, 12000);
+    await lockVideoReplayFocus();
+  }
+
+  // Bloqueo automático de enfoque: con una cámara cenital fija, la mesa
+  // está siempre a la misma distancia y el autofoco solo estorba (reenfoca
+  // cuando el jugador o el taco cruzan el encuadre). Se deja trabajar al
+  // autofoco un par de segundos para que encuentre la mesa, se lee esa
+  // distancia y se congela en modo manual durante toda la sesión.
+  async function lockVideoReplayFocus(){
+    videoReplay.focusLocked = false;
+    const stream = videoReplay.stream;
+    if(!stream) return false;
+    const track = stream.getVideoTracks()[0];
+    if(!track || typeof track.getCapabilities !== 'function' || typeof track.applyConstraints !== 'function') return false;
+    try{
+      const caps = track.getCapabilities();
+      if(!caps || !Array.isArray(caps.focusMode) || !caps.focusMode.includes('manual')) return false;
+      setVideoReplayStatus('Enfocando la mesa y bloqueando el enfoque…');
+      if(caps.focusMode.includes('continuous')){
+        try{ await track.applyConstraints({advanced:[{focusMode:'continuous'}]}); }catch{}
+      }
+      await new Promise(r => setTimeout(r, 1800));
+      const settings = track.getSettings ? track.getSettings() : {};
+      const constraint = {focusMode:'manual'};
+      if(Number.isFinite(settings.focusDistance)) constraint.focusDistance = settings.focusDistance;
+      await track.applyConstraints({advanced:[constraint]});
+      videoReplay.focusLocked = true;
+      return true;
+    }catch(error){
+      console.warn('Video de la jugada: no fue posible bloquear el enfoque.', error);
+      videoReplay.focusLocked = false;
+      return false;
+    }
+  }
+
+  function videoReplayFocusNote(){
+    return videoReplay.focusLocked
+      ? ' El enfoque quedó bloqueado: no habrá reenfoques durante la grabación.'
+      : ' El bloqueo de enfoque no está disponible en esta cámara o navegador; el autofoco seguirá activo (puede fijarlo con Logi Tune).';
   }
 
   function stopVideoReplayStream(){
@@ -12159,6 +12199,7 @@ function drawStartMarks(){
       try{ videoReplay.recorder.stop(); }catch{}
     }
     videoReplay.recorder = null;
+    videoReplay.focusLocked = false;
     if(videoReplay.stream){
       videoReplay.stream.getTracks().forEach(t => { try{ t.stop(); }catch{} });
       videoReplay.stream = null;
@@ -12505,8 +12546,8 @@ function drawStartMarks(){
         ? ' La grabación incluirá el audio del micrófono de la cámara.'
         : ' No fue posible activar el micrófono: la grabación quedará sin audio.';
       setVideoReplayStatus(startMode === 'calibrate'
-        ? 'Cámara lista. Arrastre los cuatro puntos hasta las esquinas internas del paño; los anillos de las bolas y los diamantes proyectados deben coincidir con el video.'
-        : 'Cámara lista. Pulse Iniciar grabación cuando vaya a ejecutar la tacada.' + audioNote, 'good');
+        ? 'Cámara lista. Arrastre los cuatro puntos hasta las esquinas internas del paño; los anillos de las bolas y los diamantes proyectados deben coincidir con el video.' + videoReplayFocusNote()
+        : 'Cámara lista. Pulse Iniciar grabación cuando vaya a ejecutar la tacada.' + audioNote + videoReplayFocusNote(), 'good');
       if(startBtn) startBtn.disabled = false;
     }catch(error){
       setVideoReplayStatus(cameraErrorMessage(error), 'bad');
@@ -13086,7 +13127,7 @@ function drawStartMarks(){
       resetVideoReplayRecordButtons();
       try{
         await openVideoReplayStream();
-        setVideoReplayStatus('Cámara lista. Pulse Iniciar grabación cuando vaya a ejecutar la tacada. La grabación anterior se descartará al grabar una nueva.' + (videoReplay.hasAudio ? '' : ' No fue posible activar el micrófono: la grabación quedará sin audio.'), 'good');
+        setVideoReplayStatus('Cámara lista. Pulse Iniciar grabación cuando vaya a ejecutar la tacada. La grabación anterior se descartará al grabar una nueva.' + (videoReplay.hasAudio ? '' : ' No fue posible activar el micrófono: la grabación quedará sin audio.') + videoReplayFocusNote(), 'good');
       }catch(error){
         setVideoReplayStatus(cameraErrorMessage(error), 'bad');
       }
