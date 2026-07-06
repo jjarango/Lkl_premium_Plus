@@ -1553,6 +1553,147 @@
       }
     }
 
+
+    /* ===== Video de la jugada con trayectoria superpuesta ===== */
+    .videoReplayModal{
+      position:fixed;
+      inset:0;
+      z-index:82;
+      display:none;
+      background:rgba(4,6,10,.90);
+      padding:16px;
+    }
+    .videoReplayModal.active{display:flex}
+    .videoReplayShell{
+      width:min(1420px, 100%);
+      height:min(920px, calc(100svh - 32px));
+      margin:auto;
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.14);
+      border-radius:20px;
+      background:#101217;
+      box-shadow:0 28px 80px rgba(0,0,0,.58);
+    }
+    .videoReplayHead{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:16px;
+      padding:13px 16px 11px;
+      border-bottom:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.035);
+    }
+    .videoReplayTitle{
+      margin:0;
+      color:#fff;
+      font-size:18px;
+      line-height:1.15;
+      letter-spacing:-.01em;
+    }
+    .videoReplayStep{
+      margin-top:4px;
+      color:#f2d08d;
+      font-size:13px;
+      line-height:1.35;
+      font-weight:800;
+    }
+    .videoReplayClose{
+      width:auto;
+      min-width:44px;
+      padding:8px 12px;
+      border-radius:11px;
+    }
+    .videoReplayBody{
+      flex:1;
+      min-height:0;
+      display:grid;
+      grid-template-columns:minmax(0,1fr) 318px;
+      gap:12px;
+      padding:12px;
+    }
+    .videoReplayPane{
+      position:relative;
+      min-height:0;
+      border:1px solid rgba(255,255,255,.11);
+      border-radius:16px;
+      overflow:hidden;
+      background:#05070a;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    #videoReplayCanvas{
+      display:block;
+      touch-action:none;
+      cursor:crosshair;
+      max-width:100%;
+      max-height:100%;
+    }
+    .videoReplaySide{
+      min-height:0;
+      overflow:auto;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      padding-right:2px;
+    }
+    .videoReplaySide h3{margin:0; color:#fff; font-size:14px;}
+    .videoReplayGroup{
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:14px;
+      padding:10px;
+      background:rgba(255,255,255,.03);
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    .videoReplayGroup .small{margin:0}
+    .videoReplayRow{display:flex; gap:8px; flex-wrap:wrap;}
+    .videoReplayRow > button, .videoReplayRow > label{flex:1 1 auto; min-height:40px;}
+    .videoReplayNudge{
+      display:grid;
+      grid-template-columns:repeat(3, 48px);
+      grid-auto-rows:40px;
+      gap:6px;
+      justify-content:center;
+      align-items:center;
+    }
+    .videoReplayNudge button{min-height:40px}
+    #vrNudgeSel{
+      text-align:center;
+      color:#ffd23f;
+      font-weight:900;
+      font-size:14px;
+    }
+    .videoRecDot{
+      display:inline-block;
+      width:11px;
+      height:11px;
+      border-radius:50%;
+      background:#ff4d4d;
+      box-shadow:0 0 10px rgba(255,77,77,.8);
+      animation:vrBlink 1s steps(2,start) infinite;
+      margin-right:7px;
+      vertical-align:middle;
+    }
+    @keyframes vrBlink{50%{opacity:.25}}
+    .videoReplayStatus{
+      font-size:12.5px;
+      line-height:1.45;
+      color:#cfd6df;
+    }
+    .videoReplayStatus.good{color:#9ff0a7}
+    .videoReplayStatus.bad{color:#ff9d9d}
+    #videoReplayScrub{width:100%}
+    @media (max-width:980px){
+      .videoReplayModal{padding:0}
+      .videoReplayShell{height:100svh; border-radius:0; border:0}
+      .videoReplayBody{grid-template-columns:1fr; grid-template-rows:minmax(0,1fr) auto; gap:8px; padding:8px}
+      .videoReplayHead{padding:10px 12px}
+      .videoReplayTitle{font-size:16px}
+    }
 </style>
 </head>
 <body>
@@ -1811,7 +1952,7 @@
 <option value="bottom">Larga inferior</option>
 <option value="left">Corta izquierda</option>
 </select>
-</div><p class="small" id="sequenceHelp">Seleccione si la jugada empieza con bola primero o con banda previa, y luego indique la secuencia de bandas.</p></div></details><details class="menuModule" id="moduleEffect"><summary><span class="moduleTitle">Efecto y golpe</span><span class="moduleState" id="moduleEffectState">Positivo · efecto 3 · Penetrado largo</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><div aria-controls="contiTooltip" aria-expanded="false" class="contiHelpAnchor" id="contiHelpAnchor" tabindex="0"><label for="english">Dirección del efecto</label><span aria-hidden="true" class="contiHelpIcon">i</span></div><select id="english">
+</div><p class="small" id="sequenceHelp">Seleccione si la jugada empieza con bola primero o con banda previa, y luego indique la secuencia de bandas.</p></div></details><details class="menuModule" id="moduleVideoReplay"><summary><span class="moduleTitle" style="color:#ff5a5a">Video de la jugada con trayectoria superpuesta</span><span class="moduleState" id="moduleVideoReplayState">Cámara cenital · sin calibrar</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><p class="small" style="margin:0 0 10px;">Grabe la ejecución real con la cámara cenital y revísela con la trayectoria calculada por la app superpuesta sobre el video, con cámara lenta y avance cuadro a cuadro. La grabación incluye el audio del micrófono de la cámara. Requiere calibrar una sola vez las cuatro esquinas de la mesa, mientras la cámara no se mueva. <b>Si aplica posiciones desde una captura cenital del detector automático, esa calibración se reutiliza sola.</b></p><button class="cameraCaptureBtn" id="videoReplayRecordBtn" type="button">Grabar jugada</button><button id="videoReplayCalibBtn" type="button">Calibrar superposición</button><div aria-live="polite" class="cameraCaptureStatus" id="videoReplayModuleStatus" role="status">La trayectoria superpuesta será la que esté calculada en ese momento (por ejemplo, LKL / Base 50 con la tacadora y la secuencia de bandas elegidas).</div></div></details><details class="menuModule" id="moduleEffect"><summary><span class="moduleTitle">Efecto y golpe</span><span class="moduleState" id="moduleEffectState">Positivo · efecto 3 · Penetrado largo</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><div aria-controls="contiTooltip" aria-expanded="false" class="contiHelpAnchor" id="contiHelpAnchor" tabindex="0"><label for="english">Dirección del efecto</label><span aria-hidden="true" class="contiHelpIcon">i</span></div><select id="english">
 <option value="positive">Positivo: abre / alarga</option>
 <option value="neutral">Sin efecto lateral</option>
 <option value="negative">Negativo: cierra / acorta</option>
@@ -1823,6 +1964,77 @@
 </main>
 <video aria-hidden="true" autoplay="" class="cameraCaptureMedia" id="cameraCaptureVideo" muted="" playsinline=""></video>
 <canvas aria-hidden="true" class="cameraCaptureMedia" height="1" id="cameraCaptureCanvas" width="1"></canvas>
+<div aria-hidden="true" class="videoReplayModal" id="videoReplayModal">
+<div aria-labelledby="videoReplayTitle" aria-modal="true" class="videoReplayShell" role="dialog">
+<div class="videoReplayHead">
+<div>
+<h2 class="videoReplayTitle" id="videoReplayTitle">Video de la jugada con trayectoria superpuesta</h2>
+<div class="videoReplayStep" id="videoReplayStep">Preparando…</div>
+</div>
+<button class="videoReplayClose" id="videoReplayClose" type="button">Cerrar</button>
+</div>
+<div class="videoReplayBody">
+<div class="videoReplayPane"><canvas id="videoReplayCanvas"></canvas></div>
+<div class="videoReplaySide">
+<div class="videoReplayGroup" id="videoReplayCalibPanel" style="display:none">
+<h3>Calibración de cuatro esquinas</h3>
+<p class="small">Arrastre cada punto hasta la esquina interna del paño (donde se tocan las bandas), en este orden según se ve la mesa en la app: 1 superior izquierda, 2 superior derecha, 3 inferior derecha, 4 inferior izquierda. Los anillos de las bolas y los diamantes proyectados deben coincidir con el video. Ajuste fino: flechas del teclado (con Mayús, pasos de 5 píxeles) o los botones de abajo.</p>
+<div class="videoReplayRow" id="videoReplayCornerBtns">
+<button data-corner="0" type="button">Punto 1</button>
+<button data-corner="1" type="button">Punto 2</button>
+<button data-corner="2" type="button">Punto 3</button>
+<button data-corner="3" type="button">Punto 4</button>
+</div>
+<div class="videoReplayNudge">
+<span></span><button id="vrNudgeUp" type="button">▲</button><span></span>
+<button id="vrNudgeLeft" type="button">◀</button><div id="vrNudgeSel">P1</div><button id="vrNudgeRight" type="button">▶</button>
+<span></span><button id="vrNudgeDown" type="button">▼</button><span></span>
+</div>
+<div class="videoReplayRow">
+<button id="videoReplayUseLocatorBtn" type="button">Usar esquinas del detector</button>
+</div>
+<div class="videoReplayRow">
+<button class="cameraCaptureBtn" id="videoReplaySaveCalibBtn" style="margin:0" type="button">Guardar calibración y continuar</button>
+</div>
+</div>
+<div class="videoReplayGroup" id="videoReplayRecordPanel" style="display:none">
+<h3><span class="videoRecDot" id="videoReplayRecDot" style="display:none"></span>Grabación</h3>
+<p class="small" id="videoReplayRecHint">Cuando esté listo, pulse Iniciar grabación, ejecute la tacada y luego pulse Detener y revisar.</p>
+<div class="videoReplayRow">
+<button class="cameraCaptureBtn" id="videoReplayStartBtn" style="margin:0" type="button">Iniciar grabación</button>
+</div>
+<div class="videoReplayRow">
+<button disabled="" id="videoReplayStopBtn" type="button">Detener y revisar</button>
+</div>
+<label style="display:flex; gap:8px; align-items:center; cursor:pointer;"><input checked="" id="videoReplayShowGuideRec" style="width:auto" type="checkbox"/> <span class="small">Mostrar trayectoria durante la grabación</span></label>
+</div>
+<div class="videoReplayGroup" id="videoReplayPlaybackPanel" style="display:none">
+<h3>Revisión de la jugada</h3>
+<input id="videoReplayScrub" max="1000" min="0" step="1" type="range" value="0"/>
+<div class="videoReplayRow">
+<button id="videoReplayPlayBtn" type="button">Reproducir</button>
+<button id="videoReplayStepBack" title="Un cuadro atrás" type="button">−1 cuadro</button>
+<button id="videoReplayStepFwd" title="Un cuadro adelante" type="button">+1 cuadro</button>
+</div>
+<div class="videoReplayRow">
+<label style="display:flex; gap:8px; align-items:center;"><span class="small">Velocidad</span><select id="videoReplaySpeed" style="flex:1"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option selected="" value="1">1×</option></select></label>
+</div>
+<label style="display:flex; gap:8px; align-items:center; cursor:pointer;"><input checked="" id="videoReplayShowGuide" style="width:auto" type="checkbox"/> <span class="small">Superponer trayectoria calculada</span></label>
+<div class="videoReplayRow">
+<button id="videoReplayAgainBtn" type="button">Grabar otra jugada</button>
+<button id="videoReplayDownloadBtn" type="button">Descargar video</button>
+</div>
+</div>
+<div class="videoReplayGroup">
+<div aria-live="polite" class="videoReplayStatus" id="videoReplayStatus" role="status">—</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<video aria-hidden="true" class="cameraCaptureMedia" id="videoReplayLive" muted="" playsinline=""></video>
+<video aria-hidden="true" class="cameraCaptureMedia" id="videoReplayPlayback" playsinline=""></video>
+
 <div aria-hidden="true" class="photoLocatorModal" id="photoLocatorModal">
 <div aria-labelledby="photoLocatorTitle" aria-modal="true" class="photoLocatorShell" role="dialog">
 <div class="photoLocatorHead">
@@ -11323,6 +11535,7 @@ function drawStartMarks(){
       updatePhotoViewpointHint();
     }
     photoLocator.image = capture.source;
+    photoLocator.fromOverheadCamera = true;
     photoLocator.stepIndex = 0;
     photoLocator.current = null;
     photoLocator.points = {};
@@ -11400,6 +11613,7 @@ function drawStartMarks(){
       const img = new Image();
       img.onload = () => {
         photoLocator.image = img;
+        photoLocator.fromOverheadCamera = false;
         photoLocator.stepIndex = 0;
         photoLocator.current = null;
         photoLocator.points = {};
@@ -11790,13 +12004,790 @@ function drawStartMarks(){
     recalculateAll('photo-locator-apply');
     const status = ids('photoLocatorStatus');
     if(status) status.textContent = 'Posiciones cargadas desde la fotografía. Revise visualmente y ajuste a mano si hace falta.';
+    maybeAdoptVideoCalibrationFromLocator();
     closePhotoLocator();
   }
+
+  // ============================================================
+  // VIDEO DE LA JUGADA CON TRAYECTORIA SUPERPUESTA (cámara cenital)
+  // Flujo: calibración de 4 esquinas (reutilizable desde el detector
+  // fotográfico cenital) -> grabación con MediaRecorder -> revisión
+  // con la trayectoria teórica proyectada por homografía sobre el video.
+  // El video se muestra girado 180°, igual que la captura cenital del
+  // detector, para que la esquina 1 de la app coincida con la del video.
+  // La superposición se hace en la reproducción (no se incrusta en el
+  // archivo grabado), de modo que puede mostrarse u ocultarse a voluntad.
+  // ============================================================
+  const VIDEO_CALIB_STORAGE_KEY = 'tresBandasVideoReplayCalibV1';
+
+  const videoReplay = {
+    mode:'idle',            // 'calibrate' | 'record' | 'replay'
+    stream:null,
+    recorder:null,
+    chunks:[],
+    blobUrl:null,
+    recStartMs:0,
+    recTimerId:0,
+    raf:0,
+    calib:null,             // {corners:[{x,y} x4 normalizadas 0..1], origin, savedAt}
+    corners:null,           // esquinas en edición (normalizadas)
+    selCorner:0,
+    dragging:false,
+    fit:{cw:0, ch:0},
+    duration:0,
+    scrubbing:false,
+    hasAudio:false
+  };
+
+  function loadVideoCalibration(){
+    try{
+      const raw = localStorage.getItem(VIDEO_CALIB_STORAGE_KEY);
+      if(!raw) return null;
+      const data = JSON.parse(raw);
+      if(!data || !Array.isArray(data.corners) || data.corners.length !== 4) return null;
+      if(!data.corners.every(p => p && Number.isFinite(p.x) && Number.isFinite(p.y))) return null;
+      return data;
+    }catch{ return null; }
+  }
+
+  function saveVideoCalibration(corners, origin){
+    const data = {
+      corners:corners.map(p => ({x:clamp(p.x,0,1), y:clamp(p.y,0,1)})),
+      origin:origin || 'manual',
+      savedAt:Date.now()
+    };
+    videoReplay.calib = data;
+    try{ localStorage.setItem(VIDEO_CALIB_STORAGE_KEY, JSON.stringify(data)); }catch{}
+    updateVideoReplayModuleState();
+    return data;
+  }
+
+  function updateVideoReplayModuleState(){
+    const el = ids('moduleVideoReplayState');
+    if(el) el.textContent = videoReplay.calib ? 'Cámara cenital · calibración lista' : 'Cámara cenital · sin calibrar';
+  }
+
+  // Reutilización del localizador fotográfico: si las esquinas confirmadas
+  // provienen de una captura cenital (misma cámara, imagen ya girada 180°),
+  // sirven directamente como calibración del video, normalizadas 0..1.
+  function locatorCornersNormalized(){
+    if(!photoLocator.fromOverheadCamera || !photoLocator.image) return null;
+    const iw = photoLocator.image.naturalWidth || photoLocator.image.width;
+    const ih = photoLocator.image.naturalHeight || photoLocator.image.height;
+    if(!iw || !ih) return null;
+    const order = ['tl','tr','br','bl'];
+    if(!order.every(k => photoLocator.points[k] &&
+        Number.isFinite(photoLocator.points[k].x) && Number.isFinite(photoLocator.points[k].y))) return null;
+    return order.map(k => ({
+      x:clamp(photoLocator.points[k].x/iw, 0, 1),
+      y:clamp(photoLocator.points[k].y/ih, 0, 1)
+    }));
+  }
+
+  function maybeAdoptVideoCalibrationFromLocator(){
+    const corners = locatorCornersNormalized();
+    if(!corners) return;
+    saveVideoCalibration(corners, 'detector-cenital');
+    const st = ids('videoReplayModuleStatus');
+    if(st) st.textContent = 'La calibración del video se actualizó automáticamente con las cuatro esquinas confirmadas en el detector cenital. Ya puede grabar jugadas con la trayectoria superpuesta.';
+  }
+
+  async function findVideoReplayMicId(){
+    if(!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return null;
+    try{
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const mics = devices.filter(d => d.kind === 'audioinput');
+      const isVirtual = label => /capture|virtual|obs/i.test(label || '');
+      const brio = mics.find(d => /brio/i.test(d.label || '') && !isVirtual(d.label));
+      if(brio) return brio.deviceId;
+      const logi = mics.find(d => /logitech|logi/i.test(d.label || '') && !isVirtual(d.label));
+      return logi ? logi.deviceId : null;
+    }catch{ return null; }
+  }
+
+  async function openVideoReplayStream(){
+    if(videoReplay.stream && videoReplay.stream.getVideoTracks().some(t => t.readyState === 'live')) return;
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      throw new Error('Este navegador no ofrece acceso directo a cámaras. Abra el archivo con una versión reciente de Chrome o Edge.');
+    }
+    const preferredId = await findKnownBrioId();
+    const videoConstraints = {
+      width:{ideal:CAMERA_STABLE_WIDTH},
+      height:{ideal:CAMERA_STABLE_HEIGHT},
+      aspectRatio:{ideal:16/9},
+      frameRate:{ideal:30, max:30}
+    };
+    if(preferredId) videoConstraints.deviceId = {exact:preferredId};
+
+    // Audio del micrófono de la propia cámara, sin cancelación de eco ni
+    // supresión de ruido, para conservar nítidos el golpe del taco y el
+    // contacto de las bolas. Si el micrófono falla o el permiso es negado,
+    // se graba solo el video.
+    const micId = await findVideoReplayMicId();
+    const audioBase = {echoCancellation:false, noiseSuppression:false, autoGainControl:false};
+    let stream = null;
+    try{
+      const audioConstraints = micId ? Object.assign({deviceId:{exact:micId}}, audioBase) : audioBase;
+      stream = await navigator.mediaDevices.getUserMedia({video:videoConstraints, audio:audioConstraints});
+    }catch(audioError){
+      console.warn('Video de la jugada: no fue posible abrir el micrófono, se graba sin audio.', audioError);
+      stream = await navigator.mediaDevices.getUserMedia({video:videoConstraints, audio:false});
+    }
+    videoReplay.stream = stream;
+    videoReplay.hasAudio = stream.getAudioTracks().length > 0;
+    const live = ids('videoReplayLive');
+    live.srcObject = stream;
+    live.muted = true; // La vista en vivo queda silenciada para evitar acoples con los parlantes.
+    await live.play();
+    await waitForVideoReady(live, 12000);
+  }
+
+  function stopVideoReplayStream(){
+    if(videoReplay.recorder && videoReplay.recorder.state === 'recording'){
+      try{ videoReplay.recorder.stop(); }catch{}
+    }
+    videoReplay.recorder = null;
+    if(videoReplay.stream){
+      videoReplay.stream.getTracks().forEach(t => { try{ t.stop(); }catch{} });
+      videoReplay.stream = null;
+    }
+    const live = ids('videoReplayLive');
+    if(live) live.srcObject = null;
+  }
+
+  // Trayectoria teórica vigente, en coordenadas de mundo (80 × 40),
+  // como lista de polilíneas. Cubre LKL / Vueltas (estudio con ruta
+  // azul guiada) y los módulos con ruta explícita (Plus, corta-larga-corta).
+  function videoReplayRouteWorld(){
+    const shot = currentShot;
+    const polys = [];
+    if(!shot) return polys;
+    const c = shot.c || controls();
+
+    if(shot.path && Array.isArray(shot.path.points) && shot.path.points.length >= 2){
+      if(shot.cueLine && shot.cueLine.from && shot.cueLine.to){
+        polys.push({pts:[shot.cueLine.from, shot.cueLine.to], dashed:true});
+      }
+      polys.push({pts:(shot.displayPoints || shot.path.points), dashed:false});
+      return polys;
+    }
+
+    const r = shot.departureAttackResult;
+    if(!r || r.status !== 'ok' || !r.attackPoint) return polys;
+    const cueKey = cueBallKeyFromControls(c);
+    const cuePoint = balls[cueKey] || balls.white;
+    if(isCushionFirstModeValue(c.mode)){
+      polys.push({pts:[cuePoint, r.attackPoint], dashed:false});
+    } else {
+      const firstBallPoint = balls[shot.firstBall];
+      if(firstBallPoint){
+        polys.push({pts:[cuePoint, firstBallPoint], dashed:true});
+        polys.push({pts:[firstBallPoint, r.attackPoint], dashed:false});
+      } else {
+        polys.push({pts:[cuePoint, r.attackPoint], dashed:false});
+      }
+    }
+    const segs = newLklBlueRouteSegmentsAfterAttack(shot);
+    for(const s of segs) polys.push({pts:[s.a, s.b], dashed:!!s.dashed});
+    return polys;
+  }
+
+  function videoReplayAttackPointWorld(){
+    const shot = currentShot;
+    if(!shot) return null;
+    if(shot.departureAttackResult && shot.departureAttackResult.status === 'ok'){
+      return shot.departureAttackResult.attackPoint || null;
+    }
+    return shot.visualAttackCorrected || shot.attackCorrected || null;
+  }
+
+  // Homografía mundo (80 × 40) -> píxeles del lienzo de video,
+  // reutilizando homographyFromFourPoints del localizador fotográfico.
+  function videoReplayHomography(cw, ch){
+    const corners = (videoReplay.mode === 'calibrate' && videoReplay.corners)
+      ? videoReplay.corners
+      : (videoReplay.calib && videoReplay.calib.corners);
+    if(!corners || corners.length !== 4) return null;
+    const src = [{x:0,y:0},{x:TABLE.W,y:0},{x:TABLE.W,y:TABLE.H},{x:0,y:TABLE.H}];
+    const dst = corners.map(p => ({x:p.x*cw, y:p.y*ch}));
+    return homographyFromFourPoints(src, dst);
+  }
+
+  function drawVideoReplayOverlay(g, cw, ch, opts){
+    const H = videoReplayHomography(cw, ch);
+    if(!H) return;
+    const W2V = p => applyHomography(H, p);
+
+    const outline = [{x:0,y:0},{x:TABLE.W,y:0},{x:TABLE.W,y:TABLE.H},{x:0,y:TABLE.H}].map(W2V);
+    if(outline.some(p => !p)) return;
+
+    g.save();
+    g.lineJoin = 'round';
+    g.lineCap = 'round';
+
+    // Marco del área jugable proyectado sobre el video.
+    g.beginPath();
+    outline.forEach((p,i) => i ? g.lineTo(p.x,p.y) : g.moveTo(p.x,p.y));
+    g.closePath();
+    g.strokeStyle = 'rgba(0,0,0,.72)'; g.lineWidth = 4; g.stroke();
+    g.strokeStyle = 'rgba(255,255,255,.82)'; g.lineWidth = 1.6; g.stroke();
+
+    // Diamantes proyectados: sirven para verificar la calibración a ojo.
+    g.fillStyle = 'rgba(255,255,255,.88)';
+    g.strokeStyle = 'rgba(0,0,0,.66)';
+    g.lineWidth = 1;
+    const diamondPts = [];
+    for(let x=10; x<TABLE.W; x+=10){ diamondPts.push({x, y:0}, {x, y:TABLE.H}); }
+    for(let y=10; y<TABLE.H; y+=10){ diamondPts.push({x:0, y}, {x:TABLE.W, y}); }
+    for(const d of diamondPts){
+      const q = W2V(d); if(!q) continue;
+      g.beginPath(); g.arc(q.x, q.y, 3.1, 0, Math.PI*2); g.fill(); g.stroke();
+    }
+
+    // Anillos en las posiciones registradas de las bolas: si coinciden
+    // con las bolas reales del video, la calibración es correcta.
+    for(const key of ['white','yellow','red']){
+      const centre = balls[key]; if(!centre) continue;
+      const q = W2V(centre); if(!q) continue;
+      const edge = W2V({x:centre.x + BALL_R, y:centre.y});
+      const r = edge ? Math.max(4, Math.hypot(edge.x-q.x, edge.y-q.y)) : 8;
+      g.beginPath(); g.arc(q.x, q.y, r, 0, Math.PI*2);
+      g.strokeStyle = 'rgba(0,0,0,.75)'; g.lineWidth = 3.4; g.stroke();
+      g.strokeStyle = colors[key]; g.lineWidth = 1.7; g.stroke();
+    }
+
+    // Trayectoria teórica calculada por la app.
+    if(opts.route){
+      const polys = videoReplayRouteWorld();
+      for(const poly of polys){
+        const pts = poly.pts.map(W2V);
+        if(pts.length < 2 || pts.some(p => !p)) continue;
+        g.beginPath();
+        pts.forEach((p,i) => i ? g.lineTo(p.x,p.y) : g.moveTo(p.x,p.y));
+        g.setLineDash(poly.dashed ? [10,8] : []);
+        g.strokeStyle = 'rgba(0,0,0,.78)'; g.lineWidth = 6.4; g.stroke();
+        g.strokeStyle = '#62d7ff'; g.lineWidth = 3.1; g.stroke();
+        g.setLineDash([]);
+      }
+      const attack = videoReplayAttackPointWorld();
+      if(attack){
+        const q = W2V(attack);
+        if(q){
+          g.beginPath(); g.arc(q.x, q.y, 6.4, 0, Math.PI*2);
+          g.fillStyle = '#62d7ff'; g.fill();
+          g.strokeStyle = 'rgba(0,0,0,.8)'; g.lineWidth = 2.2; g.stroke();
+          g.font = '800 15px ui-sans-serif, system-ui';
+          g.lineWidth = 3.4; g.strokeStyle = 'rgba(0,0,0,.8)'; g.fillStyle = '#ffffff';
+          g.strokeText('Ataque', q.x + 11, q.y - 9);
+          g.fillText('Ataque', q.x + 11, q.y - 9);
+        }
+      }
+    }
+
+    // Manijas de calibración (solo en el paso de calibración).
+    if(opts.handles && videoReplay.corners){
+      videoReplay.corners.forEach((p,i) => {
+        const x = p.x*cw, y = p.y*ch;
+        const sel = i === videoReplay.selCorner;
+        g.beginPath(); g.arc(x, y, sel ? 13 : 10, 0, Math.PI*2);
+        g.fillStyle = sel ? 'rgba(255,210,63,.30)' : 'rgba(98,215,255,.20)'; g.fill();
+        g.strokeStyle = sel ? '#ffd23f' : '#62d7ff'; g.lineWidth = 2.2; g.stroke();
+        g.beginPath();
+        g.moveTo(x-16, y); g.lineTo(x+16, y);
+        g.moveTo(x, y-16); g.lineTo(x, y+16);
+        g.strokeStyle = 'rgba(0,0,0,.8)'; g.lineWidth = 3; g.stroke();
+        g.strokeStyle = sel ? '#ffd23f' : '#ffffff'; g.lineWidth = 1.3; g.stroke();
+        g.font = '900 14px ui-sans-serif, system-ui';
+        g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,.85)';
+        g.fillStyle = sel ? '#ffd23f' : '#ffffff';
+        g.strokeText(String(i+1), x + 12, y - 12);
+        g.fillText(String(i+1), x + 12, y - 12);
+      });
+    }
+
+    g.restore();
+  }
+
+  function videoReplayDuration(){
+    const v = ids('videoReplayPlayback');
+    if(videoReplay.duration && Number.isFinite(videoReplay.duration) && videoReplay.duration > 0) return videoReplay.duration;
+    if(v && Number.isFinite(v.duration) && v.duration > 0){
+      videoReplay.duration = v.duration;
+      return v.duration;
+    }
+    return 0;
+  }
+
+  function syncVideoReplayScrub(){
+    if(videoReplay.scrubbing) return;
+    const v = ids('videoReplayPlayback');
+    const scrub = ids('videoReplayScrub');
+    const d = videoReplayDuration();
+    if(!v || !scrub || !d) return;
+    scrub.value = String(Math.round(clamp(v.currentTime/d, 0, 1) * 1000));
+    const play = ids('videoReplayPlayBtn');
+    if(play) play.textContent = v.paused ? 'Reproducir' : 'Pausar';
+  }
+
+  function videoReplayRender(){
+    const modal = ids('videoReplayModal');
+    if(!modal || !modal.classList.contains('active')){ videoReplay.raf = 0; return; }
+    videoReplay.raf = requestAnimationFrame(videoReplayRender);
+
+    const canvasEl = ids('videoReplayCanvas');
+    const pane = canvasEl && canvasEl.parentElement;
+    if(!canvasEl || !pane) return;
+
+    const source = videoReplay.mode === 'replay' ? ids('videoReplayPlayback') : ids('videoReplayLive');
+    const vw = source ? source.videoWidth : 0;
+    const vh = source ? source.videoHeight : 0;
+
+    const paneW = pane.clientWidth, paneH = pane.clientHeight;
+    if(!paneW || !paneH) return;
+    const aspect = (vw && vh) ? vw/vh : 16/9;
+    let cw = paneW, ch = Math.round(cw/aspect);
+    if(ch > paneH){ ch = paneH; cw = Math.round(ch*aspect); }
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    if(canvasEl.width !== Math.round(cw*dpr) || canvasEl.height !== Math.round(ch*dpr)){
+      canvasEl.width = Math.round(cw*dpr);
+      canvasEl.height = Math.round(ch*dpr);
+      canvasEl.style.width = cw + 'px';
+      canvasEl.style.height = ch + 'px';
+    }
+    videoReplay.fit = {cw, ch};
+
+    const g = canvasEl.getContext('2d');
+    g.setTransform(dpr,0,0,dpr,0,0);
+    g.fillStyle = '#05070a';
+    g.fillRect(0,0,cw,ch);
+
+    if(vw && vh){
+      // Giro de 180°, igual que la captura cenital del detector automático.
+      g.save();
+      g.translate(cw, ch);
+      g.rotate(Math.PI);
+      g.drawImage(source, 0, 0, cw, ch);
+      g.restore();
+    } else {
+      g.fillStyle = 'rgba(255,255,255,.55)';
+      g.font = '700 15px ui-sans-serif, system-ui';
+      g.textAlign = 'center';
+      g.fillText(videoReplay.mode === 'replay' ? 'Cargando video…' : 'Esperando imagen de la cámara…', cw/2, ch/2);
+      g.textAlign = 'left';
+    }
+
+    if(videoReplay.mode === 'calibrate'){
+      drawVideoReplayOverlay(g, cw, ch, {route:true, handles:true});
+    } else if(videoReplay.mode === 'record'){
+      const chk = ids('videoReplayShowGuideRec');
+      if(!chk || chk.checked) drawVideoReplayOverlay(g, cw, ch, {route:true, handles:false});
+    } else if(videoReplay.mode === 'replay'){
+      const chk = ids('videoReplayShowGuide');
+      if(!chk || chk.checked) drawVideoReplayOverlay(g, cw, ch, {route:true, handles:false});
+      syncVideoReplayScrub();
+    }
+  }
+
+  function setVideoReplayMode(mode){
+    videoReplay.mode = mode;
+    const visible = {
+      calibrate:'videoReplayCalibPanel',
+      record:'videoReplayRecordPanel',
+      replay:'videoReplayPlaybackPanel'
+    }[mode];
+    ['videoReplayCalibPanel','videoReplayRecordPanel','videoReplayPlaybackPanel'].forEach(id => {
+      const el = ids(id);
+      if(el) el.style.display = id === visible ? '' : 'none';
+    });
+    const step = ids('videoReplayStep');
+    if(step){
+      step.textContent = mode === 'calibrate'
+        ? 'Paso 1 · Calibración: haga coincidir los cuatro puntos con las esquinas internas del paño.'
+        : mode === 'record'
+          ? 'Paso 2 · Grabación: ejecute la tacada mientras la cámara cenital graba.'
+          : 'Paso 3 · Revisión: compare la ejecución real con la trayectoria calculada.';
+    }
+  }
+
+  function setVideoReplayStatus(msg, tone='neutral'){
+    const el = ids('videoReplayStatus');
+    if(!el) return;
+    el.textContent = msg;
+    el.classList.toggle('good', tone === 'good');
+    el.classList.toggle('bad', tone === 'bad');
+  }
+
+  function resetVideoReplayRecordButtons(){
+    const startBtn = ids('videoReplayStartBtn');
+    const stopBtn = ids('videoReplayStopBtn');
+    const dot = ids('videoReplayRecDot');
+    const hint = ids('videoReplayRecHint');
+    if(startBtn){ startBtn.disabled = false; startBtn.textContent = 'Iniciar grabación'; }
+    if(stopBtn) stopBtn.disabled = true;
+    if(dot) dot.style.display = 'none';
+    if(hint) hint.textContent = 'Cuando esté listo, pulse Iniciar grabación, ejecute la tacada y luego pulse Detener y revisar.';
+    if(videoReplay.recTimerId){ clearInterval(videoReplay.recTimerId); videoReplay.recTimerId = 0; }
+  }
+
+  async function openVideoReplayModal(startMode){
+    const modal = ids('videoReplayModal');
+    if(!modal) return;
+    modal.classList.add('active');
+    modal.setAttribute('aria-hidden','false');
+
+    videoReplay.calib = videoReplay.calib || loadVideoCalibration();
+    if(startMode === 'record' && !videoReplay.calib){
+      startMode = 'calibrate';
+      setVideoReplayStatus('Antes de grabar hay que calibrar una sola vez las cuatro esquinas de la mesa en el video.');
+    }
+    if(startMode === 'calibrate'){
+      const base = (videoReplay.calib && videoReplay.calib.corners) || [
+        {x:.18, y:.16},{x:.82, y:.16},{x:.82, y:.84},{x:.18, y:.84}
+      ];
+      videoReplay.corners = base.map(p => ({x:p.x, y:p.y}));
+      videoReplay.selCorner = 0;
+      updateVideoReplayCornerButtons();
+    }
+    setVideoReplayMode(startMode);
+    resetVideoReplayRecordButtons();
+    if(!videoReplay.raf) videoReplay.raf = requestAnimationFrame(videoReplayRender);
+
+    const startBtn = ids('videoReplayStartBtn');
+    if(startBtn) startBtn.disabled = true;
+    try{
+      setVideoReplayStatus('Abriendo la cámara cenital en modo 1920 × 1080…');
+      await openVideoReplayStream();
+      const audioNote = videoReplay.hasAudio
+        ? ' La grabación incluirá el audio del micrófono de la cámara.'
+        : ' No fue posible activar el micrófono: la grabación quedará sin audio.';
+      setVideoReplayStatus(startMode === 'calibrate'
+        ? 'Cámara lista. Arrastre los cuatro puntos hasta las esquinas internas del paño; los anillos de las bolas y los diamantes proyectados deben coincidir con el video.'
+        : 'Cámara lista. Pulse Iniciar grabación cuando vaya a ejecutar la tacada.' + audioNote, 'good');
+      if(startBtn) startBtn.disabled = false;
+    }catch(error){
+      setVideoReplayStatus(cameraErrorMessage(error), 'bad');
+      console.error('Video de la jugada:', error);
+    }
+  }
+
+  function closeVideoReplayModal(){
+    const modal = ids('videoReplayModal');
+    if(!modal) return;
+    modal.classList.remove('active');
+    modal.setAttribute('aria-hidden','true');
+    if(videoReplay.raf){ cancelAnimationFrame(videoReplay.raf); videoReplay.raf = 0; }
+    stopVideoReplayStream();
+    const playback = ids('videoReplayPlayback');
+    if(playback){
+      try{ playback.pause(); }catch{}
+      playback.removeAttribute('src');
+      playback.load();
+    }
+    if(videoReplay.blobUrl){ URL.revokeObjectURL(videoReplay.blobUrl); videoReplay.blobUrl = null; }
+    videoReplay.mode = 'idle';
+    videoReplay.duration = 0;
+    videoReplay.dragging = false;
+    if(videoReplay.recTimerId){ clearInterval(videoReplay.recTimerId); videoReplay.recTimerId = 0; }
+  }
+
+  function pickVideoReplayRecorderMime(){
+    if(!window.MediaRecorder || !MediaRecorder.isTypeSupported) return '';
+    const candidates = videoReplay.hasAudio
+      ? ['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm','video/mp4']
+      : ['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm','video/mp4'];
+    return candidates.find(c => { try{ return MediaRecorder.isTypeSupported(c); }catch{ return false; } }) || '';
+  }
+
+  function startVideoReplayRecording(){
+    if(!videoReplay.stream){
+      setVideoReplayStatus('La cámara no está abierta. Cierre esta ventana y vuelva a abrir el módulo.', 'bad');
+      return;
+    }
+    if(!window.MediaRecorder){
+      setVideoReplayStatus('Este navegador no permite grabar video. Use una versión reciente de Chrome o Edge.', 'bad');
+      return;
+    }
+    videoReplay.chunks = [];
+    const mime = pickVideoReplayRecorderMime();
+    let recorder = null;
+    try{
+      recorder = new MediaRecorder(videoReplay.stream, mime ? {mimeType:mime, videoBitsPerSecond:8000000} : undefined);
+    }catch(error){
+      setVideoReplayStatus('No fue posible iniciar la grabación: ' + (error && error.message ? error.message : error), 'bad');
+      return;
+    }
+    videoReplay.recorder = recorder;
+    recorder.ondataavailable = e => { if(e.data && e.data.size) videoReplay.chunks.push(e.data); };
+    recorder.onstop = finishVideoReplayRecording;
+    recorder.start(250);
+    videoReplay.recStartMs = Date.now();
+
+    const startBtn = ids('videoReplayStartBtn');
+    const stopBtn = ids('videoReplayStopBtn');
+    const dot = ids('videoReplayRecDot');
+    if(startBtn){ startBtn.disabled = true; startBtn.textContent = 'Grabando…'; }
+    if(stopBtn) stopBtn.disabled = false;
+    if(dot) dot.style.display = '';
+    setVideoReplayStatus('Grabando. Ejecute la tacada y luego pulse Detener y revisar.', 'good');
+    videoReplay.recTimerId = setInterval(() => {
+      const hint = ids('videoReplayRecHint');
+      if(!hint) return;
+      const s = Math.floor((Date.now() - videoReplay.recStartMs)/1000);
+      const mm = String(Math.floor(s/60)).padStart(2,'0');
+      const ss = String(s%60).padStart(2,'0');
+      hint.textContent = `Grabando… ${mm}:${ss}. Ejecute la tacada y luego pulse Detener y revisar.`;
+    }, 500);
+  }
+
+  function finishVideoReplayRecording(){
+    resetVideoReplayRecordButtons();
+    videoReplay.recorder = null;
+
+    const modal = ids('videoReplayModal');
+    if(!modal || !modal.classList.contains('active')){
+      videoReplay.chunks = [];
+      return;
+    }
+    if(!videoReplay.chunks.length){
+      setVideoReplayStatus('La grabación no produjo datos. Intente de nuevo.', 'bad');
+      return;
+    }
+    const mimeGuess = videoReplay.chunks[0].type || 'video/webm';
+    const blob = new Blob(videoReplay.chunks, {type:mimeGuess});
+    videoReplay.chunks = [];
+    if(videoReplay.blobUrl) URL.revokeObjectURL(videoReplay.blobUrl);
+    videoReplay.blobUrl = URL.createObjectURL(blob);
+    videoReplay.duration = 0;
+
+    const playback = ids('videoReplayPlayback');
+    const speedSel = ids('videoReplaySpeed');
+    playback.src = videoReplay.blobUrl;
+    playback.playbackRate = speedSel ? (parseFloat(speedSel.value) || 1) : 1;
+    playback.onloadedmetadata = () => {
+      if(!Number.isFinite(playback.duration) || playback.duration <= 0){
+        // Truco conocido: los blobs WebM de MediaRecorder pueden no declarar
+        // duración; una búsqueda a un tiempo enorme obliga al navegador a calcularla.
+        const restore = () => {
+          playback.removeEventListener('timeupdate', restore);
+          videoReplay.duration = Number.isFinite(playback.duration) ? playback.duration : 0;
+          playback.currentTime = 0;
+        };
+        playback.addEventListener('timeupdate', restore);
+        playback.currentTime = 1e6;
+      } else {
+        videoReplay.duration = playback.duration;
+      }
+    };
+    setVideoReplayMode('replay');
+    setVideoReplayStatus('Grabación lista. Reproduzca, avance cuadro a cuadro o use cámara lenta para comparar la ejecución con la trayectoria azul calculada.', 'good');
+  }
+
+  function videoReplayCanvasPointFromEvent(e){
+    const canvasEl = ids('videoReplayCanvas');
+    const rect = canvasEl.getBoundingClientRect();
+    return {
+      x: clamp((e.clientX - rect.left) / Math.max(rect.width, 1), 0, 1),
+      y: clamp((e.clientY - rect.top) / Math.max(rect.height, 1), 0, 1)
+    };
+  }
+
+  function updateVideoReplayCornerButtons(){
+    document.querySelectorAll('#videoReplayCornerBtns button').forEach(btn => {
+      const idx = Number(btn.dataset.corner);
+      btn.style.outline = idx === videoReplay.selCorner ? '2px solid #ffd23f' : '';
+      btn.style.outlineOffset = idx === videoReplay.selCorner ? '2px' : '';
+    });
+    const selLbl = ids('vrNudgeSel');
+    if(selLbl) selLbl.textContent = 'P' + (videoReplay.selCorner + 1);
+  }
+
+  function nudgeVideoReplayCorner(dx, dy){
+    if(videoReplay.mode !== 'calibrate' || !videoReplay.corners) return;
+    const {cw, ch} = videoReplay.fit;
+    if(!cw || !ch) return;
+    const p = videoReplay.corners[videoReplay.selCorner];
+    p.x = clamp(p.x + dx/cw, 0, 1);
+    p.y = clamp(p.y + dy/ch, 0, 1);
+  }
+
+  function setupVideoReplay(){
+    videoReplay.calib = loadVideoCalibration();
+    updateVideoReplayModuleState();
+
+    const recordBtn = ids('videoReplayRecordBtn');
+    const calibBtn = ids('videoReplayCalibBtn');
+    if(recordBtn) recordBtn.addEventListener('click', () => openVideoReplayModal('record'));
+    if(calibBtn) calibBtn.addEventListener('click', () => openVideoReplayModal('calibrate'));
+
+    const closeBtn = ids('videoReplayClose');
+    if(closeBtn) closeBtn.addEventListener('click', closeVideoReplayModal);
+
+    const canvasEl = ids('videoReplayCanvas');
+    if(canvasEl){
+      canvasEl.style.touchAction = 'none';
+      canvasEl.oncontextmenu = () => false;
+      canvasEl.addEventListener('pointerdown', e => {
+        if(videoReplay.mode !== 'calibrate' || !videoReplay.corners) return;
+        const {cw, ch} = videoReplay.fit;
+        if(!cw || !ch) return;
+        const p = videoReplayCanvasPointFromEvent(e);
+        let best = -1, bestD = Infinity;
+        videoReplay.corners.forEach((c,i) => {
+          const d = Math.hypot((c.x - p.x)*cw, (c.y - p.y)*ch);
+          if(d < bestD){ bestD = d; best = i; }
+        });
+        if(best >= 0 && bestD <= 46) videoReplay.selCorner = best;
+        updateVideoReplayCornerButtons();
+        videoReplay.corners[videoReplay.selCorner] = p;
+        videoReplay.dragging = true;
+        try{ canvasEl.setPointerCapture(e.pointerId); }catch{}
+        if(e.cancelable) e.preventDefault();
+      });
+      canvasEl.addEventListener('pointermove', e => {
+        if(!videoReplay.dragging || videoReplay.mode !== 'calibrate' || !videoReplay.corners) return;
+        videoReplay.corners[videoReplay.selCorner] = videoReplayCanvasPointFromEvent(e);
+        if(e.cancelable) e.preventDefault();
+      });
+      const endDrag = () => { videoReplay.dragging = false; };
+      canvasEl.addEventListener('pointerup', endDrag);
+      canvasEl.addEventListener('pointercancel', endDrag);
+    }
+
+    document.querySelectorAll('#videoReplayCornerBtns button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        videoReplay.selCorner = Number(btn.dataset.corner) || 0;
+        updateVideoReplayCornerButtons();
+      });
+    });
+
+    const nudges = [
+      ['vrNudgeUp', 0, -1], ['vrNudgeDown', 0, 1],
+      ['vrNudgeLeft', -1, 0], ['vrNudgeRight', 1, 0]
+    ];
+    for(const [id, dx, dy] of nudges){
+      const btn = ids(id);
+      if(btn) btn.addEventListener('click', () => nudgeVideoReplayCorner(dx, dy));
+    }
+
+    document.addEventListener('keydown', e => {
+      const modal = ids('videoReplayModal');
+      if(!modal || !modal.classList.contains('active')) return;
+      if(e.key === 'Escape'){ closeVideoReplayModal(); return; }
+      if(videoReplay.mode !== 'calibrate') return;
+      const step = e.shiftKey ? 5 : 1;
+      if(e.key === 'ArrowUp'){ nudgeVideoReplayCorner(0, -step); e.preventDefault(); }
+      else if(e.key === 'ArrowDown'){ nudgeVideoReplayCorner(0, step); e.preventDefault(); }
+      else if(e.key === 'ArrowLeft'){ nudgeVideoReplayCorner(-step, 0); e.preventDefault(); }
+      else if(e.key === 'ArrowRight'){ nudgeVideoReplayCorner(step, 0); e.preventDefault(); }
+    });
+
+    const useLocatorBtn = ids('videoReplayUseLocatorBtn');
+    if(useLocatorBtn) useLocatorBtn.addEventListener('click', () => {
+      const corners = locatorCornersNormalized();
+      if(!corners){
+        setVideoReplayStatus('No hay esquinas confirmadas de una captura cenital del detector. Use Capturar mesa en el módulo de fotografía, confirme las cuatro esquinas y aplique las posiciones; la calibración se tomará de allí.', 'bad');
+        return;
+      }
+      videoReplay.corners = corners;
+      setVideoReplayStatus('Esquinas del detector cargadas. Verifique que los anillos de las bolas coincidan con el video y guarde la calibración.', 'good');
+    });
+
+    const saveCalibBtn = ids('videoReplaySaveCalibBtn');
+    if(saveCalibBtn) saveCalibBtn.addEventListener('click', () => {
+      if(!videoReplay.corners) return;
+      saveVideoCalibration(videoReplay.corners, 'manual');
+      setVideoReplayMode('record');
+      resetVideoReplayRecordButtons();
+      setVideoReplayStatus('Calibración guardada. Se conservará mientras la cámara no se mueva. Pulse Iniciar grabación cuando vaya a ejecutar la tacada.', 'good');
+    });
+
+    const startBtn = ids('videoReplayStartBtn');
+    if(startBtn) startBtn.addEventListener('click', startVideoReplayRecording);
+
+    const stopBtn = ids('videoReplayStopBtn');
+    if(stopBtn) stopBtn.addEventListener('click', () => {
+      stopBtn.disabled = true;
+      if(videoReplay.recorder && videoReplay.recorder.state === 'recording'){
+        try{ videoReplay.recorder.stop(); }catch{}
+      }
+    });
+
+    const playback = ids('videoReplayPlayback');
+    const playBtn = ids('videoReplayPlayBtn');
+    if(playBtn && playback) playBtn.addEventListener('click', () => {
+      if(playback.paused){
+        const speedSel = ids('videoReplaySpeed');
+        playback.playbackRate = speedSel ? (parseFloat(speedSel.value) || 1) : 1;
+        playback.play().catch(() => {});
+      } else {
+        playback.pause();
+      }
+    });
+
+    const stepBack = ids('videoReplayStepBack');
+    const stepFwd = ids('videoReplayStepFwd');
+    const frameStep = dir => {
+      if(!playback || !playback.src) return;
+      playback.pause();
+      const d = videoReplayDuration() || Infinity;
+      playback.currentTime = clamp(playback.currentTime + dir/30, 0, d);
+    };
+    if(stepBack) stepBack.addEventListener('click', () => frameStep(-1));
+    if(stepFwd) stepFwd.addEventListener('click', () => frameStep(1));
+
+    const speedSel = ids('videoReplaySpeed');
+    if(speedSel && playback) speedSel.addEventListener('change', () => {
+      playback.playbackRate = parseFloat(speedSel.value) || 1;
+    });
+
+    const scrub = ids('videoReplayScrub');
+    if(scrub && playback){
+      scrub.addEventListener('input', () => {
+        videoReplay.scrubbing = true;
+        const d = videoReplayDuration();
+        if(d) playback.currentTime = (Number(scrub.value)/1000) * d;
+      });
+      const endScrub = () => { videoReplay.scrubbing = false; };
+      scrub.addEventListener('change', endScrub);
+      scrub.addEventListener('pointerup', endScrub);
+    }
+
+    const againBtn = ids('videoReplayAgainBtn');
+    if(againBtn) againBtn.addEventListener('click', async () => {
+      if(playback){ try{ playback.pause(); }catch{} }
+      setVideoReplayMode('record');
+      resetVideoReplayRecordButtons();
+      try{
+        await openVideoReplayStream();
+        setVideoReplayStatus('Cámara lista. Pulse Iniciar grabación cuando vaya a ejecutar la tacada. La grabación anterior se descartará al grabar una nueva.' + (videoReplay.hasAudio ? '' : ' No fue posible activar el micrófono: la grabación quedará sin audio.'), 'good');
+      }catch(error){
+        setVideoReplayStatus(cameraErrorMessage(error), 'bad');
+      }
+    });
+
+    const downloadBtn = ids('videoReplayDownloadBtn');
+    if(downloadBtn) downloadBtn.addEventListener('click', () => {
+      if(!videoReplay.blobUrl){
+        setVideoReplayStatus('No hay ninguna grabación para descargar.', 'bad');
+        return;
+      }
+      const a = document.createElement('a');
+      const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      a.href = videoReplay.blobUrl;
+      a.download = `jugada-cenital-${stamp}.webm`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setVideoReplayStatus('Video descargado, con su audio. El archivo conserva la orientación original de la cámara (girado 180° respecto de la vista en la app) y no incluye la línea azul: la superposición se hace en la reproducción dentro de la app.', 'good');
+    });
+  }
+
 
   setupPositionInputHandlers();
   installMobileZoomGuards();
   setupTableTouchPrecisionControls();
   setupPhotoLocator();
+  setupVideoReplay();
   setupConnectorMapButton();
 
   document.querySelectorAll('select,input').forEach(el=>{
