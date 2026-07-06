@@ -2022,7 +2022,10 @@
 <label style="display:flex; gap:8px; align-items:center; cursor:pointer;"><input checked="" id="videoReplayShowGuide" style="width:auto" type="checkbox"/> <span class="small">Superponer trayectoria calculada</span></label>
 <div class="videoReplayRow">
 <button id="videoReplayAgainBtn" type="button">Grabar otra jugada</button>
-<button id="videoReplayDownloadBtn" type="button">Descargar video</button>
+<button id="videoReplayDownloadBtn" type="button">Descargar video original</button>
+</div>
+<div class="videoReplayRow">
+<button class="cameraCaptureBtn" id="videoReplayExportBtn" style="margin:0" type="button">Descargar con trayectoria</button>
 </div>
 </div>
 <div class="videoReplayGroup">
@@ -12040,7 +12043,12 @@ function drawStartMarks(){
     countdownUntil:0,
     countdownTimerId:0,
     flashUntil:0,
-    audioCtx:null
+    audioCtx:null,
+    exporting:false,
+    exportRaf:0,
+    exportRecorder:null,
+    exportChunks:[],
+    exportVideoEl:null
   };
 
   function loadVideoCalibration(){
@@ -12509,6 +12517,7 @@ function drawStartMarks(){
   function closeVideoReplayModal(){
     const modal = ids('videoReplayModal');
     if(!modal) return;
+    abortVideoReplayExport(true);
     modal.classList.remove('active');
     modal.setAttribute('aria-hidden','true');
     if(videoReplay.raf){ cancelAnimationFrame(videoReplay.raf); videoReplay.raf = 0; }
@@ -12706,6 +12715,212 @@ function drawStartMarks(){
     p.y = clamp(p.y + dy/ch, 0, 1);
   }
 
+  function abortVideoReplayExport(silent){
+    if(!videoReplay.exporting) return;
+    videoReplay.exporting = false;
+    if(videoReplay.exportRaf){ cancelAnimationFrame(videoReplay.exportRaf); videoReplay.exportRaf = 0; }
+    if(videoReplay.exportRecorder && videoReplay.exportRecorder.state === 'recording'){
+      try{ videoReplay.exportRecorder.onstop = null; videoReplay.exportRecorder.stop(); }catch{}
+    }
+    videoReplay.exportRecorder = null;
+    videoReplay.exportChunks = [];
+    if(videoReplay.exportVideoEl){
+      try{ videoReplay.exportVideoEl.pause(); }catch{}
+      videoReplay.exportVideoEl.removeAttribute('src');
+      try{ videoReplay.exportVideoEl.load(); }catch{}
+      videoReplay.exportVideoEl = null;
+    }
+    setVideoReplayExportUi(false);
+    if(!silent) setVideoReplayStatus('Exportación cancelada.');
+  }
+
+  function setVideoReplayExportUi(busy){
+    const exportBtn = ids('videoReplayExportBtn');
+    const againBtn = ids('videoReplayAgainBtn');
+    const downloadBtn = ids('videoReplayDownloadBtn');
+    if(exportBtn){
+      exportBtn.disabled = busy;
+      exportBtn.textContent = busy ? 'Exportando…' : 'Descargar con trayectoria';
+    }
+    if(againBtn) againBtn.disabled = busy;
+    if(downloadBtn) downloadBtn.disabled = busy;
+  }
+
+  // Exportación posterior: reproduce internamente la grabación y la vuelve a
+  // codificar cuadro a cuadro con la orientación corregida y la superposición
+  // incrustada (marco, diamantes, anillos de bolas, trayectoria y Ataque),
+  // conservando el audio original. Ocurre en tiempo real: un video de 30 s
+  // tarda unos 30 s. La pestaña debe permanecer visible mientras termina.
+  async function exportVideoReplayWithOverlay(){
+    if(videoReplay.exporting) return;
+    if(!videoReplay.blobUrl){
+      setVideoReplayStatus('No hay ninguna grabación para exportar.', 'bad');
+      return;
+    }
+    if(!(videoReplay.calib && videoReplay.calib.corners)){
+      setVideoReplayStatus('No hay calibración guardada: la trayectoria no puede incrustarse.', 'bad');
+      return;
+    }
+    if(!window.MediaRecorder){
+      setVideoReplayStatus('Este navegador no permite recodificar video. Use una versión reciente de Chrome o Edge.', 'bad');
+      return;
+    }
+
+    const playback = ids('videoReplayPlayback');
+    if(playback){ try{ playback.pause(); }catch{} }
+
+    videoReplay.exporting = true;
+    setVideoReplayExportUi(true);
+    setVideoReplayStatus('Preparando la exportación…');
+
+    const srcVideo = document.createElement('video');
+    videoReplay.exportVideoEl = srcVideo;
+    srcVideo.src = videoReplay.blobUrl;
+    srcVideo.playsInline = true;
+    srcVideo.preload = 'auto';
+
+    const failExport = message => {
+      videoReplay.exporting = false;
+      if(videoReplay.exportRaf){ cancelAnimationFrame(videoReplay.exportRaf); videoReplay.exportRaf = 0; }
+      videoReplay.exportRecorder = null;
+      videoReplay.exportChunks = [];
+      videoReplay.exportVideoEl = null;
+      setVideoReplayExportUi(false);
+      setVideoReplayStatus(message, 'bad');
+    };
+
+    try{
+      await new Promise((resolve, reject) => {
+        srcVideo.onloadedmetadata = () => resolve();
+        srcVideo.onerror = () => reject(new Error('No fue posible leer la grabación.'));
+      });
+      if(!Number.isFinite(srcVideo.duration) || srcVideo.duration <= 0){
+        // Mismo truco de duración usado en la reproducción de blobs WebM.
+        await new Promise(resolve => {
+          const restore = () => { srcVideo.removeEventListener('timeupdate', restore); resolve(); };
+          srcVideo.addEventListener('timeupdate', restore);
+          srcVideo.currentTime = 1e6;
+        });
+        srcVideo.currentTime = 0;
+        await new Promise(r => setTimeout(r, 150));
+      }
+    }catch(error){
+      failExport('No fue posible preparar la exportación: ' + (error && error.message ? error.message : error));
+      return;
+    }
+
+    const vw = srcVideo.videoWidth || 1280;
+    const vh = srcVideo.videoHeight || 720;
+    const total = (Number.isFinite(srcVideo.duration) && srcVideo.duration > 0)
+      ? srcVideo.duration
+      : (videoReplay.duration || 0);
+
+    const exportCanvas = document.createElement('canvas');
+    exportCanvas.width = vw;
+    exportCanvas.height = vh;
+    const g = exportCanvas.getContext('2d');
+
+    // Audio: el elemento se enruta por un grafo de audio hacia la pista
+    // exportada, sin conexión a los parlantes, para no oírlo durante el proceso.
+    let audioTracks = [];
+    try{
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if(Ctx){
+        if(!videoReplay.audioCtx) videoReplay.audioCtx = new Ctx();
+        if(videoReplay.audioCtx.state === 'suspended') videoReplay.audioCtx.resume();
+        const sourceNode = videoReplay.audioCtx.createMediaElementSource(srcVideo);
+        const destNode = videoReplay.audioCtx.createMediaStreamDestination();
+        sourceNode.connect(destNode);
+        audioTracks = destNode.stream.getAudioTracks();
+      }
+    }catch(audioError){
+      console.warn('Exportación: el audio no pudo enrutarse, se exporta sin sonido.', audioError);
+    }
+
+    const canvasStream = exportCanvas.captureStream(30);
+    const combined = new MediaStream(canvasStream.getVideoTracks().concat(audioTracks));
+
+    const mimeCandidates = ['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm','video/mp4'];
+    let mime = '';
+    if(MediaRecorder.isTypeSupported){
+      mime = mimeCandidates.find(c => { try{ return MediaRecorder.isTypeSupported(c); }catch{ return false; } }) || '';
+    }
+
+    let recorder = null;
+    try{
+      recorder = new MediaRecorder(combined, mime ? {mimeType:mime, videoBitsPerSecond:8000000} : undefined);
+    }catch(error){
+      failExport('No fue posible iniciar la recodificación: ' + (error && error.message ? error.message : error));
+      return;
+    }
+
+    videoReplay.exportRecorder = recorder;
+    videoReplay.exportChunks = [];
+    recorder.ondataavailable = e => { if(e.data && e.data.size) videoReplay.exportChunks.push(e.data); };
+    recorder.onstop = () => {
+      const chunks = videoReplay.exportChunks;
+      videoReplay.exportChunks = [];
+      const wasExporting = videoReplay.exporting;
+      videoReplay.exporting = false;
+      if(videoReplay.exportRaf){ cancelAnimationFrame(videoReplay.exportRaf); videoReplay.exportRaf = 0; }
+      videoReplay.exportRecorder = null;
+      try{ srcVideo.pause(); }catch{}
+      videoReplay.exportVideoEl = null;
+      setVideoReplayExportUi(false);
+      if(!wasExporting) return;
+      if(!chunks.length){
+        setVideoReplayStatus('La exportación no produjo datos. Intente de nuevo.', 'bad');
+        return;
+      }
+      const blob = new Blob(chunks, {type: chunks[0].type || 'video/webm'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      a.href = url;
+      a.download = 'jugada-con-trayectoria-' + stamp + '.webm';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      setVideoReplayStatus('Video con trayectoria descargado: orientación corregida, marco de la mesa, anillos de las bolas, línea azul, punto de Ataque y audio incrustados. Se ve igual en cualquier reproductor.', 'good');
+    };
+
+    const drawExportFrame = () => {
+      if(!videoReplay.exporting) return;
+      videoReplay.exportRaf = requestAnimationFrame(drawExportFrame);
+      g.fillStyle = '#05070a';
+      g.fillRect(0, 0, vw, vh);
+      g.save();
+      g.translate(vw, vh);
+      g.rotate(Math.PI);
+      g.drawImage(srcVideo, 0, 0, vw, vh);
+      g.restore();
+      drawVideoReplayOverlay(g, vw, vh, {route:true, handles:false});
+      if(total){
+        const pct = Math.min(100, Math.round((srcVideo.currentTime/total)*100));
+        setVideoReplayStatus('Exportando con trayectoria… ' + pct + ' %. No cambie de pestaña hasta que termine.');
+      }
+    };
+
+    srcVideo.onended = () => {
+      // Pequeño margen para que el último cuadro y el audio queden en el archivo.
+      setTimeout(() => {
+        if(videoReplay.exportRecorder && videoReplay.exportRecorder.state === 'recording'){
+          try{ videoReplay.exportRecorder.stop(); }catch{}
+        }
+      }, 300);
+    };
+
+    try{
+      await srcVideo.play();
+    }catch(error){
+      failExport('El navegador no permitió reproducir la grabación para exportarla. Pulse el botón de nuevo.');
+      return;
+    }
+    recorder.start(250);
+    drawExportFrame();
+  }
+
   function setupVideoReplay(){
     videoReplay.calib = loadVideoCalibration();
     updateVideoReplayModuleState();
@@ -12861,6 +13076,9 @@ function drawStartMarks(){
       }
     });
 
+    const exportBtn = ids('videoReplayExportBtn');
+    if(exportBtn) exportBtn.addEventListener('click', exportVideoReplayWithOverlay);
+
     const downloadBtn = ids('videoReplayDownloadBtn');
     if(downloadBtn) downloadBtn.addEventListener('click', () => {
       if(!videoReplay.blobUrl){
@@ -12874,7 +13092,7 @@ function drawStartMarks(){
       document.body.appendChild(a);
       a.click();
       a.remove();
-      setVideoReplayStatus('Video descargado, con su audio. El archivo conserva la orientación original de la cámara (girado 180° respecto de la vista en la app) y no incluye la línea azul: la superposición se hace en la reproducción dentro de la app.', 'good');
+      setVideoReplayStatus('Video original descargado, con su audio. Conserva la orientación de la cámara (girado 180°) y no incluye la línea azul. Para un archivo con la orientación corregida y la trayectoria incrustada, use Descargar con trayectoria.', 'good');
     });
   }
 
