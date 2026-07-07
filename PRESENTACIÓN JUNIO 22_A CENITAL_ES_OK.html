@@ -232,6 +232,9 @@
   }
 }
 
+/* Sección de video de la jugada (julio 2026) */
+.appShot video{display:block; width:100%; height:auto; background:#0b0d11}
+.appShot.videoShot{max-width:880px; margin-left:auto; margin-right:auto}
 </style>
 </head>
 <body>
@@ -244,6 +247,7 @@
       <a href="#efectos">Efectos</a>
       <a href="#foto">Foto</a>
       <a href="#camara">Cámara cenital</a>
+      <a href="#video">Video de la jugada</a>
       <a href="#suscripcion">Suscripción</a>
     </div>
   </div>
@@ -252,7 +256,7 @@
 <header class="hero wrap">
   <div class="eyebrow">Presentación del programa</div>
   <h1>El cálculo de tres bandas, convertido en una <em>mesa visual</em></h1>
-  <p class="lede">Un asistente digital para entrenar billar a tres bandas en mesa profesional: ubique las bolas, elija la bola tacadora, seleccione el sistema de cálculo y vea una ruta de ataque clara antes de pararse a ejecutar el tiro.</p>
+  <p class="lede">Un asistente digital para entrenar billar a tres bandas en mesa profesional: ubique las bolas, elija la bola tacadora, seleccione el sistema de cálculo y vea una ruta de ataque clara antes de pararse a ejecutar el tiro. Y cuando lo ejecute, <b>grábese</b>: la app reproduce su tacada real con esa misma trayectoria superpuesta sobre el video.</p>
 
   <div class="heroGrid reveal">
     <div class="heroCard">
@@ -392,8 +396,30 @@
     <div class="note gold"><b>La alternativa permanece:</b> quien no tenga una cámara cenital puede subir una fotografía desde el computador y utilizar exactamente el mismo detector automático y el mismo ajuste fino.</div>
   </section>
 
+  <section id="video" class="wrap reveal">
+    <div class="secHead"><span class="secMark">07</span><h2>Grabe la jugada real y véala con el cálculo encima</h2></div>
+    <div class="rule"></div>
+    <p>Hasta aquí, la app trabaja antes del tiro. El módulo <b>«Video de la jugada con trayectoria superpuesta»</b> trabaja después: graba la ejecución real con la cámara cenital y la reproduce con la trayectoria calculada dibujada sobre el video, junto con el marco de la mesa, los diamantes y la posición registrada de las tres bolas.</p>
+    <p>Detrás hay un logro técnico que conviene explicar sin exagerarlo. El algoritmo vive en un mundo de coordenadas exactas —una superficie de 284 × 142&nbsp;cm— y la cámara entrega píxeles de una escena real, con su perspectiva y su óptica. La app conecta los dos mundos con la misma transformación geométrica de cuatro puntos que ya usa el localizador fotográfico, calibrada una sola vez sobre las esquinas del paño. El resultado es que la línea azul del cálculo cae, cuadro a cuadro, exactamente donde debe caer sobre la mesa filmada.</p>
+
+    <figure class="appShot videoShot">
+      <div class="shotHead"><b>Video real del módulo</b><span>Jugada ejecutada · trayectoria calculada superpuesta · con audio</span></div>
+      <video controls preload="metadata" playsinline src="para_propa.mp4">Su navegador no puede reproducir este video. Puede descargarlo <a href="para_propa.mp4">aquí</a>.</video>
+    </figure>
+
+    <p><b>Para qué sirve:</b> para detectar los fallos de ejecución que el ojo no alcanza a ver en tiempo real. En este mismo video la carambola sale y, sin embargo, la revisión en cámara lenta muestra que la punta del taco se desvía levemente a la izquierda al final del golpe. Un detalle que no arruinó esta jugada, pero que en otras sí lo hará, y que ahora tiene imagen concreta y corrección posible.</p>
+
+    <div class="grid3">
+      <div class="card"><span class="tag">Grabación</span><h3>Pensada para entrenar solo</h3><p>Cuenta regresiva de 5 segundos en números gigantes y pitido de aviso para alcanzar a ubicarse en la mesa. El enfoque se bloquea automáticamente y el micrófono de la cámara registra el golpe.</p></div>
+      <div class="card alt"><span class="tag">Revisión</span><h3>Cámara lenta y cuadro a cuadro</h3><p>Velocidades de 0.25× y 0.5×, avance de un cuadro a la vez y superposición que se muestra u oculta a voluntad, para comparar la intención con la ejecución.</p></div>
+      <div class="card green"><span class="tag">Compartir</span><h3>MP4 listo para WhatsApp</h3><p>«Descargar con trayectoria» exporta un MP4 con la orientación corregida y la línea azul, el punto de ataque y el audio incrustados: se ve igual en cualquier reproductor.</p></div>
+    </div>
+
+    <div class="note gold"><b>Calibrar es un trámite de una sola vez:</b> mientras la cámara no se mueva, la calibración se conserva. Y si usted usa «Capturar mesa» del detector automático, esas mismas esquinas se adoptan solas para el video.</div>
+  </section>
+
   <section class="wrap reveal">
-    <div class="secHead"><span class="secMark">07</span><h2>Diseñada para entrenar, no para decorar</h2></div>
+    <div class="secHead"><span class="secMark">08</span><h2>Diseñada para entrenar, no para decorar</h2></div>
     <div class="rule"></div>
     <div class="grid3">
       <div class="card"><span class="tag">PC</span><h3>Análisis cómodo</h3><p>Ideal para estudiar figuras, ajustar posiciones y revisar sistemas con una mesa grande en pantalla.</p></div>
@@ -403,7 +429,7 @@
   </section>
 
   <section id="suscripcion" class="wrap reveal">
-    <div class="secHead"><span class="secMark">08</span><h2>¿Por qué suscribirse?</h2></div>
+    <div class="secHead"><span class="secMark">09</span><h2>¿Por qué suscribirse?</h2></div>
     <div class="rule"></div>
     <div class="grid3">
       <div class="card"><span class="tag">Método</span><h3>Menos cuentas, más ensayo</h3><p>La suscripción da acceso a una herramienta pensada para practicar sistemas sin interrumpir la sesión con cálculos manuales.</p></div>
@@ -432,7 +458,7 @@
 
 <footer class="wrap">
   <div class="dia">◆ ◆ ◆</div>
-  <div>Presentación comercial del asistente digital para billar a tres bandas · LKL / Base 50 · Plus · Efectos Roger Conti · Fotografía · Cámara cenital validada · Modo táctil.</div>
+  <div>Presentación comercial del asistente digital para billar a tres bandas · LKL / Base 50 · Plus · Efectos Roger Conti · Fotografía · Cámara cenital validada · Video de la jugada con trayectoria superpuesta · Modo táctil.</div>
 </footer>
 
 <script>
