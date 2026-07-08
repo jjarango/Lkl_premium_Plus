@@ -248,6 +248,9 @@ html[lang="zh-CN"] p,html[lang="zh-CN"] li,html[lang="zh-CN"] td{
   }
 }
 
+/* 击球视频章节（2026年7月） */
+.appShot video{display:block; width:100%; height:auto; background:#0b0d11}
+.appShot.videoShot{max-width:880px; margin-left:auto; margin-right:auto}
 </style>
 </head>
 <body>
@@ -260,6 +263,7 @@ html[lang="zh-CN"] p,html[lang="zh-CN"] li,html[lang="zh-CN"] td{
 <a href="#efectos">侧旋</a>
 <a href="#foto">照片</a>
 <a href="#camara">顶置摄像头</a>
+<a href="#video">击球视频</a>
 <a href="#suscripcion">订阅</a>
 </div>
 </div>
@@ -267,7 +271,7 @@ html[lang="zh-CN"] p,html[lang="zh-CN"] li,html[lang="zh-CN"] td{
 <header class="hero wrap">
 <div class="eyebrow">产品演示</div>
 <h1>把三库开伦的计算，变成一张 <em>看得见的球台</em></h1>
-<p class="lede">一款用于专业球台训练的三库开伦数字助手：摆放球位、选择主球、选择计算系统，在真正出杆前先看清瞄准线路。</p>
+<p class="lede">一款用于专业球台训练的三库开伦数字助手：摆放球位、选择主球、选择计算系统，在真正出杆前先看清瞄准线路。 出杆之后，还可以<b>把自己录下来</b>：应用会在真实击球视频上叠加同一条计算线路回放。</p>
 <div class="heroGrid reveal">
 <div class="heroCard">
 <div class="screenshot">
@@ -391,8 +395,30 @@ html[lang="zh-CN"] p,html[lang="zh-CN"] li,html[lang="zh-CN"] td{
 <div class="note"><b>安全拒绝：</b> 如果图像不像从正上方完整拍摄的球台，应用会停止处理并提示：“拍摄的图像看起来不像从正上方完整拍到的台球桌。请检查顶置摄像头，或在下方上传照片。”</div>
 <div class="note gold"><b>仍保留替代方式：</b> 没有顶置摄像头的用户，可以从电脑上传照片，并使用完全相同的自动识别与微调功能。</div>
 </section>
+<section id="video" class="wrap reveal">
+<div class="secHead"><span class="secMark">07</span><h2>录下真实击球，叠加计算一起看</h2></div>
+<div class="rule"></div>
+<p>到目前为止，应用的工作都在出杆之前。<b>“叠加计算线路的击球视频”</b>模块则在出杆之后工作：用顶置摄像头录下真实击球，并在回放时叠加计算出的线路，连同球台边框、钻石点与三个球的登记位置一起显示。</p>
+<p>这背后有一项值得平实说明的技术成果。算法生活在 284 × 142&nbsp;cm 的精确坐标世界里，而摄像头交出的是带透视和光学特性的真实画面像素。应用用照片定位器已在使用的同一种四点几何变换把两个世界连接起来，只需在台布四角校准一次。结果是：计算出的蓝线逐帧落在被拍摄球台的准确位置上。</p>
+
+<figure class="appShot videoShot">
+<div class="shotHead"><b>模块真实录像</b><span>实际击球 · 叠加计算线路 · 含声音</span></div>
+<video controls preload="metadata" playsinline src="para_propa.mp4">您的浏览器无法播放此视频。可以在<a href="para_propa.mp4">这里</a>下载。</video>
+</figure>
+
+<p><b>用途：</b>找出肉眼在实时中看不到的执行缺陷。就在这段视频里，碰到了得分，但慢动作回看显示，杆尾时皮头略向左偏。这个细节没有毁掉这一杆，但会毁掉其他的杆，而现在它有了具体的影像和可行的纠正方法。</p>
+
+<div class="grid3">
+<div class="card"><span class="tag">录制</span><h3>为独自练习而设计</h3><p>巨大数字的 5 秒倒计时和提示音，让您来得及就位。焦点自动锁定，摄像头麦克风同步录下击打声。</p></div>
+<div class="card alt"><span class="tag">回看</span><h3>慢动作与逐帧</h3><p>0.25× 与 0.5× 速度、逐帧前进后退，叠加层可随时显示或隐藏，用意图对照执行。</p></div>
+<div class="card green"><span class="tag">分享</span><h3>WhatsApp 可直接用的 MP4</h3><p>“下载含线路视频”导出方向已纠正、内嵌蓝线、瞄准点与声音的 MP4：在任何播放器中效果一致。</p></div>
+</div>
+
+<div class="note gold"><b>校准只是一次性的手续：</b>只要摄像头不移动，校准就会一直保留。而且如果您使用自动检测器的“拍摄球台”，那四个角会自动被采用为视频校准。</div>
+</section>
+
 <section class="wrap reveal">
-<div class="secHead"><span class="secMark">07</span><h2>为练习而设计，不是为了装饰</h2></div>
+<div class="secHead"><span class="secMark">08</span><h2>为练习而设计，不是为了装饰</h2></div>
 <div class="rule"></div>
 <div class="grid3">
 <div class="card"><span class="tag">电脑</span><h3>舒适分析</h3><p>适合在大屏幕数字球台上研究球型、调整球位和复盘系统。</p></div>
@@ -401,7 +427,7 @@ html[lang="zh-CN"] p,html[lang="zh-CN"] li,html[lang="zh-CN"] td{
 </div>
 </section>
 <section class="wrap reveal" id="suscripcion">
-<div class="secHead"><span class="secMark">08</span><h2>为什么订阅？</h2></div>
+<div class="secHead"><span class="secMark">09</span><h2>为什么订阅？</h2></div>
 <div class="rule"></div>
 <div class="grid3">
 <div class="card"><span class="tag">方法</span><h3>少算一点，多练一点</h3><p>订阅可使用一套专为系统训练设计的工具，无需因为手工计算而频繁中断练习。</p></div>
@@ -428,7 +454,7 @@ html[lang="zh-CN"] p,html[lang="zh-CN"] li,html[lang="zh-CN"] td{
 </main>
 <footer class="wrap">
 <div class="dia">◆ ◆ ◆</div>
-<div>三库开伦数字助手商业演示 · LKL / Base 50 · Plus · Roger Conti 侧旋 · 照片 · 已验证顶置摄像头 · 触控模式</div>
+<div>三库开伦数字助手商业演示 · LKL / Base 50 · Plus · Roger Conti 侧旋 · 照片 · 已验证顶置摄像头 · 叠加计算线路的击球视频 · 触控模式</div>
 </footer>
 <script>
   const observer = new IntersectionObserver((entries)=>{
