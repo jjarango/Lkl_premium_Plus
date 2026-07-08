@@ -232,6 +232,9 @@
   }
 }
 
+/* Shot video section (July 2026) */
+.appShot video{display:block; width:100%; height:auto; background:#0b0d11}
+.appShot.videoShot{max-width:880px; margin-left:auto; margin-right:auto}
 </style>
 </head>
 <body>
@@ -244,6 +247,7 @@
 <a href="#efectos">Spin</a>
 <a href="#foto">Photo</a>
 <a href="#camara">Overhead camera</a>
+<a href="#video">Shot video</a>
 <a href="#suscripcion">Subscription</a>
 </div>
 </div>
@@ -251,7 +255,7 @@
 <header class="hero wrap">
 <div class="eyebrow">Program presentation</div>
 <h1>Three-cushion calculation, transformed into a <em>visual table</em></h1>
-<p class="lede">A digital assistant for three-cushion billiards practice on a professional table: position the balls, choose the cue ball, select the calculation system, and see a clear aiming path before stepping up to play the shot.</p>
+<p class="lede">A digital assistant for three-cushion billiards practice on a professional table: position the balls, choose the cue ball, select the calculation system, and see a clear aiming path before stepping up to play the shot. And once you play it, <b>record yourself</b>: the app replays your real shot with that same route overlaid on the video.</p>
 <div class="heroGrid reveal">
 <div class="heroCard">
 <div class="screenshot">
@@ -375,8 +379,30 @@
 <div class="note"><b>Safe rejection:</b> if the image does not appear to show a complete table from a top-down view, the app stops the process and displays: “The captured image does not appear to show a complete billiard table from a top-down view. Check the overhead camera or upload a photo in the field below.”</div>
 <div class="note gold"><b>The alternative remains available:</b> users without an overhead camera can upload a photo from the computer and use exactly the same automatic detector and fine adjustment.</div>
 </section>
+<section id="video" class="wrap reveal">
+<div class="secHead"><span class="secMark">07</span><h2>Record the real shot and watch it with the calculation on top</h2></div>
+<div class="rule"></div>
+<p>Up to this point, the app works before the shot. The <b>“Shot video with the calculated route overlaid”</b> module works after it: it records the real execution with the overhead camera and plays it back with the calculated route drawn over the video, together with the table frame, the diamonds and the registered position of the three balls.</p>
+<p>Behind this sits a technical achievement worth explaining without overstating it. The algorithm lives in a world of exact coordinates —a 284 × 142&nbsp;cm playing surface— while the camera delivers pixels of a real scene, with its perspective and its optics. The app connects the two worlds with the same four-point geometric transformation already used by the photo locator, calibrated once on the corners of the cloth. The result is that the blue line of the calculation lands, frame by frame, exactly where it should on the filmed table.</p>
+
+<figure class="appShot videoShot">
+<div class="shotHead"><b>Real footage from the module</b><span>Executed shot · calculated route overlaid · with audio</span></div>
+<video controls preload="metadata" playsinline src="para_propa.mp4">Your browser cannot play this video. You can download it <a href="para_propa.mp4">here</a>.</video>
+</figure>
+
+<p><b>What it is for:</b> spotting the execution flaws the eye cannot catch in real time. In this very video the carom is made and yet the slow-motion review shows the cue tip drifting slightly to the left at the end of the stroke. A detail that did not ruin this shot, but will ruin others —and that now has a concrete image and a possible correction.</p>
+
+<div class="grid3">
+<div class="card"><span class="tag">Recording</span><h3>Built for practicing alone</h3><p>A 5-second countdown in giant numbers and a warning beep give you time to take your place at the table. Focus locks automatically and the camera microphone records the stroke.</p></div>
+<div class="card alt"><span class="tag">Review</span><h3>Slow motion and frame by frame</h3><p>0.25× and 0.5× speeds, single-frame stepping and an overlay you can show or hide at will, to compare intention against execution.</p></div>
+<div class="card green"><span class="tag">Sharing</span><h3>MP4 ready for WhatsApp</h3><p>“Download with route” exports an MP4 with corrected orientation and the blue line, the aim point and the audio embedded: it looks the same in any player.</p></div>
+</div>
+
+<div class="note gold"><b>Calibration is a one-time chore:</b> as long as the camera does not move, the calibration is kept. And if you use “Capture table” in the automatic detector, those same corners are adopted automatically for the video.</div>
+</section>
+
 <section class="wrap reveal">
-<div class="secHead"><span class="secMark">07</span><h2>Designed for practice, not decoration</h2></div>
+<div class="secHead"><span class="secMark">08</span><h2>Designed for practice, not decoration</h2></div>
 <div class="rule"></div>
 <div class="grid3">
 <div class="card"><span class="tag">PC</span><h3>Comfortable analysis</h3><p>Ideal for studying patterns, adjusting positions, and reviewing systems on a large on-screen table.</p></div>
@@ -385,7 +411,7 @@
 </div>
 </section>
 <section class="wrap reveal" id="suscripcion">
-<div class="secHead"><span class="secMark">08</span><h2>Why subscribe?</h2></div>
+<div class="secHead"><span class="secMark">09</span><h2>Why subscribe?</h2></div>
 <div class="rule"></div>
 <div class="grid3">
 <div class="card"><span class="tag">Method</span><h3>Fewer calculations, more practice</h3><p>The subscription provides access to a tool designed for practicing systems without interrupting the session for manual calculations.</p></div>
@@ -412,7 +438,7 @@
 </main>
 <footer class="wrap">
 <div class="dia">◆ ◆ ◆</div>
-<div>Commercial presentation of the digital three-cushion billiards assistant · LKL / Base 50 · Plus · Roger Conti sidespin · Photo · Validated overhead camera · Touch mode.</div>
+<div>Commercial presentation of the digital three-cushion billiards assistant · LKL / Base 50 · Plus · Roger Conti sidespin · Photo · Validated overhead camera · Shot video with the calculated route overlaid · Touch mode.</div>
 </footer>
 <script>
   const observer = new IntersectionObserver((entries)=>{
