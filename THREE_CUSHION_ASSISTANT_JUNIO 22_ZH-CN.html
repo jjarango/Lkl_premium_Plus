@@ -1538,6 +1538,146 @@
 
 
 html,body,button,input,select,textarea{font-family:"PingFang SC","Microsoft YaHei","Noto Sans CJK SC","Source Han Sans SC",Arial,sans-serif;}
+    /* ===== 叠加计算线路的击球视频 ===== */
+    .videoReplayModal{
+      position:fixed;
+      inset:0;
+      z-index:82;
+      display:none;
+      background:rgba(4,6,10,.90);
+      padding:16px;
+    }
+    .videoReplayModal.active{display:flex}
+    .videoReplayShell{
+      width:min(1420px, 100%);
+      height:min(920px, calc(100svh - 32px));
+      margin:auto;
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.14);
+      border-radius:20px;
+      background:#101217;
+      box-shadow:0 28px 80px rgba(0,0,0,.58);
+    }
+    .videoReplayHead{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:16px;
+      padding:13px 16px 11px;
+      border-bottom:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.035);
+    }
+    .videoReplayTitle{
+      margin:0;
+      color:#fff;
+      font-size:18px;
+      line-height:1.15;
+      letter-spacing:-.01em;
+    }
+    .videoReplayStep{
+      margin-top:4px;
+      color:#f2d08d;
+      font-size:13px;
+      line-height:1.35;
+      font-weight:800;
+    }
+    .videoReplayClose{
+      width:auto;
+      min-width:44px;
+      padding:8px 12px;
+      border-radius:11px;
+    }
+    .videoReplayBody{
+      flex:1;
+      min-height:0;
+      display:grid;
+      grid-template-columns:minmax(0,1fr) 318px;
+      gap:12px;
+      padding:12px;
+    }
+    .videoReplayPane{
+      position:relative;
+      min-height:0;
+      border:1px solid rgba(255,255,255,.11);
+      border-radius:16px;
+      overflow:hidden;
+      background:#05070a;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    #videoReplayCanvas{
+      display:block;
+      touch-action:none;
+      cursor:crosshair;
+      max-width:100%;
+      max-height:100%;
+    }
+    .videoReplaySide{
+      min-height:0;
+      overflow:auto;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      padding-right:2px;
+    }
+    .videoReplaySide h3{margin:0; color:#fff; font-size:14px;}
+    .videoReplayGroup{
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:14px;
+      padding:10px;
+      background:rgba(255,255,255,.03);
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    .videoReplayGroup .small{margin:0}
+    .videoReplayRow{display:flex; gap:8px; flex-wrap:wrap;}
+    .videoReplayRow > button, .videoReplayRow > label{flex:1 1 auto; min-height:40px;}
+    .videoReplayNudge{
+      display:grid;
+      grid-template-columns:repeat(3, 48px);
+      grid-auto-rows:40px;
+      gap:6px;
+      justify-content:center;
+      align-items:center;
+    }
+    .videoReplayNudge button{min-height:40px}
+    #vrNudgeSel{
+      text-align:center;
+      color:#ffd23f;
+      font-weight:900;
+      font-size:14px;
+    }
+    .videoRecDot{
+      display:inline-block;
+      width:11px;
+      height:11px;
+      border-radius:50%;
+      background:#ff4d4d;
+      box-shadow:0 0 10px rgba(255,77,77,.8);
+      animation:vrBlink 1s steps(2,start) infinite;
+      margin-right:7px;
+      vertical-align:middle;
+    }
+    @keyframes vrBlink{50%{opacity:.25}}
+    .videoReplayStatus{
+      font-size:12.5px;
+      line-height:1.45;
+      color:#cfd6df;
+    }
+    .videoReplayStatus.good{color:#9ff0a7}
+    .videoReplayStatus.bad{color:#ff9d9d}
+    #videoReplayScrub{width:100%}
+    @media (max-width:980px){
+      .videoReplayModal{padding:0}
+      .videoReplayShell{height:100svh; border-radius:0; border:0}
+      .videoReplayBody{grid-template-columns:1fr; grid-template-rows:minmax(0,1fr) auto; gap:8px; padding:8px}
+      .videoReplayHead{padding:10px 12px}
+      .videoReplayTitle{font-size:16px}
+    }
 </style>
 </head>
 <body>
@@ -1796,7 +1936,7 @@ html,body,button,input,select,textarea{font-family:"PingFang SC","Microsoft YaHe
 <option value="bottom">下方长库</option>
 <option value="left">左侧短库</option>
 </select>
-</div><p class="small" id="sequenceHelp">请选择先碰球还是先走库，然后设置走库顺序。</p></div></details><details class="menuModule" id="moduleEffect"><summary><span class="moduleTitle">侧旋与杆法</span><span class="moduleState" id="moduleEffectState">正向侧旋 · 3级侧旋 · 长送杆</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><div aria-controls="contiTooltip" aria-expanded="false" class="contiHelpAnchor" id="contiHelpAnchor" tabindex="0"><label for="english">侧旋方向</label><span aria-hidden="true" class="contiHelpIcon">i</span></div><select id="english">
+</div><p class="small" id="sequenceHelp">请选择先碰球还是先走库，然后设置走库顺序。</p></div></details><details class="menuModule" id="moduleVideoReplay"><summary><span class="moduleTitle" style="color:#ff5a5a">叠加计算线路的击球视频</span><span class="moduleState" id="moduleVideoReplayState">顶置摄像头 · 尚未校准</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><p class="small" style="margin:0 0 10px;">用顶置摄像头录下真实击球，并在视频上叠加应用计算出的线路，支持慢动作和逐帧查看。录制包含摄像头麦克风的声音。只要摄像头不移动，球台四角只需校准一次。<b>如果您通过自动检测器的顶置拍摄应用球位，该校准会自动复用。</b></p><button class="cameraCaptureBtn" id="videoReplayRecordBtn" type="button">录制击球</button><button id="videoReplayCalibBtn" type="button">校准叠加</button><div aria-live="polite" class="cameraCaptureStatus" id="videoReplayModuleStatus" role="status">叠加的线路即当时计算出的线路（例如所选主球与库边顺序的 LKL / Base 50）。</div></div></details><details class="menuModule" id="moduleEffect"><summary><span class="moduleTitle">侧旋与杆法</span><span class="moduleState" id="moduleEffectState">正向侧旋 · 3级侧旋 · 长送杆</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><div aria-controls="contiTooltip" aria-expanded="false" class="contiHelpAnchor" id="contiHelpAnchor" tabindex="0"><label for="english">侧旋方向</label><span aria-hidden="true" class="contiHelpIcon">i</span></div><select id="english">
 <option value="positive">正向侧旋：打开／拉长线路</option>
 <option value="neutral">无侧旋</option>
 <option value="negative">反向侧旋：收紧／缩短线路</option>
@@ -1808,6 +1948,80 @@ html,body,button,input,select,textarea{font-family:"PingFang SC","Microsoft YaHe
 </main>
 <video aria-hidden="true" autoplay="" class="cameraCaptureMedia" id="cameraCaptureVideo" muted="" playsinline=""></video>
 <canvas aria-hidden="true" class="cameraCaptureMedia" height="1" id="cameraCaptureCanvas" width="1"></canvas>
+<div aria-hidden="true" class="videoReplayModal" id="videoReplayModal">
+<div aria-labelledby="videoReplayTitle" aria-modal="true" class="videoReplayShell" role="dialog">
+<div class="videoReplayHead">
+<div>
+<h2 class="videoReplayTitle" id="videoReplayTitle">叠加计算线路的击球视频</h2>
+<div class="videoReplayStep" id="videoReplayStep">准备中…</div>
+</div>
+<button class="videoReplayClose" id="videoReplayClose" type="button">关闭</button>
+</div>
+<div class="videoReplayBody">
+<div class="videoReplayPane"><canvas id="videoReplayCanvas"></canvas></div>
+<div class="videoReplaySide">
+<div class="videoReplayGroup" id="videoReplayCalibPanel" style="display:none">
+<h3>四角校准</h3>
+<p class="small">按应用中球台的方向，将每个点拖到台布的内角（库边相接处），顺序为：1 左上、2 右上、3 右下、4 左下。球环和投影的钻石点必须与视频对齐。微调：键盘方向键（按住 Shift 为 5 像素）或下方按钮。</p>
+<div class="videoReplayRow" id="videoReplayCornerBtns">
+<button data-corner="0" type="button">点 1</button>
+<button data-corner="1" type="button">点 2</button>
+<button data-corner="2" type="button">点 3</button>
+<button data-corner="3" type="button">点 4</button>
+</div>
+<div class="videoReplayNudge">
+<span></span><button id="vrNudgeUp" type="button">▲</button><span></span>
+<button id="vrNudgeLeft" type="button">◀</button><div id="vrNudgeSel">P1</div><button id="vrNudgeRight" type="button">▶</button>
+<span></span><button id="vrNudgeDown" type="button">▼</button><span></span>
+</div>
+<div class="videoReplayRow">
+<button id="videoReplayUseLocatorBtn" type="button">使用检测器的四角</button>
+</div>
+<div class="videoReplayRow">
+<button class="cameraCaptureBtn" id="videoReplaySaveCalibBtn" style="margin:0" type="button">保存校准并继续</button>
+</div>
+</div>
+<div class="videoReplayGroup" id="videoReplayRecordPanel" style="display:none">
+<h3><span class="videoRecDot" id="videoReplayRecDot" style="display:none"></span>录制</h3>
+<p class="small" id="videoReplayRecHint">按下开始录制后，5 秒倒计时让您有时间就位；倒计时到零时伴随提示音开始录制。</p>
+<div class="videoReplayRow">
+<button class="cameraCaptureBtn" id="videoReplayStartBtn" style="margin:0" type="button">开始录制</button>
+</div>
+<div class="videoReplayRow">
+<button disabled="" id="videoReplayStopBtn" type="button">停止并回看</button>
+</div>
+<label style="display:flex; gap:8px; align-items:center; cursor:pointer;"><input checked="" id="videoReplayShowGuideRec" style="width:auto" type="checkbox"/> <span class="small">录制时显示线路</span></label>
+</div>
+<div class="videoReplayGroup" id="videoReplayPlaybackPanel" style="display:none">
+<h3>击球回看</h3>
+<input id="videoReplayScrub" max="1000" min="0" step="1" type="range" value="0"/>
+<div class="videoReplayRow">
+<button id="videoReplayPlayBtn" type="button">播放</button>
+<button id="videoReplayStepBack" title="后退一帧" type="button">−1 帧</button>
+<button id="videoReplayStepFwd" title="前进一帧" type="button">+1 帧</button>
+</div>
+<div class="videoReplayRow">
+<label style="display:flex; gap:8px; align-items:center;"><span class="small">速度</span><select id="videoReplaySpeed" style="flex:1"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option selected="" value="1">1×</option></select></label>
+</div>
+<label style="display:flex; gap:8px; align-items:center; cursor:pointer;"><input checked="" id="videoReplayShowGuide" style="width:auto" type="checkbox"/> <span class="small">叠加计算线路</span></label>
+<div class="videoReplayRow">
+<button id="videoReplayAgainBtn" type="button">再录一杆</button>
+<button id="videoReplayDownloadBtn" type="button">下载原始视频</button>
+</div>
+<div class="videoReplayRow">
+<button class="cameraCaptureBtn" id="videoReplayExportBtn" style="margin:0" type="button">下载含线路视频</button>
+</div>
+</div>
+<div class="videoReplayGroup">
+<div aria-live="polite" class="videoReplayStatus" id="videoReplayStatus" role="status">—</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<video aria-hidden="true" class="cameraCaptureMedia" id="videoReplayLive" muted="" playsinline=""></video>
+<video aria-hidden="true" class="cameraCaptureMedia" id="videoReplayPlayback" playsinline=""></video>
+
 <div aria-hidden="true" class="photoLocatorModal" id="photoLocatorModal">
 <div aria-labelledby="photoLocatorTitle" aria-modal="true" class="photoLocatorShell" role="dialog">
 <div class="photoLocatorHead">
@@ -11395,6 +11609,7 @@ function drawStartMarks(){
       updatePhotoViewpointHint();
     }
     photoLocator.image = capture.source;
+    photoLocator.fromOverheadCamera = true;
     photoLocator.stepIndex = 0;
     photoLocator.current = null;
     photoLocator.points = {};
@@ -11472,6 +11687,7 @@ function drawStartMarks(){
       const img = new Image();
       img.onload = () => {
         photoLocator.image = img;
+        photoLocator.fromOverheadCamera = false;
         photoLocator.stepIndex = 0;
         photoLocator.current = null;
         photoLocator.points = {};
@@ -11862,13 +12078,1158 @@ function drawStartMarks(){
     recalculateAll('photo-locator-apply');
     const status = ids('photoLocatorStatus');
     if(status) status.textContent = 'Positions loaded from the photo. Review them visually and adjust manually if necessary.';
+    maybeAdoptVideoCalibrationFromLocator();
     closePhotoLocator();
   }
+
+  // ============================================================
+  // VIDEO DE LA JUGADA CON TRAYECTORIA SUPERPUESTA (cámara cenital)
+  // Flujo: calibración de 4 esquinas (reutilizable desde el detector
+  // fotográfico cenital) -> grabación con MediaRecorder -> revisión
+  // con la trayectoria teórica proyectada por homografía sobre el video.
+  // El video se muestra girado 180°, igual que la captura cenital del
+  // detector, para que la esquina 1 de la app coincida con la del video.
+  // La superposición se hace en la reproducción (no se incrusta en el
+  // archivo grabado), de modo que puede mostrarse u ocultarse a voluntad.
+  // ============================================================
+  const VIDEO_CALIB_STORAGE_KEY = 'tresBandasVideoReplayCalibV1';
+
+  const videoReplay = {
+    mode:'idle',            // 'calibrate' | 'record' | 'replay'
+    stream:null,
+    recorder:null,
+    chunks:[],
+    blobUrl:null,
+    recStartMs:0,
+    recTimerId:0,
+    raf:0,
+    calib:null,             // {corners:[{x,y} x4 normalizadas 0..1], origin, savedAt}
+    corners:null,           // esquinas en edición (normalizadas)
+    selCorner:0,
+    dragging:false,
+    fit:{cw:0, ch:0},
+    duration:0,
+    scrubbing:false,
+    hasAudio:false,
+    countdownUntil:0,
+    countdownTimerId:0,
+    flashUntil:0,
+    audioCtx:null,
+    exporting:false,
+    exportRaf:0,
+    exportRecorder:null,
+    exportChunks:[],
+    exportVideoEl:null,
+    focusLocked:false
+  };
+
+  function loadVideoCalibration(){
+    try{
+      const raw = localStorage.getItem(VIDEO_CALIB_STORAGE_KEY);
+      if(!raw) return null;
+      const data = JSON.parse(raw);
+      if(!data || !Array.isArray(data.corners) || data.corners.length !== 4) return null;
+      if(!data.corners.every(p => p && Number.isFinite(p.x) && Number.isFinite(p.y))) return null;
+      return data;
+    }catch{ return null; }
+  }
+
+  function saveVideoCalibration(corners, origin){
+    const data = {
+      corners:corners.map(p => ({x:clamp(p.x,0,1), y:clamp(p.y,0,1)})),
+      origin:origin || 'manual',
+      savedAt:Date.now()
+    };
+    videoReplay.calib = data;
+    try{ localStorage.setItem(VIDEO_CALIB_STORAGE_KEY, JSON.stringify(data)); }catch{}
+    updateVideoReplayModuleState();
+    return data;
+  }
+
+  function updateVideoReplayModuleState(){
+    const el = ids('moduleVideoReplayState');
+    if(el) el.textContent = videoReplay.calib ? '顶置摄像头 · 校准完成' : '顶置摄像头 · 尚未校准';
+  }
+
+  // Reutilización del localizador fotográfico: si las esquinas confirmadas
+  // provienen de una captura cenital (misma cámara, imagen ya girada 180°),
+  // sirven directamente como calibración del video, normalizadas 0..1.
+  function locatorCornersNormalized(){
+    if(!photoLocator.fromOverheadCamera || !photoLocator.image) return null;
+    const iw = photoLocator.image.naturalWidth || photoLocator.image.width;
+    const ih = photoLocator.image.naturalHeight || photoLocator.image.height;
+    if(!iw || !ih) return null;
+    const order = ['tl','tr','br','bl'];
+    if(!order.every(k => photoLocator.points[k] &&
+        Number.isFinite(photoLocator.points[k].x) && Number.isFinite(photoLocator.points[k].y))) return null;
+    return order.map(k => ({
+      x:clamp(photoLocator.points[k].x/iw, 0, 1),
+      y:clamp(photoLocator.points[k].y/ih, 0, 1)
+    }));
+  }
+
+  function maybeAdoptVideoCalibrationFromLocator(){
+    const corners = locatorCornersNormalized();
+    if(!corners) return;
+    saveVideoCalibration(corners, 'detector-cenital');
+    const st = ids('videoReplayModuleStatus');
+    if(st) st.textContent = '视频校准已根据顶置检测器确认的四角自动更新。现在可以录制叠加线路的击球视频了。';
+  }
+
+  async function findVideoReplayMicId(){
+    if(!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return null;
+    try{
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const mics = devices.filter(d => d.kind === 'audioinput');
+      const isVirtual = label => /capture|virtual|obs/i.test(label || '');
+      const brio = mics.find(d => /brio/i.test(d.label || '') && !isVirtual(d.label));
+      if(brio) return brio.deviceId;
+      const logi = mics.find(d => /logitech|logi/i.test(d.label || '') && !isVirtual(d.label));
+      return logi ? logi.deviceId : null;
+    }catch{ return null; }
+  }
+
+  async function openVideoReplayStream(){
+    if(videoReplay.stream && videoReplay.stream.getVideoTracks().some(t => t.readyState === 'live')) return;
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      throw new Error('此浏览器无法直接访问摄像头。请用最新版 Chrome 或 Edge 打开此文件。');
+    }
+    const preferredId = await findKnownBrioId();
+    const videoConstraints = {
+      width:{ideal:CAMERA_STABLE_WIDTH},
+      height:{ideal:CAMERA_STABLE_HEIGHT},
+      aspectRatio:{ideal:16/9},
+      frameRate:{ideal:30, max:30}
+    };
+    if(preferredId) videoConstraints.deviceId = {exact:preferredId};
+
+    // Audio del micrófono de la propia cámara, sin cancelación de eco ni
+    // supresión de ruido, para conservar nítidos el golpe del taco y el
+    // contacto de las bolas. Si el micrófono falla o el permiso es negado,
+    // se graba solo el video.
+    const micId = await findVideoReplayMicId();
+    const audioBase = {echoCancellation:false, noiseSuppression:false, autoGainControl:false};
+    let stream = null;
+    try{
+      const audioConstraints = micId ? Object.assign({deviceId:{exact:micId}}, audioBase) : audioBase;
+      stream = await navigator.mediaDevices.getUserMedia({video:videoConstraints, audio:audioConstraints});
+    }catch(audioError){
+      console.warn('击球视频：无法打开麦克风，将无声录制。', audioError);
+      stream = await navigator.mediaDevices.getUserMedia({video:videoConstraints, audio:false});
+    }
+    videoReplay.stream = stream;
+    videoReplay.hasAudio = stream.getAudioTracks().length > 0;
+    const live = ids('videoReplayLive');
+    live.srcObject = stream;
+    live.muted = true; // La vista en vivo queda silenciada para evitar acoples con los parlantes.
+    await live.play();
+    await waitForVideoReady(live, 12000);
+    await lockVideoReplayFocus();
+  }
+
+  // Bloqueo automático de enfoque: con una cámara cenital fija, la mesa
+  // está siempre a la misma distancia y el autofoco solo estorba (reenfoca
+  // cuando el jugador o el taco cruzan el encuadre). Se deja trabajar al
+  // autofoco un par de segundos para que encuentre la mesa, se lee esa
+  // distancia y se congela en modo manual durante toda la sesión.
+  async function lockVideoReplayFocus(){
+    videoReplay.focusLocked = false;
+    const stream = videoReplay.stream;
+    if(!stream) return false;
+    const track = stream.getVideoTracks()[0];
+    if(!track || typeof track.getCapabilities !== 'function' || typeof track.applyConstraints !== 'function') return false;
+    try{
+      const caps = track.getCapabilities();
+      if(!caps || !Array.isArray(caps.focusMode) || !caps.focusMode.includes('manual')) return false;
+      setVideoReplayStatus('正在对焦球台并锁定焦点…');
+      if(caps.focusMode.includes('continuous')){
+        try{ await track.applyConstraints({advanced:[{focusMode:'continuous'}]}); }catch{}
+      }
+      await new Promise(r => setTimeout(r, 1800));
+      const settings = track.getSettings ? track.getSettings() : {};
+      const constraint = {focusMode:'manual'};
+      if(Number.isFinite(settings.focusDistance)) constraint.focusDistance = settings.focusDistance;
+      await track.applyConstraints({advanced:[constraint]});
+      videoReplay.focusLocked = true;
+      return true;
+    }catch(error){
+      console.warn('击球视频：无法锁定焦点。', error);
+      videoReplay.focusLocked = false;
+      return false;
+    }
+  }
+
+  function videoReplayFocusNote(){
+    return videoReplay.focusLocked
+      ? ' 焦点已锁定：录制期间不会重新对焦。'
+      : ' 此摄像头或浏览器不支持锁定焦点，自动对焦将保持启用（可用 Logi Tune 锁定）。';
+  }
+
+  function stopVideoReplayStream(){
+    if(videoReplay.recorder && videoReplay.recorder.state === 'recording'){
+      try{ videoReplay.recorder.stop(); }catch{}
+    }
+    videoReplay.recorder = null;
+    videoReplay.focusLocked = false;
+    if(videoReplay.stream){
+      videoReplay.stream.getTracks().forEach(t => { try{ t.stop(); }catch{} });
+      videoReplay.stream = null;
+    }
+    const live = ids('videoReplayLive');
+    if(live) live.srcObject = null;
+  }
+
+  // Trayectoria teórica vigente, en coordenadas de mundo (80 × 40),
+  // como lista de polilíneas. Cubre LKL / Vueltas (estudio con ruta
+  // azul guiada) y los módulos con ruta explícita (Plus, corta-larga-corta).
+  function videoReplayRouteWorld(){
+    const shot = currentShot;
+    const polys = [];
+    if(!shot) return polys;
+    const c = shot.c || controls();
+
+    if(shot.path && Array.isArray(shot.path.points) && shot.path.points.length >= 2){
+      if(shot.cueLine && shot.cueLine.from && shot.cueLine.to){
+        polys.push({pts:[shot.cueLine.from, shot.cueLine.to], dashed:true});
+      }
+      polys.push({pts:(shot.displayPoints || shot.path.points), dashed:false});
+      return polys;
+    }
+
+    const r = shot.departureAttackResult;
+    if(!r || r.status !== 'ok' || !r.attackPoint) return polys;
+    const cueKey = cueBallKeyFromControls(c);
+    const cuePoint = balls[cueKey] || balls.white;
+    if(isCushionFirstModeValue(c.mode)){
+      polys.push({pts:[cuePoint, r.attackPoint], dashed:false});
+    } else {
+      const firstBallPoint = balls[shot.firstBall];
+      if(firstBallPoint){
+        polys.push({pts:[cuePoint, firstBallPoint], dashed:true});
+        polys.push({pts:[firstBallPoint, r.attackPoint], dashed:false});
+      } else {
+        polys.push({pts:[cuePoint, r.attackPoint], dashed:false});
+      }
+    }
+    const segs = newLklBlueRouteSegmentsAfterAttack(shot);
+    for(const s of segs) polys.push({pts:[s.a, s.b], dashed:!!s.dashed});
+    return polys;
+  }
+
+  function videoReplayAttackPointWorld(){
+    const shot = currentShot;
+    if(!shot) return null;
+    if(shot.departureAttackResult && shot.departureAttackResult.status === 'ok'){
+      return shot.departureAttackResult.attackPoint || null;
+    }
+    return shot.visualAttackCorrected || shot.attackCorrected || null;
+  }
+
+  // Homografía mundo (80 × 40) -> píxeles del lienzo de video,
+  // reutilizando homographyFromFourPoints del localizador fotográfico.
+  function videoReplayHomography(cw, ch){
+    const corners = (videoReplay.mode === 'calibrate' && videoReplay.corners)
+      ? videoReplay.corners
+      : (videoReplay.calib && videoReplay.calib.corners);
+    if(!corners || corners.length !== 4) return null;
+    const src = [{x:0,y:0},{x:TABLE.W,y:0},{x:TABLE.W,y:TABLE.H},{x:0,y:TABLE.H}];
+    const dst = corners.map(p => ({x:p.x*cw, y:p.y*ch}));
+    return homographyFromFourPoints(src, dst);
+  }
+
+  function drawVideoReplayOverlay(g, cw, ch, opts){
+    const H = videoReplayHomography(cw, ch);
+    if(!H) return;
+    const W2V = p => applyHomography(H, p);
+
+    const outline = [{x:0,y:0},{x:TABLE.W,y:0},{x:TABLE.W,y:TABLE.H},{x:0,y:TABLE.H}].map(W2V);
+    if(outline.some(p => !p)) return;
+
+    g.save();
+    g.lineJoin = 'round';
+    g.lineCap = 'round';
+
+    // Marco del área jugable proyectado sobre el video.
+    g.beginPath();
+    outline.forEach((p,i) => i ? g.lineTo(p.x,p.y) : g.moveTo(p.x,p.y));
+    g.closePath();
+    g.strokeStyle = 'rgba(0,0,0,.72)'; g.lineWidth = 4; g.stroke();
+    g.strokeStyle = 'rgba(255,255,255,.82)'; g.lineWidth = 1.6; g.stroke();
+
+    // Diamantes proyectados: sirven para verificar la calibración a ojo.
+    g.fillStyle = 'rgba(255,255,255,.88)';
+    g.strokeStyle = 'rgba(0,0,0,.66)';
+    g.lineWidth = 1;
+    const diamondPts = [];
+    for(let x=10; x<TABLE.W; x+=10){ diamondPts.push({x, y:0}, {x, y:TABLE.H}); }
+    for(let y=10; y<TABLE.H; y+=10){ diamondPts.push({x:0, y}, {x:TABLE.W, y}); }
+    for(const d of diamondPts){
+      const q = W2V(d); if(!q) continue;
+      g.beginPath(); g.arc(q.x, q.y, 3.1, 0, Math.PI*2); g.fill(); g.stroke();
+    }
+
+    // Anillos en las posiciones registradas de las bolas: si coinciden
+    // con las bolas reales del video, la calibración es correcta.
+    for(const key of ['white','yellow','red']){
+      const centre = balls[key]; if(!centre) continue;
+      const q = W2V(centre); if(!q) continue;
+      const edge = W2V({x:centre.x + BALL_R, y:centre.y});
+      const r = edge ? Math.max(4, Math.hypot(edge.x-q.x, edge.y-q.y)) : 8;
+      g.beginPath(); g.arc(q.x, q.y, r, 0, Math.PI*2);
+      g.strokeStyle = 'rgba(0,0,0,.75)'; g.lineWidth = 3.4; g.stroke();
+      g.strokeStyle = colors[key]; g.lineWidth = 1.7; g.stroke();
+    }
+
+    // Trayectoria teórica calculada por la app.
+    if(opts.route){
+      const polys = videoReplayRouteWorld();
+      for(const poly of polys){
+        const pts = poly.pts.map(W2V);
+        if(pts.length < 2 || pts.some(p => !p)) continue;
+        g.beginPath();
+        pts.forEach((p,i) => i ? g.lineTo(p.x,p.y) : g.moveTo(p.x,p.y));
+        g.setLineDash(poly.dashed ? [10,8] : []);
+        g.strokeStyle = 'rgba(0,0,0,.78)'; g.lineWidth = 6.4; g.stroke();
+        g.strokeStyle = '#62d7ff'; g.lineWidth = 3.1; g.stroke();
+        g.setLineDash([]);
+      }
+      const attack = videoReplayAttackPointWorld();
+      if(attack){
+        const q = W2V(attack);
+        if(q){
+          g.beginPath(); g.arc(q.x, q.y, 6.4, 0, Math.PI*2);
+          g.fillStyle = '#62d7ff'; g.fill();
+          g.strokeStyle = 'rgba(0,0,0,.8)'; g.lineWidth = 2.2; g.stroke();
+          g.font = '800 15px ui-sans-serif, system-ui';
+          g.lineWidth = 3.4; g.strokeStyle = 'rgba(0,0,0,.8)'; g.fillStyle = '#ffffff';
+          g.strokeText('瞄准点', q.x + 11, q.y - 9);
+          g.fillText('瞄准点', q.x + 11, q.y - 9);
+        }
+      }
+    }
+
+    // Manijas de calibración (solo en el paso de calibración).
+    if(opts.handles && videoReplay.corners){
+      videoReplay.corners.forEach((p,i) => {
+        const x = p.x*cw, y = p.y*ch;
+        const sel = i === videoReplay.selCorner;
+        g.beginPath(); g.arc(x, y, sel ? 13 : 10, 0, Math.PI*2);
+        g.fillStyle = sel ? 'rgba(255,210,63,.30)' : 'rgba(98,215,255,.20)'; g.fill();
+        g.strokeStyle = sel ? '#ffd23f' : '#62d7ff'; g.lineWidth = 2.2; g.stroke();
+        g.beginPath();
+        g.moveTo(x-16, y); g.lineTo(x+16, y);
+        g.moveTo(x, y-16); g.lineTo(x, y+16);
+        g.strokeStyle = 'rgba(0,0,0,.8)'; g.lineWidth = 3; g.stroke();
+        g.strokeStyle = sel ? '#ffd23f' : '#ffffff'; g.lineWidth = 1.3; g.stroke();
+        g.font = '900 14px ui-sans-serif, system-ui';
+        g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,.85)';
+        g.fillStyle = sel ? '#ffd23f' : '#ffffff';
+        g.strokeText(String(i+1), x + 12, y - 12);
+        g.fillText(String(i+1), x + 12, y - 12);
+      });
+    }
+
+    g.restore();
+  }
+
+  function videoReplayDuration(){
+    const v = ids('videoReplayPlayback');
+    if(videoReplay.duration && Number.isFinite(videoReplay.duration) && videoReplay.duration > 0) return videoReplay.duration;
+    if(v && Number.isFinite(v.duration) && v.duration > 0){
+      videoReplay.duration = v.duration;
+      return v.duration;
+    }
+    return 0;
+  }
+
+  function syncVideoReplayScrub(){
+    if(videoReplay.scrubbing) return;
+    const v = ids('videoReplayPlayback');
+    const scrub = ids('videoReplayScrub');
+    const d = videoReplayDuration();
+    if(!v || !scrub || !d) return;
+    scrub.value = String(Math.round(clamp(v.currentTime/d, 0, 1) * 1000));
+    const play = ids('videoReplayPlayBtn');
+    if(play) play.textContent = v.paused ? '播放' : '暂停';
+  }
+
+  function videoReplayRender(){
+    const modal = ids('videoReplayModal');
+    if(!modal || !modal.classList.contains('active')){ videoReplay.raf = 0; return; }
+    videoReplay.raf = requestAnimationFrame(videoReplayRender);
+
+    const canvasEl = ids('videoReplayCanvas');
+    const pane = canvasEl && canvasEl.parentElement;
+    if(!canvasEl || !pane) return;
+
+    const source = videoReplay.mode === 'replay' ? ids('videoReplayPlayback') : ids('videoReplayLive');
+    const vw = source ? source.videoWidth : 0;
+    const vh = source ? source.videoHeight : 0;
+
+    const paneW = pane.clientWidth, paneH = pane.clientHeight;
+    if(!paneW || !paneH) return;
+    const aspect = (vw && vh) ? vw/vh : 16/9;
+    let cw = paneW, ch = Math.round(cw/aspect);
+    if(ch > paneH){ ch = paneH; cw = Math.round(ch*aspect); }
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    if(canvasEl.width !== Math.round(cw*dpr) || canvasEl.height !== Math.round(ch*dpr)){
+      canvasEl.width = Math.round(cw*dpr);
+      canvasEl.height = Math.round(ch*dpr);
+      canvasEl.style.width = cw + 'px';
+      canvasEl.style.height = ch + 'px';
+    }
+    videoReplay.fit = {cw, ch};
+
+    const g = canvasEl.getContext('2d');
+    g.setTransform(dpr,0,0,dpr,0,0);
+    g.fillStyle = '#05070a';
+    g.fillRect(0,0,cw,ch);
+
+    if(vw && vh){
+      // Giro de 180°, igual que la captura cenital del detector automático.
+      g.save();
+      g.translate(cw, ch);
+      g.rotate(Math.PI);
+      g.drawImage(source, 0, 0, cw, ch);
+      g.restore();
+    } else {
+      g.fillStyle = 'rgba(255,255,255,.55)';
+      g.font = '700 15px ui-sans-serif, system-ui';
+      g.textAlign = 'center';
+      g.fillText(videoReplay.mode === 'replay' ? '正在加载视频…' : '等待摄像头画面…', cw/2, ch/2);
+      g.textAlign = 'left';
+    }
+
+    if(videoReplay.mode === 'calibrate'){
+      drawVideoReplayOverlay(g, cw, ch, {route:true, handles:true});
+    } else if(videoReplay.mode === 'record'){
+      const chk = ids('videoReplayShowGuideRec');
+      if(!chk || chk.checked) drawVideoReplayOverlay(g, cw, ch, {route:true, handles:false});
+      if(videoReplay.countdownUntil){
+        // Número gigante, legible desde la mesa a varios metros.
+        const remaining = Math.max(1, Math.ceil((videoReplay.countdownUntil - Date.now())/1000));
+        g.save();
+        g.fillStyle = 'rgba(4,6,10,.35)';
+        g.fillRect(0, 0, cw, ch);
+        const size = Math.round(Math.min(cw, ch) * 0.62);
+        g.font = '900 ' + size + 'px ui-sans-serif, system-ui';
+        g.textAlign = 'center';
+        g.textBaseline = 'middle';
+        g.lineWidth = Math.max(6, size * 0.045);
+        g.strokeStyle = 'rgba(0,0,0,.85)';
+        g.fillStyle = '#ffffff';
+        g.strokeText(String(remaining), cw/2, ch/2);
+        g.fillText(String(remaining), cw/2, ch/2);
+        g.restore();
+      } else if(videoReplay.flashUntil && Date.now() < videoReplay.flashUntil){
+        const size = Math.round(Math.min(cw, ch) * 0.18);
+        g.save();
+        g.font = '900 ' + size + 'px ui-sans-serif, system-ui';
+        g.textAlign = 'center';
+        g.textBaseline = 'middle';
+        g.lineWidth = Math.max(5, size * 0.06);
+        g.strokeStyle = 'rgba(0,0,0,.85)';
+        g.fillStyle = '#ff4d4d';
+        g.strokeText('录制中！', cw/2, ch/2);
+        g.fillText('录制中！', cw/2, ch/2);
+        g.restore();
+      }
+    } else if(videoReplay.mode === 'replay'){
+      const chk = ids('videoReplayShowGuide');
+      if(!chk || chk.checked) drawVideoReplayOverlay(g, cw, ch, {route:true, handles:false});
+      syncVideoReplayScrub();
+    }
+  }
+
+  function setVideoReplayMode(mode){
+    videoReplay.mode = mode;
+    const visible = {
+      calibrate:'videoReplayCalibPanel',
+      record:'videoReplayRecordPanel',
+      replay:'videoReplayPlaybackPanel'
+    }[mode];
+    ['videoReplayCalibPanel','videoReplayRecordPanel','videoReplayPlaybackPanel'].forEach(id => {
+      const el = ids(id);
+      if(el) el.style.display = id === visible ? '' : 'none';
+    });
+    const step = ids('videoReplayStep');
+    if(step){
+      step.textContent = mode === 'calibrate'
+        ? '第 1 步 · 校准：将四个点对准台布的内角。'
+        : mode === 'record'
+          ? '第 2 步 · 录制：在顶置摄像头录制时完成击球。'
+          : '第 3 步 · 回看：将真实击球与计算线路进行对比。';
+    }
+  }
+
+  function setVideoReplayStatus(msg, tone='neutral'){
+    const el = ids('videoReplayStatus');
+    if(!el) return;
+    el.textContent = msg;
+    el.classList.toggle('good', tone === 'good');
+    el.classList.toggle('bad', tone === 'bad');
+  }
+
+  function resetVideoReplayRecordButtons(){
+    const startBtn = ids('videoReplayStartBtn');
+    const stopBtn = ids('videoReplayStopBtn');
+    const dot = ids('videoReplayRecDot');
+    const hint = ids('videoReplayRecHint');
+    if(startBtn){ startBtn.disabled = false; startBtn.textContent = '开始录制'; }
+    if(stopBtn) stopBtn.disabled = true;
+    if(dot) dot.style.display = 'none';
+    if(hint) hint.textContent = '按下开始录制后，5 秒倒计时让您有时间就位；倒计时到零时伴随提示音开始录制。';
+    if(videoReplay.recTimerId){ clearInterval(videoReplay.recTimerId); videoReplay.recTimerId = 0; }
+    if(videoReplay.countdownTimerId){ clearInterval(videoReplay.countdownTimerId); videoReplay.countdownTimerId = 0; }
+    videoReplay.countdownUntil = 0;
+    videoReplay.flashUntil = 0;
+  }
+
+  async function openVideoReplayModal(startMode){
+    const modal = ids('videoReplayModal');
+    if(!modal) return;
+    modal.classList.add('active');
+    modal.setAttribute('aria-hidden','false');
+
+    videoReplay.calib = videoReplay.calib || loadVideoCalibration();
+    if(startMode === 'record' && !videoReplay.calib){
+      startMode = 'calibrate';
+      setVideoReplayStatus('录制前需先在视频中对球台四角校准一次。');
+    }
+    if(startMode === 'calibrate'){
+      const base = (videoReplay.calib && videoReplay.calib.corners) || [
+        {x:.18, y:.16},{x:.82, y:.16},{x:.82, y:.84},{x:.18, y:.84}
+      ];
+      videoReplay.corners = base.map(p => ({x:p.x, y:p.y}));
+      videoReplay.selCorner = 0;
+      updateVideoReplayCornerButtons();
+    }
+    setVideoReplayMode(startMode);
+    resetVideoReplayRecordButtons();
+    if(!videoReplay.raf) videoReplay.raf = requestAnimationFrame(videoReplayRender);
+
+    const startBtn = ids('videoReplayStartBtn');
+    if(startBtn) startBtn.disabled = true;
+    try{
+      setVideoReplayStatus('正以 1920 × 1080 模式打开顶置摄像头…');
+      await openVideoReplayStream();
+      const audioNote = videoReplay.hasAudio
+        ? ' 录制将包含摄像头麦克风的声音。'
+        : ' 无法启用麦克风：录制将没有声音。';
+      setVideoReplayStatus(startMode === 'calibrate'
+        ? '摄像头就绪。请将四个点拖到台布内角；球环和投影的钻石点必须与视频对齐。' + videoReplayFocusNote()
+        : '摄像头就绪。准备击球时请按开始录制。' + audioNote + videoReplayFocusNote(), 'good');
+      if(startBtn) startBtn.disabled = false;
+    }catch(error){
+      setVideoReplayStatus(cameraErrorMessage(error), 'bad');
+      console.error('击球视频：', error);
+    }
+  }
+
+  function closeVideoReplayModal(){
+    const modal = ids('videoReplayModal');
+    if(!modal) return;
+    abortVideoReplayExport(true);
+    modal.classList.remove('active');
+    modal.setAttribute('aria-hidden','true');
+    if(videoReplay.raf){ cancelAnimationFrame(videoReplay.raf); videoReplay.raf = 0; }
+    stopVideoReplayStream();
+    const playback = ids('videoReplayPlayback');
+    if(playback){
+      try{ playback.pause(); }catch{}
+      playback.removeAttribute('src');
+      playback.load();
+    }
+    if(videoReplay.blobUrl){ URL.revokeObjectURL(videoReplay.blobUrl); videoReplay.blobUrl = null; }
+    videoReplay.mode = 'idle';
+    videoReplay.duration = 0;
+    videoReplay.dragging = false;
+    if(videoReplay.recTimerId){ clearInterval(videoReplay.recTimerId); videoReplay.recTimerId = 0; }
+    if(videoReplay.countdownTimerId){ clearInterval(videoReplay.countdownTimerId); videoReplay.countdownTimerId = 0; }
+    videoReplay.countdownUntil = 0;
+    videoReplay.flashUntil = 0;
+  }
+
+  function pickVideoReplayRecorderMime(){
+    if(!window.MediaRecorder || !MediaRecorder.isTypeSupported) return '';
+    const candidates = videoReplay.hasAudio
+      ? ['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm','video/mp4']
+      : ['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm','video/mp4'];
+    return candidates.find(c => { try{ return MediaRecorder.isTypeSupported(c); }catch{ return false; } }) || '';
+  }
+
+  function playVideoReplayBeep(){
+    // Pitido corto de aviso al llegar a cero. Queda tenuemente registrado al
+    // inicio del video y sirve como marca de sincronización.
+    try{
+      if(!videoReplay.audioCtx){
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if(!Ctx) return;
+        videoReplay.audioCtx = new Ctx();
+      }
+      const ctxA = videoReplay.audioCtx;
+      if(ctxA.state === 'suspended') ctxA.resume();
+      const osc = ctxA.createOscillator();
+      const gain = ctxA.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.0001, ctxA.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.5, ctxA.currentTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctxA.currentTime + 0.22);
+      osc.connect(gain);
+      gain.connect(ctxA.destination);
+      osc.start();
+      osc.stop(ctxA.currentTime + 0.25);
+    }catch{}
+  }
+
+  function cancelVideoReplayCountdown(silent){
+    if(videoReplay.countdownTimerId){ clearInterval(videoReplay.countdownTimerId); videoReplay.countdownTimerId = 0; }
+    videoReplay.countdownUntil = 0;
+    const startBtn = ids('videoReplayStartBtn');
+    if(startBtn){ startBtn.disabled = false; startBtn.textContent = '开始录制'; }
+    if(!silent) setVideoReplayStatus('倒计时已取消。准备好后请按开始录制。');
+  }
+
+  function startVideoReplayRecording(){
+    // Si hay una cuenta regresiva en curso, el mismo botón la cancela.
+    if(videoReplay.countdownUntil){ cancelVideoReplayCountdown(false); return; }
+    if(!videoReplay.stream){
+      setVideoReplayStatus('摄像头未打开。请关闭此窗口后重新打开本模块。', 'bad');
+      return;
+    }
+    if(!window.MediaRecorder){
+      setVideoReplayStatus('此浏览器不支持视频录制。请使用最新版 Chrome 或 Edge。', 'bad');
+      return;
+    }
+    // Cuenta regresiva de 5 segundos, dibujada en grande sobre el video en
+    // vivo, para que el jugador alcance a ubicarse en la mesa. La grabación
+    // real empieza al llegar a cero: el archivo queda limpio, sin la espera.
+    videoReplay.countdownUntil = Date.now() + 5000;
+    const startBtn = ids('videoReplayStartBtn');
+    if(startBtn) startBtn.textContent = '取消倒计时';
+    setVideoReplayStatus('倒计时进行中。到零时将伴随提示音开始录制。');
+    videoReplay.countdownTimerId = setInterval(() => {
+      if(Date.now() >= videoReplay.countdownUntil){
+        clearInterval(videoReplay.countdownTimerId);
+        videoReplay.countdownTimerId = 0;
+        videoReplay.countdownUntil = 0;
+        beginVideoReplayRecordingNow();
+      }
+    }, 100);
+  }
+
+  function beginVideoReplayRecordingNow(){
+    videoReplay.chunks = [];
+    const mime = pickVideoReplayRecorderMime();
+    let recorder = null;
+    try{
+      recorder = new MediaRecorder(videoReplay.stream, mime ? {mimeType:mime, videoBitsPerSecond:8000000} : undefined);
+    }catch(error){
+      setVideoReplayStatus('无法开始录制：' + (error && error.message ? error.message : error), 'bad');
+      const failBtn = ids('videoReplayStartBtn');
+      if(failBtn){ failBtn.disabled = false; failBtn.textContent = '开始录制'; }
+      return;
+    }
+    videoReplay.recorder = recorder;
+    recorder.ondataavailable = e => { if(e.data && e.data.size) videoReplay.chunks.push(e.data); };
+    recorder.onstop = finishVideoReplayRecording;
+    recorder.start(250);
+    videoReplay.recStartMs = Date.now();
+
+    const startBtn = ids('videoReplayStartBtn');
+    const stopBtn = ids('videoReplayStopBtn');
+    const dot = ids('videoReplayRecDot');
+    if(startBtn){ startBtn.disabled = true; startBtn.textContent = '录制中…'; }
+    if(stopBtn) stopBtn.disabled = false;
+    if(dot) dot.style.display = '';
+    playVideoReplayBeep();
+    videoReplay.flashUntil = Date.now() + 1400;
+    setVideoReplayStatus('正在录制。完成击球后请按停止并回看。', 'good');
+    videoReplay.recTimerId = setInterval(() => {
+      const hint = ids('videoReplayRecHint');
+      if(!hint) return;
+      const s = Math.floor((Date.now() - videoReplay.recStartMs)/1000);
+      const mm = String(Math.floor(s/60)).padStart(2,'0');
+      const ss = String(s%60).padStart(2,'0');
+      hint.textContent = `录制中… ${mm}:${ss}。完成击球后请按停止并回看。`;
+    }, 500);
+  }
+
+  function finishVideoReplayRecording(){
+    resetVideoReplayRecordButtons();
+    videoReplay.recorder = null;
+
+    const modal = ids('videoReplayModal');
+    if(!modal || !modal.classList.contains('active')){
+      videoReplay.chunks = [];
+      return;
+    }
+    if(!videoReplay.chunks.length){
+      setVideoReplayStatus('录制未产生数据。请重试。', 'bad');
+      return;
+    }
+    const mimeGuess = videoReplay.chunks[0].type || 'video/webm';
+    const blob = new Blob(videoReplay.chunks, {type:mimeGuess});
+    videoReplay.chunks = [];
+    if(videoReplay.blobUrl) URL.revokeObjectURL(videoReplay.blobUrl);
+    videoReplay.blobUrl = URL.createObjectURL(blob);
+    videoReplay.duration = 0;
+
+    const playback = ids('videoReplayPlayback');
+    const speedSel = ids('videoReplaySpeed');
+    playback.src = videoReplay.blobUrl;
+    playback.playbackRate = speedSel ? (parseFloat(speedSel.value) || 1) : 1;
+    playback.onloadedmetadata = () => {
+      if(!Number.isFinite(playback.duration) || playback.duration <= 0){
+        // Truco conocido: los blobs WebM de MediaRecorder pueden no declarar
+        // duración; una búsqueda a un tiempo enorme obliga al navegador a calcularla.
+        const restore = () => {
+          playback.removeEventListener('timeupdate', restore);
+          videoReplay.duration = Number.isFinite(playback.duration) ? playback.duration : 0;
+          playback.currentTime = 0;
+        };
+        playback.addEventListener('timeupdate', restore);
+        playback.currentTime = 1e6;
+      } else {
+        videoReplay.duration = playback.duration;
+      }
+    };
+    setVideoReplayMode('replay');
+    setVideoReplayStatus('录制完成。可播放、逐帧查看或用慢动作，将真实击球与蓝色计算线路进行对比。', 'good');
+  }
+
+  function videoReplayCanvasPointFromEvent(e){
+    const canvasEl = ids('videoReplayCanvas');
+    const rect = canvasEl.getBoundingClientRect();
+    return {
+      x: clamp((e.clientX - rect.left) / Math.max(rect.width, 1), 0, 1),
+      y: clamp((e.clientY - rect.top) / Math.max(rect.height, 1), 0, 1)
+    };
+  }
+
+  function updateVideoReplayCornerButtons(){
+    document.querySelectorAll('#videoReplayCornerBtns button').forEach(btn => {
+      const idx = Number(btn.dataset.corner);
+      btn.style.outline = idx === videoReplay.selCorner ? '2px solid #ffd23f' : '';
+      btn.style.outlineOffset = idx === videoReplay.selCorner ? '2px' : '';
+    });
+    const selLbl = ids('vrNudgeSel');
+    if(selLbl) selLbl.textContent = 'P' + (videoReplay.selCorner + 1);
+  }
+
+  function nudgeVideoReplayCorner(dx, dy){
+    if(videoReplay.mode !== 'calibrate' || !videoReplay.corners) return;
+    const {cw, ch} = videoReplay.fit;
+    if(!cw || !ch) return;
+    const p = videoReplay.corners[videoReplay.selCorner];
+    p.x = clamp(p.x + dx/cw, 0, 1);
+    p.y = clamp(p.y + dy/ch, 0, 1);
+  }
+
+  function abortVideoReplayExport(silent){
+    if(!videoReplay.exporting) return;
+    videoReplay.exporting = false;
+    if(videoReplay.exportRaf){ cancelAnimationFrame(videoReplay.exportRaf); videoReplay.exportRaf = 0; }
+    if(videoReplay.exportRecorder && videoReplay.exportRecorder.state === 'recording'){
+      try{ videoReplay.exportRecorder.onstop = null; videoReplay.exportRecorder.stop(); }catch{}
+    }
+    videoReplay.exportRecorder = null;
+    videoReplay.exportChunks = [];
+    if(videoReplay.exportVideoEl){
+      try{ videoReplay.exportVideoEl.pause(); }catch{}
+      videoReplay.exportVideoEl.removeAttribute('src');
+      try{ videoReplay.exportVideoEl.load(); }catch{}
+      videoReplay.exportVideoEl = null;
+    }
+    setVideoReplayExportUi(false);
+    if(!silent) setVideoReplayStatus('导出已取消。');
+  }
+
+  function setVideoReplayExportUi(busy){
+    const exportBtn = ids('videoReplayExportBtn');
+    const againBtn = ids('videoReplayAgainBtn');
+    const downloadBtn = ids('videoReplayDownloadBtn');
+    if(exportBtn){
+      exportBtn.disabled = busy;
+      exportBtn.textContent = busy ? '导出中…' : '下载含线路视频';
+    }
+    if(againBtn) againBtn.disabled = busy;
+    if(downloadBtn) downloadBtn.disabled = busy;
+  }
+
+  // Exportación posterior: reproduce internamente la grabación y la vuelve a
+  // codificar cuadro a cuadro con la orientación corregida y la superposición
+  // incrustada (marco, diamantes, anillos de bolas, trayectoria y Ataque),
+  // conservando el audio original. Ocurre en tiempo real: un video de 30 s
+  // tarda unos 30 s. La pestaña debe permanecer visible mientras termina.
+  async function exportVideoReplayWithOverlay(){
+    if(videoReplay.exporting) return;
+    if(!videoReplay.blobUrl){
+      setVideoReplayStatus('没有可导出的录制。', 'bad');
+      return;
+    }
+    if(!(videoReplay.calib && videoReplay.calib.corners)){
+      setVideoReplayStatus('没有已保存的校准：无法内嵌线路。', 'bad');
+      return;
+    }
+    if(!window.MediaRecorder){
+      setVideoReplayStatus('此浏览器不支持视频重新编码。请使用最新版 Chrome 或 Edge。', 'bad');
+      return;
+    }
+
+    const playback = ids('videoReplayPlayback');
+    if(playback){ try{ playback.pause(); }catch{} }
+
+    videoReplay.exporting = true;
+    setVideoReplayExportUi(true);
+    setVideoReplayStatus('正在准备导出…');
+
+    const srcVideo = document.createElement('video');
+    videoReplay.exportVideoEl = srcVideo;
+    srcVideo.src = videoReplay.blobUrl;
+    srcVideo.playsInline = true;
+    srcVideo.preload = 'auto';
+
+    const failExport = message => {
+      videoReplay.exporting = false;
+      if(videoReplay.exportRaf){ cancelAnimationFrame(videoReplay.exportRaf); videoReplay.exportRaf = 0; }
+      videoReplay.exportRecorder = null;
+      videoReplay.exportChunks = [];
+      videoReplay.exportVideoEl = null;
+      setVideoReplayExportUi(false);
+      setVideoReplayStatus(message, 'bad');
+    };
+
+    try{
+      await new Promise((resolve, reject) => {
+        srcVideo.onloadedmetadata = () => resolve();
+        srcVideo.onerror = () => reject(new Error('无法读取录制。'));
+      });
+      if(!Number.isFinite(srcVideo.duration) || srcVideo.duration <= 0){
+        // Mismo truco de duración usado en la reproducción de blobs WebM.
+        await new Promise(resolve => {
+          const restore = () => { srcVideo.removeEventListener('timeupdate', restore); resolve(); };
+          srcVideo.addEventListener('timeupdate', restore);
+          srcVideo.currentTime = 1e6;
+        });
+        srcVideo.currentTime = 0;
+        await new Promise(r => setTimeout(r, 150));
+      }
+    }catch(error){
+      failExport('无法准备导出：' + (error && error.message ? error.message : error));
+      return;
+    }
+
+    const vw = srcVideo.videoWidth || 1280;
+    const vh = srcVideo.videoHeight || 720;
+    const total = (Number.isFinite(srcVideo.duration) && srcVideo.duration > 0)
+      ? srcVideo.duration
+      : (videoReplay.duration || 0);
+
+    const exportCanvas = document.createElement('canvas');
+    exportCanvas.width = vw;
+    exportCanvas.height = vh;
+    const g = exportCanvas.getContext('2d');
+
+    // Audio: el elemento se enruta por un grafo de audio hacia la pista
+    // exportada, sin conexión a los parlantes, para no oírlo durante el proceso.
+    let audioTracks = [];
+    try{
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if(Ctx){
+        if(!videoReplay.audioCtx) videoReplay.audioCtx = new Ctx();
+        if(videoReplay.audioCtx.state === 'suspended') videoReplay.audioCtx.resume();
+        const sourceNode = videoReplay.audioCtx.createMediaElementSource(srcVideo);
+        const destNode = videoReplay.audioCtx.createMediaStreamDestination();
+        sourceNode.connect(destNode);
+        audioTracks = destNode.stream.getAudioTracks();
+      }
+    }catch(audioError){
+      console.warn('导出：无法接入声音，将无声导出。', audioError);
+    }
+
+    const canvasStream = exportCanvas.captureStream(30);
+    const combined = new MediaStream(canvasStream.getVideoTracks().concat(audioTracks));
+
+    // MP4 (H.264 + AAC) de primera opción: es el formato que WhatsApp acepta.
+    // Chrome y Edge lo graban de forma nativa desde la versión 126 (2024).
+    // Solo se elige MP4 si el navegador garantiza explícitamente H.264 + AAC
+    // (codecs avc1 + mp4a); un MP4 con otros códecs no serviría para WhatsApp.
+    // Si el navegador no lo ofrece, se cae automáticamente a WebM.
+    const mimeCandidates = [
+      'video/mp4;codecs=avc1.640028,mp4a.40.2',
+      'video/mp4;codecs=avc1.4D401F,mp4a.40.2',
+      'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
+      'video/webm;codecs=vp9,opus',
+      'video/webm;codecs=vp8,opus',
+      'video/webm'
+    ];
+    let mime = '';
+    if(MediaRecorder.isTypeSupported){
+      mime = mimeCandidates.find(c => { try{ return MediaRecorder.isTypeSupported(c); }catch{ return false; } }) || '';
+    }
+
+    let recorder = null;
+    try{
+      recorder = new MediaRecorder(combined, mime ? {mimeType:mime, videoBitsPerSecond:8000000} : undefined);
+    }catch(error){
+      failExport('无法开始重新编码：' + (error && error.message ? error.message : error));
+      return;
+    }
+
+    videoReplay.exportRecorder = recorder;
+    videoReplay.exportChunks = [];
+    recorder.ondataavailable = e => { if(e.data && e.data.size) videoReplay.exportChunks.push(e.data); };
+    recorder.onstop = () => {
+      const chunks = videoReplay.exportChunks;
+      videoReplay.exportChunks = [];
+      const wasExporting = videoReplay.exporting;
+      videoReplay.exporting = false;
+      if(videoReplay.exportRaf){ cancelAnimationFrame(videoReplay.exportRaf); videoReplay.exportRaf = 0; }
+      videoReplay.exportRecorder = null;
+      try{ srcVideo.pause(); }catch{}
+      videoReplay.exportVideoEl = null;
+      setVideoReplayExportUi(false);
+      if(!wasExporting) return;
+      if(!chunks.length){
+        setVideoReplayStatus('导出未产生数据。请重试。', 'bad');
+        return;
+      }
+      const outType = chunks[0].type || mime || 'video/webm';
+      const isMp4 = /mp4/i.test(outType);
+      const blob = new Blob(chunks, {type: outType});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      a.href = url;
+      a.download = 'shot-with-route-' + stamp + (isMp4 ? '.mp4' : '.webm');
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      setVideoReplayStatus(isMp4
+        ? '含线路视频已以 MP4（H.264 + AAC）下载，可直接通过 WhatsApp 发送：方向已纠正，球台边框、球环、蓝线、瞄准点与声音均已内嵌。'
+        : '含线路视频已以 WebM 下载：此浏览器不支持 MP4 录制。文件包含纠正后的方向和全部叠加内容；如需 WhatsApp 用的 MP4，请在最新版 Chrome 或 Edge 中导出。', 'good');
+    };
+
+    const drawExportFrame = () => {
+      if(!videoReplay.exporting) return;
+      videoReplay.exportRaf = requestAnimationFrame(drawExportFrame);
+      g.fillStyle = '#05070a';
+      g.fillRect(0, 0, vw, vh);
+      g.save();
+      g.translate(vw, vh);
+      g.rotate(Math.PI);
+      g.drawImage(srcVideo, 0, 0, vw, vh);
+      g.restore();
+      drawVideoReplayOverlay(g, vw, vh, {route:true, handles:false});
+      if(total){
+        const pct = Math.min(100, Math.round((srcVideo.currentTime/total)*100));
+        setVideoReplayStatus('正在导出含线路视频… ' + pct + ' %。完成前请勿切换标签页。');
+      }
+    };
+
+    srcVideo.onended = () => {
+      // Pequeño margen para que el último cuadro y el audio queden en el archivo.
+      setTimeout(() => {
+        if(videoReplay.exportRecorder && videoReplay.exportRecorder.state === 'recording'){
+          try{ videoReplay.exportRecorder.stop(); }catch{}
+        }
+      }, 300);
+    };
+
+    try{
+      await srcVideo.play();
+    }catch(error){
+      failExport('浏览器未允许为导出播放录制。请再次按下按钮。');
+      return;
+    }
+    recorder.start(250);
+    drawExportFrame();
+  }
+
+  function setupVideoReplay(){
+    videoReplay.calib = loadVideoCalibration();
+    updateVideoReplayModuleState();
+
+    const recordBtn = ids('videoReplayRecordBtn');
+    const calibBtn = ids('videoReplayCalibBtn');
+    if(recordBtn) recordBtn.addEventListener('click', () => openVideoReplayModal('record'));
+    if(calibBtn) calibBtn.addEventListener('click', () => openVideoReplayModal('calibrate'));
+
+    const closeBtn = ids('videoReplayClose');
+    if(closeBtn) closeBtn.addEventListener('click', closeVideoReplayModal);
+
+    const canvasEl = ids('videoReplayCanvas');
+    if(canvasEl){
+      canvasEl.style.touchAction = 'none';
+      canvasEl.oncontextmenu = () => false;
+      canvasEl.addEventListener('pointerdown', e => {
+        if(videoReplay.mode !== 'calibrate' || !videoReplay.corners) return;
+        const {cw, ch} = videoReplay.fit;
+        if(!cw || !ch) return;
+        const p = videoReplayCanvasPointFromEvent(e);
+        let best = -1, bestD = Infinity;
+        videoReplay.corners.forEach((c,i) => {
+          const d = Math.hypot((c.x - p.x)*cw, (c.y - p.y)*ch);
+          if(d < bestD){ bestD = d; best = i; }
+        });
+        if(best >= 0 && bestD <= 46) videoReplay.selCorner = best;
+        updateVideoReplayCornerButtons();
+        videoReplay.corners[videoReplay.selCorner] = p;
+        videoReplay.dragging = true;
+        try{ canvasEl.setPointerCapture(e.pointerId); }catch{}
+        if(e.cancelable) e.preventDefault();
+      });
+      canvasEl.addEventListener('pointermove', e => {
+        if(!videoReplay.dragging || videoReplay.mode !== 'calibrate' || !videoReplay.corners) return;
+        videoReplay.corners[videoReplay.selCorner] = videoReplayCanvasPointFromEvent(e);
+        if(e.cancelable) e.preventDefault();
+      });
+      const endDrag = () => { videoReplay.dragging = false; };
+      canvasEl.addEventListener('pointerup', endDrag);
+      canvasEl.addEventListener('pointercancel', endDrag);
+    }
+
+    document.querySelectorAll('#videoReplayCornerBtns button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        videoReplay.selCorner = Number(btn.dataset.corner) || 0;
+        updateVideoReplayCornerButtons();
+      });
+    });
+
+    const nudges = [
+      ['vrNudgeUp', 0, -1], ['vrNudgeDown', 0, 1],
+      ['vrNudgeLeft', -1, 0], ['vrNudgeRight', 1, 0]
+    ];
+    for(const [id, dx, dy] of nudges){
+      const btn = ids(id);
+      if(btn) btn.addEventListener('click', () => nudgeVideoReplayCorner(dx, dy));
+    }
+
+    document.addEventListener('keydown', e => {
+      const modal = ids('videoReplayModal');
+      if(!modal || !modal.classList.contains('active')) return;
+      if(e.key === 'Escape'){ closeVideoReplayModal(); return; }
+      if(videoReplay.mode !== 'calibrate') return;
+      const step = e.shiftKey ? 5 : 1;
+      if(e.key === 'ArrowUp'){ nudgeVideoReplayCorner(0, -step); e.preventDefault(); }
+      else if(e.key === 'ArrowDown'){ nudgeVideoReplayCorner(0, step); e.preventDefault(); }
+      else if(e.key === 'ArrowLeft'){ nudgeVideoReplayCorner(-step, 0); e.preventDefault(); }
+      else if(e.key === 'ArrowRight'){ nudgeVideoReplayCorner(step, 0); e.preventDefault(); }
+    });
+
+    const useLocatorBtn = ids('videoReplayUseLocatorBtn');
+    if(useLocatorBtn) useLocatorBtn.addEventListener('click', () => {
+      const corners = locatorCornersNormalized();
+      if(!corners){
+        setVideoReplayStatus('没有来自检测器顶置拍摄的已确认四角。请在照片模块中使用拍摄球台，确认四角并应用球位；校准将从那里获取。', 'bad');
+        return;
+      }
+      videoReplay.corners = corners;
+      setVideoReplayStatus('已载入检测器的四角。请确认球环与视频对齐，然后保存校准。', 'good');
+    });
+
+    const saveCalibBtn = ids('videoReplaySaveCalibBtn');
+    if(saveCalibBtn) saveCalibBtn.addEventListener('click', () => {
+      if(!videoReplay.corners) return;
+      saveVideoCalibration(videoReplay.corners, 'manual');
+      setVideoReplayMode('record');
+      resetVideoReplayRecordButtons();
+      setVideoReplayStatus('校准已保存。只要摄像头不移动就会一直保留。准备击球时请按开始录制。', 'good');
+    });
+
+    const startBtn = ids('videoReplayStartBtn');
+    if(startBtn) startBtn.addEventListener('click', startVideoReplayRecording);
+
+    const stopBtn = ids('videoReplayStopBtn');
+    if(stopBtn) stopBtn.addEventListener('click', () => {
+      stopBtn.disabled = true;
+      if(videoReplay.recorder && videoReplay.recorder.state === 'recording'){
+        try{ videoReplay.recorder.stop(); }catch{}
+      }
+    });
+
+    const playback = ids('videoReplayPlayback');
+    const playBtn = ids('videoReplayPlayBtn');
+    if(playBtn && playback) playBtn.addEventListener('click', () => {
+      if(playback.paused){
+        const speedSel = ids('videoReplaySpeed');
+        playback.playbackRate = speedSel ? (parseFloat(speedSel.value) || 1) : 1;
+        playback.play().catch(() => {});
+      } else {
+        playback.pause();
+      }
+    });
+
+    const stepBack = ids('videoReplayStepBack');
+    const stepFwd = ids('videoReplayStepFwd');
+    const frameStep = dir => {
+      if(!playback || !playback.src) return;
+      playback.pause();
+      const d = videoReplayDuration() || Infinity;
+      playback.currentTime = clamp(playback.currentTime + dir/30, 0, d);
+    };
+    if(stepBack) stepBack.addEventListener('click', () => frameStep(-1));
+    if(stepFwd) stepFwd.addEventListener('click', () => frameStep(1));
+
+    const speedSel = ids('videoReplaySpeed');
+    if(speedSel && playback) speedSel.addEventListener('change', () => {
+      playback.playbackRate = parseFloat(speedSel.value) || 1;
+    });
+
+    const scrub = ids('videoReplayScrub');
+    if(scrub && playback){
+      scrub.addEventListener('input', () => {
+        videoReplay.scrubbing = true;
+        const d = videoReplayDuration();
+        if(d) playback.currentTime = (Number(scrub.value)/1000) * d;
+      });
+      const endScrub = () => { videoReplay.scrubbing = false; };
+      scrub.addEventListener('change', endScrub);
+      scrub.addEventListener('pointerup', endScrub);
+    }
+
+    const againBtn = ids('videoReplayAgainBtn');
+    if(againBtn) againBtn.addEventListener('click', async () => {
+      if(playback){ try{ playback.pause(); }catch{} }
+      setVideoReplayMode('record');
+      resetVideoReplayRecordButtons();
+      try{
+        await openVideoReplayStream();
+        setVideoReplayStatus('摄像头就绪。准备击球时请按开始录制。录制新视频时将丢弃上一次录制。' + (videoReplay.hasAudio ? '' : ' 无法启用麦克风：录制将没有声音。') + videoReplayFocusNote(), 'good');
+      }catch(error){
+        setVideoReplayStatus(cameraErrorMessage(error), 'bad');
+      }
+    });
+
+    const exportBtn = ids('videoReplayExportBtn');
+    if(exportBtn) exportBtn.addEventListener('click', exportVideoReplayWithOverlay);
+
+    const downloadBtn = ids('videoReplayDownloadBtn');
+    if(downloadBtn) downloadBtn.addEventListener('click', () => {
+      if(!videoReplay.blobUrl){
+        setVideoReplayStatus('没有可下载的录制。', 'bad');
+        return;
+      }
+      const a = document.createElement('a');
+      const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      a.href = videoReplay.blobUrl;
+      a.download = `overhead-shot-${stamp}.webm`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setVideoReplayStatus('原始视频已下载，含声音。它保留摄像头原始方向（旋转 180°），不包含蓝线。若需方向已纠正且内嵌线路的文件，请使用下载含线路视频。', 'good');
+    });
+  }
+
 
   setupPositionInputHandlers();
   installMobileZoomGuards();
   setupTableTouchPrecisionControls();
   setupPhotoLocator();
+  setupVideoReplay();
   setupConnectorMapButton();
 
   document.querySelectorAll('select,input').forEach(el=>{
