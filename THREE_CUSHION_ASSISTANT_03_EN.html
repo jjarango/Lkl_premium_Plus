@@ -12296,6 +12296,32 @@ function drawStartMarks(){
     return shot.visualAttackCorrected || shot.attackCorrected || null;
   }
 
+  // Aim data for the video overlay: point, number and the red
+  // attack line (Start -> Aim), the same ones the table draws.
+  function videoReplayAttackInfo(){
+    const shot = currentShot;
+    if(!shot) return null;
+    const r = shot.departureAttackResult;
+    if(r && r.status === 'ok' && r.attackPoint){
+      return {
+        point:r.attackPoint,
+        number:Number.isFinite(r.ataque) ? r.ataque : null,
+        lineFrom:r.departureReadPoint || r.departurePoint || null,
+        lineTo:r.attackReadPoint || r.attackPoint
+      };
+    }
+    const p = shot.visualAttackCorrected || shot.attackCorrected;
+    if(p){
+      return {
+        point:p,
+        number:Number.isFinite(shot.attackCorrCoord) ? shot.attackCorrCoord : null,
+        lineFrom:null,
+        lineTo:null
+      };
+    }
+    return null;
+  }
+
   // Homografía mundo (80 × 40) -> píxeles del lienzo de video,
   // reutilizando homographyFromFourPoints del localizador fotográfico.
   function videoReplayHomography(cw, ch){
@@ -12364,17 +12390,38 @@ function drawStartMarks(){
         g.strokeStyle = '#62d7ff'; g.lineWidth = 3.1; g.stroke();
         g.setLineDash([]);
       }
-      const attack = videoReplayAttackPointWorld();
-      if(attack){
-        const q = W2V(attack);
+      const attackInfo = videoReplayAttackInfo();
+      if(attackInfo){
+        // Red attack line (Start -> Aim), same as on the table.
+        if(attackInfo.lineFrom && attackInfo.lineTo){
+          const la = W2V(attackInfo.lineFrom);
+          const lb = W2V(attackInfo.lineTo);
+          if(la && lb){
+            g.beginPath();
+            g.moveTo(la.x, la.y);
+            g.lineTo(lb.x, lb.y);
+            g.strokeStyle = 'rgba(0,0,0,.68)';
+            g.lineWidth = Math.max(3.2, ch * .0058);
+            g.stroke();
+            g.strokeStyle = 'rgba(252,2,14,.92)';
+            g.lineWidth = Math.max(1.5, ch * .0027);
+            g.stroke();
+          }
+        }
+        const q = W2V(attackInfo.point);
         if(q){
-          g.beginPath(); g.arc(q.x, q.y, 6.4, 0, Math.PI*2);
-          g.fillStyle = '#62d7ff'; g.fill();
-          g.strokeStyle = 'rgba(0,0,0,.8)'; g.lineWidth = 2.2; g.stroke();
-          g.font = '800 15px ui-sans-serif, system-ui';
-          g.lineWidth = 3.4; g.strokeStyle = 'rgba(0,0,0,.8)'; g.fillStyle = '#ffffff';
-          g.strokeText('Aim', q.x + 11, q.y - 9);
-          g.fillText('Aim', q.x + 11, q.y - 9);
+          const dotR = Math.max(5.5, ch * .011);
+          g.beginPath(); g.arc(q.x, q.y, dotR, 0, Math.PI*2);
+          g.fillStyle = '#fc020e'; g.fill();
+          g.strokeStyle = 'rgba(0,0,0,.95)'; g.lineWidth = Math.max(2, ch * .004); g.stroke();
+          const label = attackInfo.number !== null ? ('Aim ' + fmt(attackInfo.number, 1)) : 'Aim';
+          const fs = Math.max(15, Math.round(ch * .032));
+          g.font = '900 ' + fs + 'px ui-sans-serif, system-ui';
+          g.lineWidth = Math.max(3.6, fs * .24);
+          g.strokeStyle = 'rgba(0,0,0,.92)';
+          g.fillStyle = '#fc020e';
+          g.strokeText(label, q.x + dotR + 7, q.y - dotR - 4);
+          g.fillText(label, q.x + dotR + 7, q.y - dotR - 4);
         }
       }
     }
