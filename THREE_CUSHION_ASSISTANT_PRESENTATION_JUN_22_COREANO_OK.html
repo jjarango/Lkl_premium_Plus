@@ -229,6 +229,9 @@
   }
 }
 
+/* 샷 영상 섹션 (2026년 7월) */
+.appShot video{display:block; width:100%; height:auto; background:#0b0d11}
+.appShot.videoShot{max-width:880px; margin-left:auto; margin-right:auto}
 </style>
 </head>
 <body>
@@ -241,6 +244,7 @@
 <a href="#efectos">당점</a>
 <a href="#foto">사진</a>
 <a href="#camara">천장 카메라</a>
+<a href="#video">샷 영상</a>
 <a href="#suscripcion">구독</a>
 </div>
 </div>
@@ -248,7 +252,7 @@
 <header class="hero wrap">
 <div class="eyebrow">프로그램 소개</div>
 <h1>3쿠션 계산을 <em>보이는 테이블로</em></h1>
-<p class="lede">프로 규격 테이블에서 3쿠션 연습을 돕는 디지털 어시스턴트입니다. 공 위치를 지정하고, 수구를 선택하고, 계산 시스템을 고르면, 실제 샷에 들어가기 전에 선명한 조준 경로를 확인할 수 있습니다.</p>
+<p class="lede">프로 규격 테이블에서 3쿠션 연습을 돕는 디지털 어시스턴트입니다. 공 위치를 지정하고, 수구를 선택하고, 계산 시스템을 고르면, 실제 샷에 들어가기 전에 선명한 조준 경로를 확인할 수 있습니다. 그리고 샷을 실행한 뒤에는 <b>직접 녹화</b>해 보십시오. 앱이 실제 샷 영상 위에 그 계산 궤적을 겹쳐 재생합니다.</p>
 <div class="heroGrid reveal">
 <div class="heroCard">
 <div class="screenshot">
@@ -372,8 +376,30 @@
 <div class="note"><b>안전한 거부:</b> 이미지가 위에서 내려다본 완전한 당구대로 보이지 않으면, 앱은 과정을 중지하고 다음과 같이 표시합니다. “캡처한 이미지가 위에서 내려다본 완전한 당구대로 보이지 않습니다. 천장 카메라를 확인하거나 아래 입력란에서 사진을 업로드하세요.”</div>
 <div class="note gold"><b>대안도 그대로 남아 있습니다:</b> 천장 카메라가 없는 사용자도 컴퓨터에서 사진을 업로드하여 동일한 자동 감지기와 미세 조정을 그대로 사용할 수 있습니다.</div>
 </section>
+<section id="video" class="wrap reveal">
+<div class="secHead"><span class="secMark">07</span><h2>실제 샷을 녹화하고 계산을 겹쳐 확인하십시오</h2></div>
+<div class="rule"></div>
+<p>지금까지의 기능은 샷 이전에 작동합니다. <b>“계산 궤적을 겹친 샷 영상”</b> 모듈은 샷 이후에 작동합니다. 천장 카메라로 실제 샷을 녹화하고, 계산된 궤적을 테이블 프레임·다이아몬드·세 공의 등록 위치와 함께 영상 위에 겹쳐 재생합니다.</p>
+<p>여기에는 과장 없이 설명할 만한 기술적 성과가 있습니다. 알고리즘은 284 × 142&nbsp;cm의 정확한 좌표 세계에서 살고, 카메라는 원근과 광학이 있는 실제 장면의 픽셀을 전달합니다. 앱은 사진 위치 지정기가 이미 사용하는 4점 기하 변환으로 두 세계를 연결하며, 천의 네 모서리에서 한 번만 보정하면 됩니다. 그 결과 계산의 파란 선이 프레임마다 촬영된 테이블의 정확한 위치에 떨어집니다.</p>
+
+<figure class="appShot videoShot">
+<div class="shotHead"><b>모듈의 실제 영상</b><span>실행된 샷 · 계산 궤적 겹침 · 소리 포함</span></div>
+<video controls preload="metadata" playsinline src="para_propa.mp4">브라우저가 이 영상을 재생할 수 없습니다. <a href="para_propa.mp4">여기</a>에서 다운로드할 수 있습니다.</video>
+</figure>
+
+<p><b>용도:</b> 육안으로는 실시간에 잡아내기 어려운 실행 결함을 찾는 것입니다. 바로 이 영상에서도 득점은 성공했지만, 슬로모션으로 보면 스트로크 마지막에 큐 팁이 왼쪽으로 살짝 빗나가는 것이 보입니다. 이번 샷은 망치지 않았지만 다른 샷에서는 실점으로 이어질 결함이며, 이제는 구체적인 이미지와 교정 방법이 생겼습니다.</p>
+
+<div class="grid3">
+<div class="card"><span class="tag">녹화</span><h3>혼자 연습하도록 설계</h3><p>큰 숫자의 5초 카운트다운과 알림음이 테이블에 자리 잡을 시간을 줍니다. 초점은 자동으로 고정되고 카메라 마이크가 타구 소리를 담습니다.</p></div>
+<div class="card alt"><span class="tag">확인</span><h3>슬로모션과 프레임 단위</h3><p>0.25×·0.5× 속도, 한 프레임씩 이동, 그리고 언제든 켜고 끄는 겹쳐 보기로 의도와 실행을 비교합니다.</p></div>
+<div class="card green"><span class="tag">공유</span><h3>WhatsApp용 MP4</h3><p>“궤적 포함 다운로드”는 방향이 보정되고 파란 선·조준점·소리가 포함된 MP4를 내보냅니다. 어떤 플레이어에서도 똑같이 보입니다.</p></div>
+</div>
+
+<div class="note gold"><b>보정은 한 번이면 됩니다:</b> 카메라가 움직이지 않는 한 보정은 유지됩니다. 자동 감지기의 “테이블 촬영”을 사용하면 그 모서리가 영상용으로 자동 채택됩니다.</div>
+</section>
+
 <section class="wrap reveal">
-<div class="secHead"><span class="secMark">07</span><h2>장식이 아니라 연습을 위해 설계</h2></div>
+<div class="secHead"><span class="secMark">08</span><h2>장식이 아니라 연습을 위해 설계</h2></div>
 <div class="rule"></div>
 <div class="grid3">
 <div class="card"><span class="tag">PC</span><h3>편안한 분석</h3><p>큰 화면의 테이블로 패턴을 연구하고, 위치를 조정하고, 시스템을 복습하기에 이상적입니다.</p></div>
@@ -382,7 +408,7 @@
 </div>
 </section>
 <section class="wrap reveal" id="suscripcion">
-<div class="secHead"><span class="secMark">08</span><h2>왜 구독해야 할까요?</h2></div>
+<div class="secHead"><span class="secMark">09</span><h2>왜 구독해야 할까요?</h2></div>
 <div class="rule"></div>
 <div class="grid3">
 <div class="card"><span class="tag">방법</span><h3>계산은 줄이고 연습은 늘리고</h3><p>구독하면 수작업 계산 때문에 연습 흐름을 끊지 않고 시스템을 훈련할 수 있도록 설계된 도구에 접근할 수 있습니다.</p></div>
@@ -409,7 +435,7 @@
 </main>
 <footer class="wrap">
 <div class="dia">◆ ◆ ◆</div>
-<div>3쿠션 당구 디지털 어시스턴트 소개 · LKL / Base 50 · Plus · Roger Conti 당점 · 사진 · 검증된 천장 카메라 · 터치 모드.</div>
+<div>3쿠션 당구 디지털 어시스턴트 소개 · LKL / Base 50 · Plus · Roger Conti 당점 · 사진 · 검증된 천장 카메라 · 계산 궤적을 겹친 샷 영상 · 터치 모드.</div>
 </footer>
 <script>
   const observer = new IntersectionObserver((entries)=>{
