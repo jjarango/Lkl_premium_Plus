@@ -12361,7 +12361,8 @@ function drawStartMarks(){
   //         con salida premultiplicada.
   const videoRectifyGL = {
     canvas:null, gl:null, buf:null, tex:null, bgTex:null, bgUploaded:false,
-    progs:null, fboA:null, fboB:null, maskW:0, maskH:0, failed:false
+    progs:null, fboA:null, fboB:null, stateA:null, stateB:null, stateCur:0,
+    maskW:0, maskH:0, failed:false
   };
 
   function ensureVideoRectifyGL(){
@@ -12405,23 +12406,28 @@ function drawStartMarks(){
         '  gl_FragColor = vec4(texture2D(u_tex, uv).rgb, 1.0);' +
         '}';
 
-      // Generación de la máscara. La diferencia combina cromaticidad
-      // (el tono no cambia bajo una sombra) y un término de luma con
-      // zona muerta de 0.25 (las sombras oscurecen sin cambiar el tono,
-      // así que quedan por debajo de la zona muerta y no se recortan).
+      // Generación de la máscara con HISTÉRESIS TEMPORAL (disparador de
+      // Schmitt): un píxel se enciende como "jugador" solo si la
+      // diferencia supera el umbral alto, y se apaga solo si cae bajo el
+      // umbral bajo. Los píxeles ambiguos (bordes con desenfoque de
+      // movimiento) conservan su estado anterior en vez de parpadear.
+      // La diferencia combina cromaticidad (insensible a sombras) y un
+      // término de luma con zona muerta; la cromaticidad se pondera por
+      // la confianza en píxeles oscuros (en lo oscuro el tono es puro
+      // ruido del sensor y no debe engancharse en el estado persistente).
       // La exclusión de la superficie jugable va 0.25 unidades HACIA
-      // ADENTRO del paño: en esa franja el recorte dibuja video sobre
-      // video idéntico (invisible) y el brazo cruza el borde sin cortes.
+      // ADENTRO del paño: el brazo cruza el borde sin cortes.
       const fsMask =
         'precision mediump float;' +
         'varying vec2 v_uv;' +
         'uniform sampler2D u_tex;' +
         'uniform sampler2D u_bg;' +
+        'uniform sampler2D u_prev;' +
         'uniform mat3 u_H;' +
         'uniform vec2 u_worldMin;' +
         'uniform vec2 u_worldSize;' +
         'uniform vec2 u_texSize;' +
-        'uniform vec2 u_thresh;' +
+        'uniform vec2 u_thresh;' +      // x = umbral bajo (apagado), y = umbral alto (encendido)
         'float dif(vec2 uv){' +
         '  vec3 a = texture2D(u_tex, uv).rgb;' +
         '  vec3 b = texture2D(u_bg, uv).rgb;' +
@@ -12429,9 +12435,10 @@ function drawStartMarks(){
         '  float lb = max(b.r + b.g + b.b, 0.06);' +
         '  vec2 ca = a.rg / la;' +
         '  vec2 cb = b.rg / lb;' +
+        '  float conf = smoothstep(0.10, 0.45, min(la, lb));' +
         '  float dc = distance(ca, cb);' +
         '  float dl = abs(la - lb) / 3.0;' +
-        '  return dc * 2.2 + max(0.0, dl - 0.25) * 0.9;' +
+        '  return dc * 2.2 * conf + max(0.0, dl - 0.25) * 0.9;' +
         '}' +
         'void main(){' +
         '  vec2 w = u_worldMin + v_uv * u_worldSize;' +
@@ -12453,7 +12460,8 @@ function drawStartMarks(){
         '          + dif(uv + vec2(0.0, o.y))' +
         '          + dif(uv - vec2(0.0, o.y));' +
         '  d /= 5.0;' +
-        '  float m = smoothstep(u_thresh.x, u_thresh.y, d);' +
+        '  float prev = texture2D(u_prev, v_uv).r;' +
+        '  float m = prev > 0.5 ? step(u_thresh.x, d) : step(u_thresh.y, d);' +
         '  gl_FragColor = vec4(m, m, m, 1.0);' +
         '}';
 
@@ -12559,6 +12567,9 @@ function drawStartMarks(){
       videoRectifyGL.progs = progs;
       videoRectifyGL.fboA = makeFbo();
       videoRectifyGL.fboB = makeFbo();
+      videoRectifyGL.stateA = makeFbo();
+      videoRectifyGL.stateB = makeFbo();
+      videoRectifyGL.stateCur = 0;
       videoRectifyGL.maskW = 0;
       videoRectifyGL.maskH = 0;
       return videoRectifyGL;
@@ -12658,6 +12669,9 @@ function drawStartMarks(){
         gl.activeTexture(gl.TEXTURE2);
         glSizeFbo(R, R.fboA, mw, mh);
         glSizeFbo(R, R.fboB, mw, mh);
+        glSizeFbo(R, R.stateA, mw, mh);  // el redimensionado limpia el
+        glSizeFbo(R, R.stateB, mw, mh);  // estado de histéresis a cero.
+        R.stateCur = 0;
         R.maskW = mw;
         R.maskH = mh;
       }
@@ -12675,46 +12689,56 @@ function drawStartMarks(){
       gl.activeTexture(gl.TEXTURE1);
       gl.bindTexture(gl.TEXTURE_2D, R.bgTex);
 
-      // Sensibilidad del recorte (0-100): baja el umbral de la métrica
-      // combinada croma+luma. Banda de transición estrecha: casi binario.
-      let t0 = 0.152;
+      // Sensibilidad del recorte (0-100): fija el umbral alto (de
+      // encendido); el umbral bajo (de apagado) es la mitad. Entre los
+      // dos, cada píxel conserva su estado anterior: sin parpadeo.
+      let tHigh = 0.152;
       const sense = ids('videoReplayCueSense');
       if(sense){
         const v = clamp(parseFloat(sense.value) || 45, 0, 100);
-        t0 = 0.26 - 0.0024 * v;
+        tHigh = 0.26 - 0.0024 * v;
       }
+      const tLow = tHigh * 0.5;
 
-      // 1) máscara cruda -> FBO A (a 1/3 de resolución).
-      gl.bindFramebuffer(gl.FRAMEBUFFER, R.fboA.fb);
+      // 1) máscara con histéresis: lee el estado del cuadro anterior
+      //    (ping-pong stateA/stateB) y escribe el estado nuevo.
+      const statePrev = R.stateCur === 0 ? R.stateA : R.stateB;
+      const stateNext = R.stateCur === 0 ? R.stateB : R.stateA;
+      R.stateCur = 1 - R.stateCur;
+      gl.bindFramebuffer(gl.FRAMEBUFFER, stateNext.fb);
       gl.viewport(0, 0, mw, mh);
       let P = R.progs.mask;
       glQuad(R, P, 1);
       gl.uniform1i(P.u('u_tex'), 0);
       gl.uniform1i(P.u('u_bg'), 1);
+      gl.uniform1i(P.u('u_prev'), 3);
+      gl.activeTexture(gl.TEXTURE3);
+      gl.bindTexture(gl.TEXTURE_2D, statePrev.tex);
       gl.uniform2f(P.u('u_texSize'),
         Math.max(2, videoEl.videoWidth || videoEl.width || 1920),
         Math.max(2, videoEl.videoHeight || videoEl.height || 1080));
-      gl.uniform2f(P.u('u_thresh'), t0, t0 + 0.05);
+      gl.uniform2f(P.u('u_thresh'), tLow, tHigh);
       glSetHomography(gl, P, Hn, Hd, cw, ch);
       gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-      // 2) cierre morfológico: dilatar ×2 y erosionar ×2 (ping-pong A/B).
+      // 2) cierre morfológico sobre una COPIA de trabajo (el estado de
+      //    histéresis se conserva crudo): dilatar ×2 y erosionar ×2.
       P = R.progs.morph;
       glQuad(R, P, 1);
       gl.uniform1i(P.u('u_mask'), 2);
       gl.uniform2f(P.u('u_px'), 1 / mw, 1 / mh);
       gl.activeTexture(gl.TEXTURE2);
-      const morphPass = (srcFbo, dstFbo, erode) => {
-        gl.bindTexture(gl.TEXTURE_2D, srcFbo.tex);
+      const morphPass = (srcTex, dstFbo, erode) => {
+        gl.bindTexture(gl.TEXTURE_2D, srcTex);
         gl.bindFramebuffer(gl.FRAMEBUFFER, dstFbo.fb);
         gl.viewport(0, 0, mw, mh);
         gl.uniform1f(P.u('u_erode'), erode);
         gl.drawArrays(gl.TRIANGLES, 0, 6);
       };
-      morphPass(R.fboA, R.fboB, 0);
-      morphPass(R.fboB, R.fboA, 0);
-      morphPass(R.fboA, R.fboB, 1);
-      morphPass(R.fboB, R.fboA, 1);
+      morphPass(stateNext.tex, R.fboA, 0);
+      morphPass(R.fboA.tex, R.fboB, 0);
+      morphPass(R.fboB.tex, R.fboA, 1);
+      morphPass(R.fboA.tex, R.fboB, 1);
 
       // 3) composición al lienzo.
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -12726,7 +12750,7 @@ function drawStartMarks(){
       gl.uniform1i(P.u('u_tex'), 0);
       gl.uniform1i(P.u('u_mask'), 2);
       gl.activeTexture(gl.TEXTURE2);
-      gl.bindTexture(gl.TEXTURE_2D, R.fboA.tex);
+      gl.bindTexture(gl.TEXTURE_2D, R.fboB.tex);
       glSetHomography(gl, P, Hn, Hd, cw, ch);
       gl.drawArrays(gl.TRIANGLES, 0, 6);
       g.drawImage(R.canvas, 0, 0, cw, ch);
