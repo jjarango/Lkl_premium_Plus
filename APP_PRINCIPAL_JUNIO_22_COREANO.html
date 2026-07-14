@@ -2000,7 +2000,9 @@
 </div>
 <div class="videoReplayRow">
 <button id="videoReplayUseLocatorBtn" type="button">감지기 모서리 사용</button>
+<button id="videoReplayCaptureBgBtn" type="button">배경 촬영 (테이블 비운 상태)</button>
 </div>
+<p class="small" id="videoReplayBgStatus" style="margin:4px 0 0;">저장된 배경이 없습니다. 테이블 위에 큐와 팔이 없는 상태에서(공은 그대로 두어도 됩니다) 배경 촬영을 누르면, 재생 화면에서 큐를 합성 프레임 위에 표시할 수 있습니다.</p>
 <div class="videoReplayRow">
 <button class="cameraCaptureBtn" id="videoReplaySaveCalibBtn" style="margin:0" type="button">보정 저장 후 계속</button>
 </div>
@@ -2029,6 +2031,8 @@
 </div>
 <label style="display:flex; gap:8px; align-items:center; cursor:pointer;"><input checked="" id="videoReplayShowGuide" style="width:auto" type="checkbox"/> <span class="small">계산 궤적 겹쳐 보기</span></label>
 <label style="display:flex; gap:8px; align-items:center; cursor:pointer;"><input checked="" id="videoReplayShowFrame" style="width:auto" type="checkbox"/> <span class="small">대회 중계 스타일 보정 화면: 반듯한 천, 합성 원목 프레임과 바닥</span></label>
+<label style="display:flex; gap:8px; align-items:center; cursor:pointer;"><input checked="" id="videoReplayShowCue" style="width:auto" type="checkbox"/> <span class="small">프레임 위에 큐 표시 (캘리브레이션에서 배경 촬영 필요)</span></label>
+<label style="display:flex; gap:8px; align-items:center;"><span class="small">잘라내기 감도</span><input id="videoReplayCueSense" max="100" min="0" style="width:150px" type="range" value="45"/></label>
 <div class="videoReplayRow">
 <button id="videoReplayAgainBtn" type="button">다른 샷 녹화</button>
 <button id="videoReplayDownloadBtn" type="button">원본 영상 다운로드</button>
@@ -12391,7 +12395,7 @@ function drawStartMarks(){
     if(videoRectifyGL.gl) return videoRectifyGL;
     try{
       const canvas = document.createElement('canvas');
-      const attrs = {alpha:false, antialias:false, depth:false, stencil:false, preserveDrawingBuffer:true};
+      const attrs = {alpha:true, antialias:false, depth:false, stencil:false, preserveDrawingBuffer:true, premultipliedAlpha:true};
       const gl = canvas.getContext('webgl', attrs) || canvas.getContext('experimental-webgl', attrs);
       if(!gl) throw new Error('Sin contexto WebGL');
 
@@ -12405,24 +12409,54 @@ function drawStartMarks(){
       // v_uv recorre el lienzo con origen arriba-izquierda; se convierte
       // a coordenadas de mundo, se aplica la homografía de calibración
       // (que apunta al cuadro girado 180°) y se deshace el giro para
-      // muestrear el video crudo.
+      // muestrear el video crudo. Dos modos:
+      //   u_mode 0: paño rectificado (opaco).
+      //   u_mode 1: recorte del taco por sustracción de fondo. Solo actúa
+      //     fuera de la superficie jugable; compara el cuadro actual con
+      //     la placa de fondo capturada (mesa despejada) y deja pasar,
+      //     con transparencia suave, únicamente los píxeles que difieren
+      //     (el taco y los brazos). Promedia 5 muestras en cruz para
+      //     reducir el ruido del sensor. Salida premultiplicada.
       const fsSrc =
         'precision mediump float;' +
         'varying vec2 v_uv;' +
         'uniform sampler2D u_tex;' +
+        'uniform sampler2D u_bg;' +
         'uniform mat3 u_H;' +
         'uniform vec2 u_worldMin;' +
         'uniform vec2 u_worldSize;' +
+        'uniform vec2 u_texSize;' +
+        'uniform vec2 u_thresh;' +
+        'uniform int u_mode;' +
+        'float dif(vec2 uv){' +
+        '  return distance(texture2D(u_tex, uv).rgb, texture2D(u_bg, uv).rgb);' +
+        '}' +
         'void main(){' +
         '  vec2 w = u_worldMin + v_uv * u_worldSize;' +
         '  vec3 q = u_H * vec3(w, 1.0);' +
         '  vec2 n = q.xy / q.z;' +
         '  vec2 uv = vec2(1.0) - n;' +
-        '  if(uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0){' +
-        '    gl_FragColor = vec4(0.024, 0.035, 0.055, 1.0);' +
+        '  bool fuera = uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0;' +
+        '  if(u_mode == 0){' +
+        '    if(fuera){ gl_FragColor = vec4(0.024, 0.035, 0.055, 1.0); return; }' +
+        '    gl_FragColor = vec4(texture2D(u_tex, uv).rgb, 1.0);' +
         '    return;' +
         '  }' +
-        '  gl_FragColor = vec4(texture2D(u_tex, uv).rgb, 1.0);' +
+        '  if(fuera){ gl_FragColor = vec4(0.0); return; }' +
+        '  if(w.x > -0.2 && w.x < 80.2 && w.y > -0.2 && w.y < 40.2){' +
+        '    gl_FragColor = vec4(0.0);' +
+        '    return;' +
+        '  }' +
+        '  vec2 o = vec2(1.5) / u_texSize;' +
+        '  float d = dif(uv)' +
+        '          + dif(uv + vec2(o.x, 0.0))' +
+        '          + dif(uv - vec2(o.x, 0.0))' +
+        '          + dif(uv + vec2(0.0, o.y))' +
+        '          + dif(uv - vec2(0.0, o.y));' +
+        '  d /= 5.0;' +
+        '  float a = smoothstep(u_thresh.x, u_thresh.y, d);' +
+        '  vec3 col = texture2D(u_tex, uv).rgb;' +
+        '  gl_FragColor = vec4(col * a, a);' +
         '}';
 
       const compile = (type, src) => {
@@ -12446,24 +12480,35 @@ function drawStartMarks(){
       gl.bindBuffer(gl.ARRAY_BUFFER, buf);
       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0,0, 1,0, 0,1, 0,1, 1,0, 1,1]), gl.STATIC_DRAW);
 
-      const tex = gl.createTexture();
-      gl.bindTexture(gl.TEXTURE_2D, tex);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      const makeTex = () => {
+        const t = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, t);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        return t;
+      };
+      const tex = makeTex();
+      const bgTex = makeTex();
 
       videoRectifyGL.canvas = canvas;
       videoRectifyGL.gl = gl;
       videoRectifyGL.prog = prog;
       videoRectifyGL.buf = buf;
       videoRectifyGL.tex = tex;
+      videoRectifyGL.bgTex = bgTex;
+      videoRectifyGL.bgUploaded = false;
       videoRectifyGL.loc = {
         a_pos: gl.getAttribLocation(prog, 'a_pos'),
         u_tex: gl.getUniformLocation(prog, 'u_tex'),
+        u_bg: gl.getUniformLocation(prog, 'u_bg'),
         u_H: gl.getUniformLocation(prog, 'u_H'),
         u_worldMin: gl.getUniformLocation(prog, 'u_worldMin'),
-        u_worldSize: gl.getUniformLocation(prog, 'u_worldSize')
+        u_worldSize: gl.getUniformLocation(prog, 'u_worldSize'),
+        u_texSize: gl.getUniformLocation(prog, 'u_texSize'),
+        u_thresh: gl.getUniformLocation(prog, 'u_thresh'),
+        u_mode: gl.getUniformLocation(prog, 'u_mode')
       };
       return videoRectifyGL;
     }catch(error){
@@ -12475,11 +12520,22 @@ function drawStartMarks(){
 
   // Hn: homografía mundo -> coordenadas normalizadas del cuadro girado.
   // Hd: homografía afín mundo -> píxeles lógicos del lienzo destino.
-  function drawRectifiedVideoGL(g, videoEl, Hn, Hd, cw, ch, dpr){
+  // mode 0: paño rectificado. mode 1: recorte del taco (requiere fondo).
+  function glRectifyPass(g, videoEl, Hn, Hd, cw, ch, dpr, mode){
     const R = ensureVideoRectifyGL();
     if(!R) return false;
     try{
       const gl = R.gl;
+      if(mode === 1){
+        if(!videoReplay.bgCanvas) return false;
+        if(!R.bgUploaded){
+          gl.activeTexture(gl.TEXTURE1);
+          gl.bindTexture(gl.TEXTURE_2D, R.bgTex);
+          gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, videoReplay.bgCanvas);
+          R.bgUploaded = true;
+        }
+      }
       const pw = Math.max(2, Math.round(cw * dpr));
       const ph = Math.max(2, Math.round(ch * dpr));
       if(R.canvas.width !== pw || R.canvas.height !== ph){
@@ -12487,6 +12543,8 @@ function drawStartMarks(){
         R.canvas.height = ph;
       }
       gl.viewport(0, 0, pw, ph);
+      gl.clearColor(0, 0, 0, 0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
       gl.useProgram(R.prog);
       gl.bindBuffer(gl.ARRAY_BUFFER, R.buf);
       gl.enableVertexAttribArray(R.loc.a_pos);
@@ -12495,7 +12553,11 @@ function drawStartMarks(){
       gl.bindTexture(gl.TEXTURE_2D, R.tex);
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, videoEl);
+      gl.activeTexture(gl.TEXTURE1);
+      gl.bindTexture(gl.TEXTURE_2D, R.bgTex);
       gl.uniform1i(R.loc.u_tex, 0);
+      gl.uniform1i(R.loc.u_bg, 1);
+      gl.uniform1i(R.loc.u_mode, mode);
       // mat3 en orden de columnas.
       gl.uniformMatrix3fv(R.loc.u_H, false, new Float32Array([
         Hn[0], Hn[3], Hn[6],
@@ -12504,6 +12566,19 @@ function drawStartMarks(){
       ]));
       gl.uniform2f(R.loc.u_worldMin, -Hd[2] / Hd[0], -Hd[5] / Hd[4]);
       gl.uniform2f(R.loc.u_worldSize, cw / Hd[0], ch / Hd[4]);
+      gl.uniform2f(R.loc.u_texSize,
+        Math.max(2, videoEl.videoWidth || videoEl.width || 1920),
+        Math.max(2, videoEl.videoHeight || videoEl.height || 1080));
+      // Sensibilidad del recorte: el deslizador (0-100) baja los umbrales
+      // de diferencia de color. Valores por defecto pensados para taco de
+      // madera o carbono sobre baranda café y piso oscuro.
+      let t0 = 0.215;
+      const sense = ids('videoReplayCueSense');
+      if(sense){
+        const v = clamp(parseFloat(sense.value) || 45, 0, 100);
+        t0 = 0.35 - 0.003 * v;
+      }
+      gl.uniform2f(R.loc.u_thresh, t0, t0 + 0.12);
       gl.drawArrays(gl.TRIANGLES, 0, 6);
       g.drawImage(R.canvas, 0, 0, cw, ch);
       return true;
@@ -12512,6 +12587,16 @@ function drawStartMarks(){
       // inhabilita WebGL de forma permanente.
       return false;
     }
+  }
+
+  function drawRectifiedVideoGL(g, videoEl, Hn, Hd, cw, ch, dpr){
+    return glRectifyPass(g, videoEl, Hn, Hd, cw, ch, dpr, 0);
+  }
+
+  // Capa del taco: por encima del marco sintético, deja ver los píxeles
+  // del video que difieren de la placa de fondo (mesa despejada).
+  function drawCueCutoutGL(g, videoEl, Hn, Hd, cw, ch, dpr){
+    return glRectifyPass(g, videoEl, Hn, Hd, cw, ch, dpr, 1);
   }
 
   // Plan B sin WebGL: malla de triángulos por cuadro, solo el paño.
@@ -12570,6 +12655,14 @@ function drawStartMarks(){
       }
     }
     drawSyntheticSurroundCached(g, Hd, cw, ch, dpr);
+    // Capa del taco por encima del marco: solo si hay fondo capturado,
+    // el interruptor está activo y el video ya entrega cuadros.
+    if(drawn && videoReplay.bgCanvas){
+      const cueChk = ids('videoReplayShowCue');
+      if(!cueChk || cueChk.checked){
+        drawCueCutoutGL(g, videoEl, Hn, Hd, cw, ch, dpr);
+      }
+    }
     return true;
   }
 
@@ -12748,7 +12841,8 @@ function drawStartMarks(){
     exportRecorder:null,
     exportChunks:[],
     exportVideoEl:null,
-    focusLocked:false
+    focusLocked:false,
+    bgCanvas:null
   };
 
   function loadVideoCalibration(){
@@ -12782,6 +12876,58 @@ function drawStartMarks(){
   // Reutilización del localizador fotográfico: si las esquinas confirmadas
   // provienen de una captura cenital (misma cámara, imagen ya girada 180°),
   // sirven directamente como calibración del video, normalizadas 0..1.
+  // ---- Placa de fondo para el recorte del taco ----
+  const VIDEO_BG_STORAGE_KEY = 'tresBandasVideoReplayFondoV1';
+
+  function setVideoBgCanvas(canvas){
+    videoReplay.bgCanvas = canvas;
+    if(videoRectifyGL.gl) videoRectifyGL.bgUploaded = false;
+    updateVideoBgStatus();
+  }
+
+  function updateVideoBgStatus(){
+    const el = ids('videoReplayBgStatus');
+    if(!el) return;
+    el.textContent = videoReplay.bgCanvas
+      ? '배경이 저장되었습니다. 재생 화면에서 큐가 합성 프레임 위에 표시됩니다. 조명이 바뀌거나 카메라가 움직이면 배경을 다시 촬영하십시오.'
+      : '저장된 배경이 없습니다. 테이블 위에 큐와 팔이 없는 상태에서(공은 그대로 두어도 됩니다) 배경 촬영을 누르면, 재생 화면에서 큐를 합성 프레임 위에 표시할 수 있습니다.';
+  }
+
+  function loadVideoBackground(){
+    try{
+      const url = localStorage.getItem(VIDEO_BG_STORAGE_KEY);
+      if(!url) return;
+      const img = new Image();
+      img.onload = () => {
+        const c = document.createElement('canvas');
+        c.width = img.naturalWidth;
+        c.height = img.naturalHeight;
+        c.getContext('2d').drawImage(img, 0, 0);
+        setVideoBgCanvas(c);
+      };
+      img.src = url;
+    }catch{}
+  }
+
+  function captureVideoBackground(){
+    const live = ids('videoReplayLive');
+    if(!live || !live.videoWidth || !live.videoHeight || live.readyState < 2){
+      setVideoReplayStatus('카메라가 아직 화면을 보내지 않습니다. 잠시 후 배경 촬영을 다시 시도하십시오.', 'warn');
+      return;
+    }
+    const c = document.createElement('canvas');
+    c.width = live.videoWidth;
+    c.height = live.videoHeight;
+    c.getContext('2d').drawImage(live, 0, 0);
+    setVideoBgCanvas(c);
+    try{
+      localStorage.setItem(VIDEO_BG_STORAGE_KEY, c.toDataURL('image/jpeg', 0.8));
+    }catch{
+      // Sin espacio en localStorage: el fondo queda solo para esta sesión.
+    }
+    setVideoReplayStatus('배경이 저장되었습니다. 촬영 순간 테이블 위에 큐나 팔이 없었는지 확인하십시오.', 'good');
+  }
+
   function locatorCornersNormalized(){
     if(!photoLocator.fromOverheadCamera || !photoLocator.image) return null;
     const iw = photoLocator.image.naturalWidth || photoLocator.image.width;
@@ -13822,6 +13968,11 @@ function drawStartMarks(){
       videoReplay.corners = corners;
       setVideoReplayStatus('감지기 모서리를 불러왔습니다. 공 링이 영상과 일치하는지 확인한 뒤 보정을 저장하십시오.', 'good');
     });
+
+    const captureBgBtn = ids('videoReplayCaptureBgBtn');
+    if(captureBgBtn) captureBgBtn.addEventListener('click', captureVideoBackground);
+    loadVideoBackground();
+    updateVideoBgStatus();
 
     const saveCalibBtn = ids('videoReplaySaveCalibBtn');
     if(saveCalibBtn) saveCalibBtn.addEventListener('click', () => {
