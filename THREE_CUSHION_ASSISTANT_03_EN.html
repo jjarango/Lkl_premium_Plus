@@ -12346,6 +12346,8 @@ function drawStartMarks(){
     g.lineJoin = 'round';
     g.lineCap = 'round';
 
+    if(opts && opts.handles){
+
     // Marco del área jugable proyectado sobre el video.
     g.beginPath();
     outline.forEach((p,i) => i ? g.lineTo(p.x,p.y) : g.moveTo(p.x,p.y));
@@ -12363,6 +12365,7 @@ function drawStartMarks(){
     for(const d of diamondPts){
       const q = W2V(d); if(!q) continue;
       g.beginPath(); g.arc(q.x, q.y, 3.1, 0, Math.PI*2); g.fill(); g.stroke();
+    }
     }
 
     // Anillos en las posiciones registradas de las bolas: si coinciden
