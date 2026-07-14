@@ -10491,6 +10491,8 @@ function drawStartMarks(){
     {id:'red', type:'ball', ball:'red', label:'Centro de la bola roja'}
   ];
 
+  let photoSessionCorners = null; // esquinas aplicadas en esta sesión (memoria; se limpia al recargar).
+
   const photoLocator = {
     active:false,
     dragging:false,
@@ -11177,6 +11179,55 @@ function drawStartMarks(){
     return {ok,checks,quad,geometry,balls:detected,reason:ok?'aceptada':'uno o más criterios no se cumplieron'};
   }
 
+  function photoImageDims(){
+    const img = photoLocator.image;
+    if(!img) return null;
+    const w = img.naturalWidth || img.width || 0;
+    const h = img.naturalHeight || img.height || 0;
+    return (w > 1 && h > 1) ? {w, h} : null;
+  }
+
+  function currentPhotoOrientation(){
+    const sel = ids('photoViewpoint');
+    return sel ? sel.value : '';
+  }
+
+  // Reutilización de esquinas DENTRO de la sesión: si ni la cámara ni la
+  // mesa se han movido, la geometría de la captura anterior sigue siendo
+  // válida, así que solo cambian las bolas. Se reutiliza únicamente si
+  // las dimensiones de la imagen y la orientación coinciden con las de
+  // la captura aplicada. Recargar la app reinicia la sesión (esa es la
+  // vía para recalibrar esquinas: sin botones adicionales).
+  function maybeReuseSessionCorners(){
+    photoLocator.reusedCorners = false;
+    if(!photoSessionCorners) return false;
+    const dims = photoImageDims();
+    if(!dims) return false;
+    if(dims.w !== photoSessionCorners.w || dims.h !== photoSessionCorners.h) return false;
+    if(currentPhotoOrientation() !== photoSessionCorners.orientation) return false;
+    for(const id of ['tl','tr','br','bl']){
+      const p = photoSessionCorners.pts[id];
+      if(!p || !Number.isFinite(p.x) || !Number.isFinite(p.y)) return false;
+    }
+    for(const id of ['tl','tr','br','bl']){
+      photoLocator.points[id] = {x:photoSessionCorners.pts[id].x, y:photoSessionCorners.pts[id].y};
+    }
+    photoLocator.reusedCorners = true;
+    return true;
+  }
+
+  function rememberSessionCorners(){
+    const dims = photoImageDims();
+    if(!dims) return;
+    const pts = {};
+    for(const id of ['tl','tr','br','bl']){
+      const p = photoLocator.points[id];
+      if(!p) return;
+      pts[id] = {x:p.x, y:p.y};
+    }
+    photoSessionCorners = {w:dims.w, h:dims.h, orientation:currentPhotoOrientation(), pts};
+  }
+
   function autoDetectPhotoLocatorPoints(fromLoad=false){
     if(!photoLocator.image){
       setPhotoDetectStatus('Primero cargue una fotografía.', 'warn');
@@ -11188,7 +11239,7 @@ function drawStartMarks(){
       setPhotoDetectStatus('No fue posible preparar la imagen para detección.', 'bad');
       return;
     }
-    const quad = tableQuadFromBlueMask(pd);
+    const quad = photoLocator.reusedCorners ? null : tableQuadFromBlueMask(pd);
     const found = {corners:false, balls:0};
     if(quad){
       Object.assign(photoLocator.points, quad.appOrder);
@@ -11212,12 +11263,18 @@ function drawStartMarks(){
       }
     }
 
-    photoLocator.stepIndex = 0;
+    photoLocator.stepIndex = photoLocator.reusedCorners ? 4 : 0;
     const first = currentPhotoStep();
     photoLocator.current = photoLocator.points[first.id] ? {...photoLocator.points[first.id]} : null;
     drawPhotoLocator();
     const total = (found.corners ? 4 : 0) + found.balls;
-    if(found.corners && found.balls === 3){
+    if(photoLocator.reusedCorners){
+      if(found.balls === 3){
+        setPhotoDetectStatus('Esquinas de la sesión reutilizadas (misma cámara, misma mesa). Las tres bolas fueron detectadas automáticamente: revise los tres centros y aplique. Para recalibrar las esquinas desde cero, recargue la app.', 'good');
+      }else{
+        setPhotoDetectStatus(`Esquinas de la sesión reutilizadas. Bolas detectadas ${found.balls}/3; complete o corrija los centros manualmente. Para recalibrar las esquinas desde cero, recargue la app.`, 'warn');
+      }
+    }else if(found.corners && found.balls === 3){
       setPhotoDetectStatus('Detección completa: las esquinas fueron corregidas 5 cm hacia adentro según la orientación seleccionada. Revise los siete puntos; la superficie jugable de 284 × 142 cm quedará definida por los cuatro puntos confirmados.', 'good');
     }else if(total > 0){
       setPhotoDetectStatus(`Detección parcial: ${found.corners ? 'esquinas detectadas y corregidas 5 cm hacia adentro' : 'esquinas no detectadas'}, bolas detectadas ${found.balls}/3. Corrija o complete manualmente.`, 'warn');
@@ -11250,6 +11307,7 @@ function drawStartMarks(){
     if(viewSel){
       updatePhotoViewpointHint();
       viewSel.addEventListener('change', () => {
+        photoLocator.reusedCorners = false;
         updatePhotoViewpointHint();
         setPhotoDetectStatus('Orientación cambiada. Vuelva a detectar automáticamente o cargue otra foto.', 'neutral');
         const st = ids('photoLocatorStatus');
@@ -11543,6 +11601,7 @@ function drawStartMarks(){
     photoLocator.current = null;
     photoLocator.points = {};
     photoLocator.active = true;
+    maybeReuseSessionCorners();
     openPhotoLocator();
     const status = ids('photoLocatorStatus');
     if(status){
@@ -11621,6 +11680,7 @@ function drawStartMarks(){
         photoLocator.current = null;
         photoLocator.points = {};
         photoLocator.active = true;
+        maybeReuseSessionCorners();
         openPhotoLocator();
         if(status) status.textContent = 'Fotografía cargada. La app intentará detectar automáticamente esquinas y bolas.';
         setTimeout(() => autoDetectPhotoLocatorPoints(true), 120);
@@ -12007,6 +12067,7 @@ function drawStartMarks(){
     recalculateAll('photo-locator-apply');
     const status = ids('photoLocatorStatus');
     if(status) status.textContent = 'Posiciones cargadas desde la fotografía. Revise visualmente y ajuste a mano si hace falta.';
+    rememberSessionCorners();
     maybeAdoptVideoCalibrationFromLocator();
     closePhotoLocator();
   }
