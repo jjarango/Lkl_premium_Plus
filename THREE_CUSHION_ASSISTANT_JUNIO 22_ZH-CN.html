@@ -1876,7 +1876,7 @@ html,body,button,input,select,textarea{font-family:"PingFang SC","Microsoft YaHe
             </div>
 </div><div class="photoFileWrap" data-tip="Take the photograph from the greatest height possible. Standing on a chair can help.">
 <input accept="image/*" id="photoLocatorInput" type="file"/>
-</div><div class="photoStatus" id="photoLocatorStatus">建议先选择照片的拍摄方向。自动识别会给出初始点，并将四角向内偏移 5 cm；最终比赛区域由确认后的四个角点定义。</div></div></details><details class="menuModule" id="moduleSequence"><summary><span class="moduleTitle">击球顺序</span><span class="moduleState" id="moduleSequenceState">先碰球 · 上方长库 → 右侧短库</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><label for="mode" id="modeLabel">主球出发方式</label><select id="mode">
+</div><div class="photoStatus" id="photoLocatorStatus">建议先选择照片的拍摄方向。自动识别会给出初始点，并将四角向内偏移 5 cm；最终比赛区域由确认后的四个角点定义。</div><div id="photoRectifiedWrap" style="display:none; margin-top:12px;"><h3 style="margin:0 0 6px; font-size:14px;">校正后的球台</h3><p class="small" style="margin:0 0 8px;">真实台呢经透视校正为 284 × 142 cm 的规整矩形，四周为 5 cm 蓝色库边、带钻石点的 9 cm 深色木质台框以及均匀的深色地面（均为合成图形）。这只是一张图像，不参与任何计算。</p><canvas id="photoRectifiedCanvas" style="width:100%; height:auto; display:block; border-radius:10px;"></canvas><div class="videoReplayRow" style="margin-top:8px;"><button id="photoRectifiedDownloadBtn" type="button">下载 PNG 图片</button></div></div></div></details><details class="menuModule" id="moduleSequence"><summary><span class="moduleTitle">击球顺序</span><span class="moduleState" id="moduleSequenceState">先碰球 · 上方长库 → 右侧短库</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><label for="mode" id="modeLabel">主球出发方式</label><select id="mode">
 <option value="ballFirst">先碰球，再走库</option>
 <option value="cushionFirst">先走库，再碰球</option>
 </select><label for="firstBall" id="firstBallLabel">第二目标球</label><select id="firstBall">
@@ -1976,7 +1976,9 @@ html,body,button,input,select,textarea{font-family:"PingFang SC","Microsoft YaHe
 </div>
 <div class="videoReplayRow">
 <button id="videoReplayUseLocatorBtn" type="button">使用检测器的四角</button>
+<button id="videoReplayCaptureBgBtn" type="button">拍摄背景（清空球台）</button>
 </div>
+<p class="small" id="videoReplayBgStatus" style="margin:4px 0 0;">尚未拍摄背景。请在台面上没有球杆和手臂时（球可以留在台面上）点击背景拍摄按钮，即可在回放中把球杆显示在合成台框之上。</p>
 <div class="videoReplayRow">
 <button class="cameraCaptureBtn" id="videoReplaySaveCalibBtn" style="margin:0" type="button">保存校准并继续</button>
 </div>
@@ -2004,6 +2006,9 @@ html,body,button,input,select,textarea{font-family:"PingFang SC","Microsoft YaHe
 <label style="display:flex; gap:8px; align-items:center;"><span class="small">速度</span><select id="videoReplaySpeed" style="flex:1"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option selected="" value="1">1×</option></select></label>
 </div>
 <label style="display:flex; gap:8px; align-items:center; cursor:pointer;"><input checked="" id="videoReplayShowGuide" style="width:auto" type="checkbox"/> <span class="small">叠加计算线路</span></label>
+<label style="display:flex; gap:8px; align-items:center; cursor:pointer;"><input checked="" id="videoReplayShowFrame" style="width:auto" type="checkbox"/> <span class="small">比赛转播式校正视图：规整台呢、合成木框与地面</span></label>
+<label style="display:flex; gap:8px; align-items:center; cursor:pointer;"><input checked="" id="videoReplayShowCue" style="width:auto" type="checkbox"/> <span class="small">在台框上显示球杆（需在校准时拍摄背景）</span></label>
+<label style="display:flex; gap:8px; align-items:center;"><span class="small">抠像灵敏度</span><input id="videoReplayCueSense" max="100" min="0" style="width:150px" type="range" value="45"/></label>
 <div class="videoReplayRow">
 <button id="videoReplayAgainBtn" type="button">再录一杆</button>
 <button id="videoReplayDownloadBtn" type="button">下载原始视频</button>
@@ -12052,6 +12057,748 @@ function drawStartMarks(){
     };
   }
 
+  // ============================================================
+  // ESCENA SINTÉTICA: banda azul, baranda Verhoeven Classic con
+  // diamantes reglamentarios y piso carbón con tablones discretos.
+  // Se usa en dos sitios: la vista de mesa rectificada del detector
+  // y la superposición del video de la jugada. TODO es cosmético:
+  // no interviene en ningún cálculo del motor.
+  // ============================================================
+  const SYNTH_BAND_U = 5 / TABLE_UNIT_CM;   // banda azul de 5 cm, igual que el marco visual de la app.
+  const SYNTH_WOOD_U = 9 / TABLE_UNIT_CM;   // baranda de 9 cm, igual que el marco visual de la app.
+  const SYNTH_FLOOR = '#101214';
+  const synthSurroundCache = new Map();
+
+  // RNG determinista: la textura del piso y la veta de la madera
+  // deben ser idénticas en cada render (sin parpadeo en video).
+  function synthRng(seed){
+    let a = seed >>> 0;
+    return function(){
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function invertHomography(H){
+    const [a,b,c,d,e,f,g,h,i] = H;
+    const A = e*i - f*h, B = c*h - b*i, C = b*f - c*e;
+    const D = f*g - d*i, E = a*i - c*g, F = c*d - a*f;
+    const G = d*h - e*g, Hc = b*g - a*h, I = a*e - b*d;
+    const det = a*A + b*D + c*G;
+    if(!Number.isFinite(det) || Math.abs(det) < 1e-12) return null;
+    return [A/det,B/det,C/det, D/det,E/det,F/det, G/det,Hc/det,I/det];
+  }
+
+  function synthCssColor(name, fallback){
+    const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return v || fallback;
+  }
+
+  // Construye, en un lienzo aparte, todo lo que rodea la superficie
+  // jugable: piso, sombra, baranda, diamantes y banda. Al final abre
+  // un "agujero" transparente exactamente en el cuadrilátero jugable,
+  // para que debajo se vea el paño real (foto rectificada o video).
+  // H es la homografía mundo (80 × 40) -> píxeles del lienzo destino;
+  // sirve igual para el caso afín (imagen rectificada) y el caso en
+  // perspectiva (video sin rectificar).
+  function buildSyntheticSurround(H, wPx, hPx){
+    const cvs = document.createElement('canvas');
+    cvs.width = Math.max(2, Math.round(wPx));
+    cvs.height = Math.max(2, Math.round(hPx));
+    const c = cvs.getContext('2d');
+    const P = (x,y) => applyHomography(H, {x, y});
+
+    // Escala local aproximada (px por unidad interna) cerca del centro.
+    const pc0 = P(TABLE.W/2, TABLE.H/2);
+    const pc1 = P(TABLE.W/2 + 1, TABLE.H/2);
+    if(!pc0 || !pc1) return cvs;
+    const pxPerUnit = Math.max(1.5, Math.hypot(pc1.x - pc0.x, pc1.y - pc0.y));
+
+    const ringQuad = off => [
+      P(-off, -off), P(TABLE.W + off, -off),
+      P(TABLE.W + off, TABLE.H + off), P(-off, TABLE.H + off)
+    ];
+    const pathQuad = q => {
+      c.moveTo(q[0].x, q[0].y);
+      for(let i=1;i<4;i++) c.lineTo(q[i].x, q[i].y);
+      c.closePath();
+    };
+    const quadOk = q => q.every(p => p && Number.isFinite(p.x) && Number.isFinite(p.y));
+
+    const playQ = ringQuad(0);
+    const bandQ = ringQuad(SYNTH_BAND_U);
+    const frameQ = ringQuad(SYNTH_BAND_U + SYNTH_WOOD_U);
+    if(!quadOk(playQ) || !quadOk(bandQ) || !quadOk(frameQ)) return cvs;
+
+    // Rango de mundo que cubre todo el lienzo (para dibujar el piso).
+    let minX = -30, maxX = TABLE.W + 30, minY = -30, maxY = TABLE.H + 30;
+    const Hinv = invertHomography(H);
+    if(Hinv){
+      const samples = [
+        {x:0,y:0},{x:wPx,y:0},{x:wPx,y:hPx},{x:0,y:hPx},
+        {x:wPx/2,y:0},{x:wPx,y:hPx/2},{x:wPx/2,y:hPx},{x:0,y:hPx/2}
+      ];
+      let ok = true;
+      let bx0 = Infinity, bx1 = -Infinity, by0 = Infinity, by1 = -Infinity;
+      for(const s of samples){
+        const wpt = applyHomography(Hinv, s);
+        if(!wpt || !Number.isFinite(wpt.x) || !Number.isFinite(wpt.y)){ ok = false; break; }
+        bx0 = Math.min(bx0, wpt.x); bx1 = Math.max(bx1, wpt.x);
+        by0 = Math.min(by0, wpt.y); by1 = Math.max(by1, wpt.y);
+      }
+      if(ok){
+        const padX = (bx1 - bx0) * 0.08 + 4, padY = (by1 - by0) * 0.08 + 4;
+        minX = Math.max(-320, bx0 - padX); maxX = Math.min(TABLE.W + 320, bx1 + padX);
+        minY = Math.max(-320, by0 - padY); maxY = Math.min(TABLE.H + 320, by1 + padY);
+      }
+    }
+    minX = Math.min(minX, -(SYNTH_BAND_U + SYNTH_WOOD_U + 2));
+    minY = Math.min(minY, -(SYNTH_BAND_U + SYNTH_WOOD_U + 2));
+    maxX = Math.max(maxX, TABLE.W + SYNTH_BAND_U + SYNTH_WOOD_U + 2);
+    maxY = Math.max(maxY, TABLE.H + SYNTH_BAND_U + SYNTH_WOOD_U + 2);
+
+    // ---------- 1. Piso carbón con tablones discretos ----------
+    const floorLayer = document.createElement('canvas');
+    floorLayer.width = cvs.width; floorLayer.height = cvs.height;
+    const f = floorLayer.getContext('2d');
+    f.fillStyle = SYNTH_FLOOR;
+    f.fillRect(0, 0, floorLayer.width, floorLayer.height);
+
+    const rng = synthRng(20260713);
+    const plankW = 5.6; // ≈ 20 cm, tablones paralelos a la banda larga.
+    const firstPlank = Math.floor(minY / plankW);
+    const lastPlank = Math.ceil(maxY / plankW);
+    const seamW = Math.min(1.6, Math.max(0.6, pxPerUnit * 0.06));
+    for(let k = firstPlank; k <= lastPlank && (k - firstPlank) < 400; k++){
+      const y0 = k * plankW, y1 = y0 + plankW;
+      const q = [P(minX, y0), P(maxX, y0), P(maxX, y1), P(minX, y1)];
+      if(!quadOk(q)) continue;
+      const dTone = Math.round(rng() * 6 - 3); // variación mínima entre tablones.
+      f.beginPath();
+      f.moveTo(q[0].x, q[0].y); f.lineTo(q[1].x, q[1].y);
+      f.lineTo(q[2].x, q[2].y); f.lineTo(q[3].x, q[3].y);
+      f.closePath();
+      f.fillStyle = `rgb(${16 + dTone},${18 + dTone},${20 + dTone})`;
+      f.fill();
+      // Junta entre tablones.
+      f.beginPath();
+      f.moveTo(q[0].x, q[0].y); f.lineTo(q[1].x, q[1].y);
+      f.strokeStyle = 'rgba(0,0,0,.42)';
+      f.lineWidth = seamW;
+      f.stroke();
+      // Veta apenas insinuada.
+      const streaks = 1 + Math.floor(rng() * 2);
+      for(let s = 0; s < streaks; s++){
+        const yv = y0 + (0.2 + rng() * 0.6) * plankW;
+        const a = P(minX, yv), b = P(maxX, yv);
+        if(!a || !b) continue;
+        f.beginPath();
+        f.moveTo(a.x, a.y); f.lineTo(b.x, b.y);
+        f.strokeStyle = rng() > 0.5 ? 'rgba(255,255,255,.022)' : 'rgba(0,0,0,.05)';
+        f.lineWidth = seamW * (0.6 + rng() * 0.8);
+        f.stroke();
+      }
+    }
+
+    // El piso está más abajo que el plano de la mesa: desenfoque leve.
+    const blurPx = Math.min(4, Math.max(1.5, Math.min(cvs.width, cvs.height) * 0.004));
+    c.save();
+    try{ c.filter = `blur(${blurPx.toFixed(1)}px)`; }catch{}
+    c.drawImage(floorLayer, -blurPx * 2, -blurPx * 2, cvs.width + blurPx * 4, cvs.height + blurPx * 4);
+    c.restore();
+
+    // Viñeta radial hacia los bordes de la imagen.
+    const diag = Math.hypot(cvs.width, cvs.height);
+    const frameCornerR = Math.max(
+      Math.hypot(frameQ[0].x - pc0.x, frameQ[0].y - pc0.y),
+      Math.hypot(frameQ[2].x - pc0.x, frameQ[2].y - pc0.y)
+    );
+    const vg = c.createRadialGradient(pc0.x, pc0.y, frameCornerR * 0.9, pc0.x, pc0.y, diag * 0.72);
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(1, 'rgba(0,0,0,.5)');
+    c.fillStyle = vg;
+    c.fillRect(0, 0, cvs.width, cvs.height);
+
+    // Sombra suave que "ancla" la mesa al piso.
+    const shQ = ringQuad(SYNTH_BAND_U + SYNTH_WOOD_U + 0.8);
+    if(quadOk(shQ)){
+      c.save();
+      try{ c.filter = `blur(${Math.max(4, pxPerUnit * 2).toFixed(1)}px)`; }catch{}
+      c.translate(0, pxPerUnit * 0.45);
+      c.beginPath(); pathQuad(shQ);
+      c.fillStyle = 'rgba(0,0,0,.58)';
+      c.fill();
+      c.restore();
+    }
+
+    // ---------- 2. Baranda de madera oscura (Verhoeven Classic) ----------
+    const wg = c.createLinearGradient(frameQ[0].x, frameQ[0].y, frameQ[2].x, frameQ[2].y);
+    wg.addColorStop(0, '#4f3620');
+    wg.addColorStop(0.5, '#3f2a15');
+    wg.addColorStop(1, '#2b1b0c');
+    c.beginPath(); pathQuad(frameQ); pathQuad(bandQ);
+    c.fillStyle = wg;
+    c.fill('evenodd');
+
+    // Veta natural de la madera: líneas onduladas de amplitud mínima,
+    // paralelas a cada baranda, con intensidad y grosor variables.
+    c.save();
+    c.beginPath(); pathQuad(frameQ); pathQuad(bandQ);
+    c.clip('evenodd');
+    const wrng = synthRng(1876); // año del primer campeonato de carambola, por pura superstición.
+    const grainMin = -(SYNTH_BAND_U + SYNTH_WOOD_U + 1);
+    const grainSides = [
+      {pt:(t,o)=>({x:grainMin + (TABLE.W - 2*grainMin)*t, y:-SYNTH_BAND_U - o}), span:TABLE.W - 2*grainMin},
+      {pt:(t,o)=>({x:grainMin + (TABLE.W - 2*grainMin)*t, y:TABLE.H + SYNTH_BAND_U + o}), span:TABLE.W - 2*grainMin},
+      {pt:(t,o)=>({x:-SYNTH_BAND_U - o, y:grainMin + (TABLE.H - 2*grainMin)*t}), span:TABLE.H - 2*grainMin},
+      {pt:(t,o)=>({x:TABLE.W + SYNTH_BAND_U + o, y:grainMin + (TABLE.H - 2*grainMin)*t}), span:TABLE.H - 2*grainMin}
+    ];
+    for(const side of grainSides){
+      const veins = 11;
+      for(let v = 0; v < veins; v++){
+        const baseOff = 0.18 + wrng() * (SYNTH_WOOD_U - 0.36);
+        const amp = 0.03 + wrng() * 0.09;              // ondulación sutil, en unidades.
+        const lambda = 9 + wrng() * 16;                // longitud de onda.
+        const phase = wrng() * Math.PI * 2;
+        const dark = wrng() < 0.58;
+        const alpha = dark ? 0.05 + wrng() * 0.07 : 0.035 + wrng() * 0.05;
+        c.strokeStyle = dark
+          ? `rgba(18,10,4,${alpha.toFixed(3)})`
+          : `rgba(224,186,138,${alpha.toFixed(3)})`;
+        c.lineWidth = Math.max(0.5, pxPerUnit * (0.03 + wrng() * 0.07));
+        c.beginPath();
+        const steps = Math.max(12, Math.round(side.span / 1.5));
+        let started = false;
+        for(let s = 0; s <= steps; s++){
+          const t = s / steps;
+          const along = t * side.span;
+          const o = baseOff + amp * Math.sin((Math.PI * 2 * along) / lambda + phase);
+          const w = side.pt(t, Math.min(SYNTH_WOOD_U - 0.1, Math.max(0.1, o)));
+          const p = P(w.x, w.y);
+          if(!p){ started = false; continue; }
+          if(!started){ c.moveTo(p.x, p.y); started = true; }
+          else c.lineTo(p.x, p.y);
+        }
+        c.stroke();
+      }
+    }
+    c.restore();
+
+    // Separaciones sutiles, como en el tablero principal de la app.
+    c.beginPath(); pathQuad(frameQ);
+    c.strokeStyle = 'rgba(255,255,255,.09)';
+    c.lineWidth = Math.max(0.8, pxPerUnit * 0.05);
+    c.stroke();
+    c.beginPath(); pathQuad(bandQ);
+    c.strokeStyle = 'rgba(0,0,0,.36)';
+    c.lineWidth = Math.max(0.9, pxPerUnit * 0.05);
+    c.stroke();
+
+    // ---------- 3. Diamantes sobre la baranda ----------
+    // 9 por banda larga y 5 por banda corta (incluidas las esquinas),
+    // igual que en el tablero principal de la app y sus sistemas de
+    // conteo. Rombos alargados con el eje mayor perpendicular a la
+    // banda, blancos con borde oscuro, como en las mesas reales.
+    const dOff = SYNTH_BAND_U + SYNTH_WOOD_U / 2;
+    const DIA_LONG = 0.55;   // semieje mayor ≈ 1.95 cm (rombo de ~3.9 cm de largo).
+    const DIA_SHORT = 0.30;  // semieje menor ≈ 1.05 cm (~2.1 cm de ancho).
+    const diamondCentres = [];
+    for(let x = 0; x <= TABLE.W; x += 10){
+      diamondCentres.push({x, y:-dOff, ax:0, ay:1}, {x, y:TABLE.H + dOff, ax:0, ay:1});
+    }
+    for(let y = 0; y <= TABLE.H; y += 10){
+      diamondCentres.push({x:-dOff, y, ax:1, ay:0}, {x:TABLE.W + dOff, y, ax:1, ay:0});
+    }
+    for(const d of diamondCentres){
+      // Vértices del rombo en coordenadas de mundo, proyectados luego
+      // con la homografía: así quedan correctos también en perspectiva.
+      const v = [
+        P(d.x + d.ax * DIA_LONG,  d.y + d.ay * DIA_LONG),
+        P(d.x + d.ay * DIA_SHORT, d.y + d.ax * DIA_SHORT),
+        P(d.x - d.ax * DIA_LONG,  d.y - d.ay * DIA_LONG),
+        P(d.x - d.ay * DIA_SHORT, d.y - d.ax * DIA_SHORT)
+      ];
+      if(v.some(p => !p)) continue;
+      const dg = c.createLinearGradient(v[0].x, v[0].y, v[2].x, v[2].y);
+      dg.addColorStop(0, '#fffef6');
+      dg.addColorStop(1, '#e9e0c4');
+      c.beginPath();
+      v.forEach((p,i) => i ? c.lineTo(p.x, p.y) : c.moveTo(p.x, p.y));
+      c.closePath();
+      c.fillStyle = dg;
+      c.fill();
+      c.strokeStyle = 'rgba(12,7,3,.75)';
+      c.lineWidth = Math.max(0.7, pxPerUnit * 0.055);
+      c.lineJoin = 'miter';
+      c.stroke();
+    }
+
+    // ---------- 4. Banda azul de 5 cm ----------
+    const railColor = synthCssColor('--rail', '#2b4495');
+    c.beginPath(); pathQuad(bandQ); pathQuad(playQ);
+    c.fillStyle = railColor;
+    c.fill('evenodd');
+    // Sombra de la baranda sobre la banda: más oscura hacia afuera.
+    c.save();
+    c.beginPath(); pathQuad(bandQ); pathQuad(playQ);
+    c.clip('evenodd');
+    const sideShade = [
+      {o:P(TABLE.W/2, -SYNTH_BAND_U), i:P(TABLE.W/2, 0)},
+      {o:P(TABLE.W/2, TABLE.H + SYNTH_BAND_U), i:P(TABLE.W/2, TABLE.H)},
+      {o:P(-SYNTH_BAND_U, TABLE.H/2), i:P(0, TABLE.H/2)},
+      {o:P(TABLE.W + SYNTH_BAND_U, TABLE.H/2), i:P(TABLE.W, TABLE.H/2)}
+    ];
+    for(const sd of sideShade){
+      if(!sd.o || !sd.i) continue;
+      const gsh = c.createLinearGradient(sd.o.x, sd.o.y, sd.i.x, sd.i.y);
+      gsh.addColorStop(0, 'rgba(0,0,0,.30)');
+      gsh.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = gsh;
+      c.fillRect(0, 0, cvs.width, cvs.height);
+    }
+    c.restore();
+    // Nariz de la banda, apenas iluminada.
+    c.beginPath(); pathQuad(playQ);
+    c.strokeStyle = 'rgba(255,255,255,.16)';
+    c.lineWidth = Math.max(0.9, pxPerUnit * 0.06);
+    c.stroke();
+
+    // ---------- 5. Agujero transparente en la superficie jugable ----------
+    c.globalCompositeOperation = 'destination-out';
+    c.beginPath(); pathQuad(playQ);
+    c.fill();
+    c.globalCompositeOperation = 'source-over';
+
+    return cvs;
+  }
+
+  // Dibuja el entorno sintético (piso, baranda, banda) sobre un lienzo,
+  // para cualquier homografía mundo -> lienzo. El resultado se cachea:
+  // es estático mientras la calibración y el tamaño no cambien.
+  function drawSyntheticSurroundCached(g, H, cw, ch, dpr = 1){
+    if(!H) return;
+    const s = Math.max(1, dpr);
+    const Hs = [H[0]*s, H[1]*s, H[2]*s, H[3]*s, H[4]*s, H[5]*s, H[6], H[7], H[8]];
+    const key = Math.round(cw*s) + 'x' + Math.round(ch*s) + '|' + Hs.map(v => v.toFixed(3)).join(',');
+    let cached = synthSurroundCache.get(key);
+    if(!cached){
+      cached = buildSyntheticSurround(Hs, cw*s, ch*s);
+      synthSurroundCache.set(key, cached);
+      if(synthSurroundCache.size > 4){
+        synthSurroundCache.delete(synthSurroundCache.keys().next().value);
+      }
+    }
+    g.drawImage(cached, 0, 0, cw, ch);
+  }
+
+  // ============================================================
+  // RECTIFICACIÓN DEL VIDEO (vista tipo transmisión de torneo).
+  // El video crudo no se toca: la homografía de calibración se
+  // aplica al mostrar y al exportar, de modo que el paño quede
+  // siempre como un rectángulo perfecto de 284 × 142 rodeado por
+  // el marco y el piso sintéticos. La ruta rápida usa WebGL (la
+  // GPU deforma cada cuadro con interpolación proyectiva exacta);
+  // si WebGL no está disponible, se cae a una malla de triángulos
+  // en canvas 2D. Nada de esto interviene en los cálculos.
+  // ============================================================
+  // Escena rectificada con proporción 16:9 exacta: margen vertical
+  // de 8 unidades (paño + banda + baranda + franja de piso) y el
+  // margen horizontal que complete la proporción.
+  const RECT_SCENE_MY = 8;
+  const RECT_SCENE_H = TABLE.H + RECT_SCENE_MY * 2;          // 56 unidades.
+  const RECT_SCENE_W = RECT_SCENE_H * 16 / 9;                // ≈ 99.56 unidades.
+
+  // Homografía afín mundo -> lienzo de la escena rectificada,
+  // centrada, para cualquier tamaño de lienzo.
+  function rectifiedSceneHomography(cw, ch){
+    const S = Math.min(cw / RECT_SCENE_W, ch / RECT_SCENE_H);
+    const tx = (cw - TABLE.W * S) / 2;
+    const ty = (ch - TABLE.H * S) / 2;
+    return [S, 0, tx, 0, S, ty, 0, 0, 1];
+  }
+
+  const videoRectifyGL = { canvas:null, gl:null, prog:null, tex:null, buf:null, loc:null, failed:false };
+
+  function ensureVideoRectifyGL(){
+    if(videoRectifyGL.failed) return null;
+    if(videoRectifyGL.gl) return videoRectifyGL;
+    try{
+      const canvas = document.createElement('canvas');
+      const attrs = {alpha:true, antialias:false, depth:false, stencil:false, preserveDrawingBuffer:true, premultipliedAlpha:true};
+      const gl = canvas.getContext('webgl', attrs) || canvas.getContext('experimental-webgl', attrs);
+      if(!gl) throw new Error('Sin contexto WebGL');
+
+      const vsSrc =
+        'attribute vec2 a_pos;' +
+        'varying vec2 v_uv;' +
+        'void main(){' +
+        '  v_uv = a_pos;' +
+        '  gl_Position = vec4(a_pos.x * 2.0 - 1.0, 1.0 - a_pos.y * 2.0, 0.0, 1.0);' +
+        '}';
+      // v_uv recorre el lienzo con origen arriba-izquierda; se convierte
+      // a coordenadas de mundo, se aplica la homografía de calibración
+      // (que apunta al cuadro girado 180°) y se deshace el giro para
+      // muestrear el video crudo. Dos modos:
+      //   u_mode 0: paño rectificado (opaco).
+      //   u_mode 1: recorte del taco por sustracción de fondo. Solo actúa
+      //     fuera de la superficie jugable; compara el cuadro actual con
+      //     la placa de fondo capturada (mesa despejada) y deja pasar,
+      //     con transparencia suave, únicamente los píxeles que difieren
+      //     (el taco y los brazos). Promedia 5 muestras en cruz para
+      //     reducir el ruido del sensor. Salida premultiplicada.
+      const fsSrc =
+        'precision mediump float;' +
+        'varying vec2 v_uv;' +
+        'uniform sampler2D u_tex;' +
+        'uniform sampler2D u_bg;' +
+        'uniform mat3 u_H;' +
+        'uniform vec2 u_worldMin;' +
+        'uniform vec2 u_worldSize;' +
+        'uniform vec2 u_texSize;' +
+        'uniform vec2 u_thresh;' +
+        'uniform int u_mode;' +
+        'float dif(vec2 uv){' +
+        '  return distance(texture2D(u_tex, uv).rgb, texture2D(u_bg, uv).rgb);' +
+        '}' +
+        'void main(){' +
+        '  vec2 w = u_worldMin + v_uv * u_worldSize;' +
+        '  vec3 q = u_H * vec3(w, 1.0);' +
+        '  vec2 n = q.xy / q.z;' +
+        '  vec2 uv = vec2(1.0) - n;' +
+        '  bool fuera = uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0;' +
+        '  if(u_mode == 0){' +
+        '    if(fuera){ gl_FragColor = vec4(0.024, 0.035, 0.055, 1.0); return; }' +
+        '    gl_FragColor = vec4(texture2D(u_tex, uv).rgb, 1.0);' +
+        '    return;' +
+        '  }' +
+        '  if(fuera){ gl_FragColor = vec4(0.0); return; }' +
+        '  if(w.x > -0.2 && w.x < 80.2 && w.y > -0.2 && w.y < 40.2){' +
+        '    gl_FragColor = vec4(0.0);' +
+        '    return;' +
+        '  }' +
+        '  vec2 o = vec2(1.5) / u_texSize;' +
+        '  float d = dif(uv)' +
+        '          + dif(uv + vec2(o.x, 0.0))' +
+        '          + dif(uv - vec2(o.x, 0.0))' +
+        '          + dif(uv + vec2(0.0, o.y))' +
+        '          + dif(uv - vec2(0.0, o.y));' +
+        '  d /= 5.0;' +
+        '  float a = smoothstep(u_thresh.x, u_thresh.y, d);' +
+        '  vec3 col = texture2D(u_tex, uv).rgb;' +
+        '  gl_FragColor = vec4(col * a, a);' +
+        '}';
+
+      const compile = (type, src) => {
+        const sh = gl.createShader(type);
+        gl.shaderSource(sh, src);
+        gl.compileShader(sh);
+        if(!gl.getShaderParameter(sh, gl.COMPILE_STATUS)){
+          throw new Error('Shader: ' + gl.getShaderInfoLog(sh));
+        }
+        return sh;
+      };
+      const prog = gl.createProgram();
+      gl.attachShader(prog, compile(gl.VERTEX_SHADER, vsSrc));
+      gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, fsSrc));
+      gl.linkProgram(prog);
+      if(!gl.getProgramParameter(prog, gl.LINK_STATUS)){
+        throw new Error('Programa: ' + gl.getProgramInfoLog(prog));
+      }
+
+      const buf = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0,0, 1,0, 0,1, 0,1, 1,0, 1,1]), gl.STATIC_DRAW);
+
+      const makeTex = () => {
+        const t = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, t);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        return t;
+      };
+      const tex = makeTex();
+      const bgTex = makeTex();
+
+      videoRectifyGL.canvas = canvas;
+      videoRectifyGL.gl = gl;
+      videoRectifyGL.prog = prog;
+      videoRectifyGL.buf = buf;
+      videoRectifyGL.tex = tex;
+      videoRectifyGL.bgTex = bgTex;
+      videoRectifyGL.bgUploaded = false;
+      videoRectifyGL.loc = {
+        a_pos: gl.getAttribLocation(prog, 'a_pos'),
+        u_tex: gl.getUniformLocation(prog, 'u_tex'),
+        u_bg: gl.getUniformLocation(prog, 'u_bg'),
+        u_H: gl.getUniformLocation(prog, 'u_H'),
+        u_worldMin: gl.getUniformLocation(prog, 'u_worldMin'),
+        u_worldSize: gl.getUniformLocation(prog, 'u_worldSize'),
+        u_texSize: gl.getUniformLocation(prog, 'u_texSize'),
+        u_thresh: gl.getUniformLocation(prog, 'u_thresh'),
+        u_mode: gl.getUniformLocation(prog, 'u_mode')
+      };
+      return videoRectifyGL;
+    }catch(error){
+      videoRectifyGL.failed = true;
+      console.warn('WebGL rectification unavailable; falling back to 2D mesh.', error);
+      return null;
+    }
+  }
+
+  // Hn: homografía mundo -> coordenadas normalizadas del cuadro girado.
+  // Hd: homografía afín mundo -> píxeles lógicos del lienzo destino.
+  // mode 0: paño rectificado. mode 1: recorte del taco (requiere fondo).
+  function glRectifyPass(g, videoEl, Hn, Hd, cw, ch, dpr, mode){
+    const R = ensureVideoRectifyGL();
+    if(!R) return false;
+    try{
+      const gl = R.gl;
+      if(mode === 1){
+        if(!videoReplay.bgCanvas) return false;
+        if(!R.bgUploaded){
+          gl.activeTexture(gl.TEXTURE1);
+          gl.bindTexture(gl.TEXTURE_2D, R.bgTex);
+          gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, videoReplay.bgCanvas);
+          R.bgUploaded = true;
+        }
+      }
+      const pw = Math.max(2, Math.round(cw * dpr));
+      const ph = Math.max(2, Math.round(ch * dpr));
+      if(R.canvas.width !== pw || R.canvas.height !== ph){
+        R.canvas.width = pw;
+        R.canvas.height = ph;
+      }
+      gl.viewport(0, 0, pw, ph);
+      gl.clearColor(0, 0, 0, 0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.useProgram(R.prog);
+      gl.bindBuffer(gl.ARRAY_BUFFER, R.buf);
+      gl.enableVertexAttribArray(R.loc.a_pos);
+      gl.vertexAttribPointer(R.loc.a_pos, 2, gl.FLOAT, false, 0, 0);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, R.tex);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, videoEl);
+      gl.activeTexture(gl.TEXTURE1);
+      gl.bindTexture(gl.TEXTURE_2D, R.bgTex);
+      gl.uniform1i(R.loc.u_tex, 0);
+      gl.uniform1i(R.loc.u_bg, 1);
+      gl.uniform1i(R.loc.u_mode, mode);
+      // mat3 en orden de columnas.
+      gl.uniformMatrix3fv(R.loc.u_H, false, new Float32Array([
+        Hn[0], Hn[3], Hn[6],
+        Hn[1], Hn[4], Hn[7],
+        Hn[2], Hn[5], Hn[8]
+      ]));
+      gl.uniform2f(R.loc.u_worldMin, -Hd[2] / Hd[0], -Hd[5] / Hd[4]);
+      gl.uniform2f(R.loc.u_worldSize, cw / Hd[0], ch / Hd[4]);
+      gl.uniform2f(R.loc.u_texSize,
+        Math.max(2, videoEl.videoWidth || videoEl.width || 1920),
+        Math.max(2, videoEl.videoHeight || videoEl.height || 1080));
+      // Sensibilidad del recorte: el deslizador (0-100) baja los umbrales
+      // de diferencia de color. Valores por defecto pensados para taco de
+      // madera o carbono sobre baranda café y piso oscuro.
+      let t0 = 0.215;
+      const sense = ids('videoReplayCueSense');
+      if(sense){
+        const v = clamp(parseFloat(sense.value) || 45, 0, 100);
+        t0 = 0.35 - 0.003 * v;
+      }
+      gl.uniform2f(R.loc.u_thresh, t0, t0 + 0.12);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+      g.drawImage(R.canvas, 0, 0, cw, ch);
+      return true;
+    }catch(error){
+      // Error transitorio (p. ej. cuadro aún no disponible): no se
+      // inhabilita WebGL de forma permanente.
+      return false;
+    }
+  }
+
+  function drawRectifiedVideoGL(g, videoEl, Hn, Hd, cw, ch, dpr){
+    return glRectifyPass(g, videoEl, Hn, Hd, cw, ch, dpr, 0);
+  }
+
+  // Capa del taco: por encima del marco sintético, deja ver los píxeles
+  // del video que difieren de la placa de fondo (mesa despejada).
+  function drawCueCutoutGL(g, videoEl, Hn, Hd, cw, ch, dpr){
+    return glRectifyPass(g, videoEl, Hn, Hd, cw, ch, dpr, 1);
+  }
+
+  // Plan B sin WebGL: malla de triángulos por cuadro, solo el paño.
+  function drawRectifiedVideo2D(g, videoEl, Hn, Hd){
+    const vw = videoEl.videoWidth, vh = videoEl.videoHeight;
+    if(!vw || !vh) return false;
+    const GX = 16, GY = 8;
+    const nodeS = [], nodeD = [];
+    for(let j = 0; j <= GY; j++){
+      for(let i = 0; i <= GX; i++){
+        const w = {x: TABLE.W * i / GX, y: TABLE.H * j / GY};
+        const n = applyHomography(Hn, w);
+        nodeS.push(n ? {x: vw * (1 - n.x), y: vh * (1 - n.y)} : null); // deshace el giro de 180°.
+        nodeD.push(applyHomography(Hd, w));
+      }
+    }
+    const idx = (i, j) => j * (GX + 1) + i;
+    for(let j = 0; j < GY; j++){
+      for(let i = 0; i < GX; i++){
+        const s00 = nodeS[idx(i,j)],   d00 = nodeD[idx(i,j)];
+        const s10 = nodeS[idx(i+1,j)], d10 = nodeD[idx(i+1,j)];
+        const s01 = nodeS[idx(i,j+1)], d01 = nodeD[idx(i,j+1)];
+        const s11 = nodeS[idx(i+1,j+1)], d11 = nodeD[idx(i+1,j+1)];
+        if(!s00 || !s10 || !s01 || !s11 || !d00 || !d10 || !d01 || !d11) continue;
+        drawWarpedTriangle(g, videoEl, s00, s10, s11, d00, d10, d11);
+        drawWarpedTriangle(g, videoEl, s00, s11, s01, d00, d11, d01);
+      }
+    }
+    return true;
+  }
+
+  // Compone la escena completa: piso, video rectificado y marco.
+  // Devuelve true si la escena quedó dibujada (la trayectoria debe
+  // entonces proyectarse con rectifiedSceneHomography).
+  function drawRectifiedReplayScene(g, videoEl, cw, ch, dpr = 1){
+    const Hn = videoReplayHomography(1, 1); // esquinas normalizadas.
+    if(!Hn) return false;
+    const Hd = rectifiedSceneHomography(cw, ch);
+    g.fillStyle = SYNTH_FLOOR;
+    g.fillRect(0, 0, cw, ch);
+    let drawn = false;
+    if(videoEl && videoEl.videoWidth && videoEl.videoHeight && videoEl.readyState >= 2){
+      drawn = drawRectifiedVideoGL(g, videoEl, Hn, Hd, cw, ch, dpr);
+      if(!drawn) drawn = drawRectifiedVideo2D(g, videoEl, Hn, Hd);
+    }
+    if(!drawn){
+      // Aún no hay cuadro de video: paño provisional oscuro.
+      const q = [{x:0,y:0},{x:TABLE.W,y:0},{x:TABLE.W,y:TABLE.H},{x:0,y:TABLE.H}]
+        .map(p => applyHomography(Hd, p));
+      if(q.every(Boolean)){
+        g.beginPath();
+        q.forEach((p,i) => i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y));
+        g.closePath();
+        g.fillStyle = '#12335c';
+        g.fill();
+      }
+    }
+    drawSyntheticSurroundCached(g, Hd, cw, ch, dpr);
+    // Capa del taco por encima del marco: solo si hay fondo capturado,
+    // el interruptor está activo y el video ya entrega cuadros.
+    if(drawn && videoReplay.bgCanvas){
+      const cueChk = ids('videoReplayShowCue');
+      if(!cueChk || cueChk.checked){
+        drawCueCutoutGL(g, videoEl, Hn, Hd, cw, ch, dpr);
+      }
+    }
+    return true;
+  }
+
+  // Triángulo texturizado: mapea un triángulo de la foto original a un
+  // triángulo del lienzo rectificado con una transformación afín.
+  function drawWarpedTriangle(ctx, img, s0, s1, s2, d0, d1, d2){
+    const den = s0.x*(s1.y - s2.y) + s1.x*(s2.y - s0.y) + s2.x*(s0.y - s1.y);
+    if(!Number.isFinite(den) || Math.abs(den) < 1e-9) return;
+    const a = (d0.x*(s1.y - s2.y) + d1.x*(s2.y - s0.y) + d2.x*(s0.y - s1.y)) / den;
+    const b = (d0.y*(s1.y - s2.y) + d1.y*(s2.y - s0.y) + d2.y*(s0.y - s1.y)) / den;
+    const cf = (d0.x*(s2.x - s1.x) + d1.x*(s0.x - s2.x) + d2.x*(s1.x - s0.x)) / den;
+    const df = (d0.y*(s2.x - s1.x) + d1.y*(s0.x - s2.x) + d2.y*(s1.x - s0.x)) / den;
+    const e = d0.x - a*s0.x - cf*s0.y;
+    const f = d0.y - b*s0.x - df*s0.y;
+    // Clip levemente expandido para que no queden costuras entre celdas.
+    const cx = (d0.x + d1.x + d2.x) / 3, cy = (d0.y + d1.y + d2.y) / 3;
+    const ex = p => ({x: cx + (p.x - cx) * 1.04, y: cy + (p.y - cy) * 1.04});
+    const q0 = ex(d0), q1 = ex(d1), q2 = ex(d2);
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(q0.x, q0.y); ctx.lineTo(q1.x, q1.y); ctx.lineTo(q2.x, q2.y);
+    ctx.closePath();
+    ctx.clip();
+    ctx.transform(a, b, cf, df, e, f);
+    ctx.drawImage(img, 0, 0);
+    ctx.restore();
+  }
+
+  // Vista de mesa rectificada: paño real corregido por homografía,
+  // rodeado por banda, baranda y piso sintéticos.
+  function renderRectifiedCapture(srcCorners){
+    const img = photoLocator.image;
+    const wrap = ids('photoRectifiedWrap');
+    const cv = ids('photoRectifiedCanvas');
+    if(!img || !wrap || !cv || !srcCorners || srcCorners.length !== 4) return;
+
+    const S = 13; // px por unidad interna (1 unidad = 3.55 cm).
+    const margin = SYNTH_BAND_U + SYNTH_WOOD_U + 10.5; // marco + franja de piso.
+    const wPx = Math.round((TABLE.W + margin * 2) * S);
+    const hPx = Math.round((TABLE.H + margin * 2) * S);
+    const Hd = [S, 0, margin * S, 0, S, margin * S, 0, 0, 1]; // mundo -> lienzo (afín).
+
+    const worldCorners = [{x:0,y:0},{x:TABLE.W,y:0},{x:TABLE.W,y:TABLE.H},{x:0,y:TABLE.H}];
+    const Hsrc = homographyFromFourPoints(worldCorners, srcCorners); // mundo -> foto.
+    if(!Hsrc) return;
+
+    cv.width = wPx; cv.height = hPx;
+    const ctx = cv.getContext('2d');
+    ctx.fillStyle = SYNTH_FLOOR;
+    ctx.fillRect(0, 0, wPx, hPx);
+
+    // Paño real, rectificado con malla de triángulos (la malla fina
+    // reduce a nivel subpíxel el error de aproximar la homografía
+    // con transformaciones afines por celda).
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    const GX = 32, GY = 16;
+    const nodeW = [], nodeS = [], nodeD = [];
+    for(let j = 0; j <= GY; j++){
+      for(let i = 0; i <= GX; i++){
+        const w = {x: TABLE.W * i / GX, y: TABLE.H * j / GY};
+        nodeW.push(w);
+        nodeS.push(applyHomography(Hsrc, w));
+        nodeD.push(applyHomography(Hd, w));
+      }
+    }
+    const idx = (i, j) => j * (GX + 1) + i;
+    for(let j = 0; j < GY; j++){
+      for(let i = 0; i < GX; i++){
+        const s00 = nodeS[idx(i,j)],   d00 = nodeD[idx(i,j)];
+        const s10 = nodeS[idx(i+1,j)], d10 = nodeD[idx(i+1,j)];
+        const s01 = nodeS[idx(i,j+1)], d01 = nodeD[idx(i,j+1)];
+        const s11 = nodeS[idx(i+1,j+1)], d11 = nodeD[idx(i+1,j+1)];
+        if(!s00 || !s10 || !s01 || !s11) continue;
+        drawWarpedTriangle(ctx, img, s00, s10, s11, d00, d10, d11);
+        drawWarpedTriangle(ctx, img, s00, s11, s01, d00, d11, d01);
+      }
+    }
+
+    // Entorno sintético encima, con su agujero sobre el paño.
+    ctx.drawImage(buildSyntheticSurround(Hd, wPx, hPx), 0, 0);
+
+    wrap.style.display = '';
+    if(!renderRectifiedCapture._wired){
+      renderRectifiedCapture._wired = true;
+      const btn = ids('photoRectifiedDownloadBtn');
+      if(btn) btn.addEventListener('click', () => {
+        const cvEl = ids('photoRectifiedCanvas');
+        if(!cvEl) return;
+        cvEl.toBlob(blob => {
+          if(!blob) return;
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+          a.href = url;
+          a.download = 'rectified-table-' + stamp + '.png';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 4000);
+        }, 'image/png');
+      });
+    }
+  }
+
   function applyPhotoLocatorPoints(){
     const missing = PHOTO_LOCATOR_STEPS.filter(s => !photoLocator.points[s.id]);
     if(missing.length){
@@ -12077,7 +12824,12 @@ function drawStartMarks(){
     updatePositionInputs();
     recalculateAll('photo-locator-apply');
     const status = ids('photoLocatorStatus');
-    if(status) status.textContent = 'Positions loaded from the photo. Review them visually and adjust manually if necessary.';
+    if(status) status.textContent = 'Positions loaded from the photo. Review them visually and adjust manually if necessary. 您可以在下方查看带合成台框与地面的校正球台。';
+    try{
+      renderRectifiedCapture(src);
+    }catch(error){
+      console.warn('Rectified table:', error);
+    }
     maybeAdoptVideoCalibrationFromLocator();
     closePhotoLocator();
   }
@@ -12120,7 +12872,8 @@ function drawStartMarks(){
     exportRecorder:null,
     exportChunks:[],
     exportVideoEl:null,
-    focusLocked:false
+    focusLocked:false,
+    bgCanvas:null
   };
 
   function loadVideoCalibration(){
@@ -12154,6 +12907,58 @@ function drawStartMarks(){
   // Reutilización del localizador fotográfico: si las esquinas confirmadas
   // provienen de una captura cenital (misma cámara, imagen ya girada 180°),
   // sirven directamente como calibración del video, normalizadas 0..1.
+  // ---- Placa de fondo para el recorte del taco ----
+  const VIDEO_BG_STORAGE_KEY = 'tresBandasVideoReplayFondoV1';
+
+  function setVideoBgCanvas(canvas){
+    videoReplay.bgCanvas = canvas;
+    if(videoRectifyGL.gl) videoRectifyGL.bgUploaded = false;
+    updateVideoBgStatus();
+  }
+
+  function updateVideoBgStatus(){
+    const el = ids('videoReplayBgStatus');
+    if(!el) return;
+    el.textContent = videoReplay.bgCanvas
+      ? '背景已拍摄。回放中球杆将显示在合成台框之上。若光线变化或摄像头移动，请重新拍摄背景。'
+      : '尚未拍摄背景。请在台面上没有球杆和手臂时（球可以留在台面上）点击背景拍摄按钮，即可在回放中把球杆显示在合成台框之上。';
+  }
+
+  function loadVideoBackground(){
+    try{
+      const url = localStorage.getItem(VIDEO_BG_STORAGE_KEY);
+      if(!url) return;
+      const img = new Image();
+      img.onload = () => {
+        const c = document.createElement('canvas');
+        c.width = img.naturalWidth;
+        c.height = img.naturalHeight;
+        c.getContext('2d').drawImage(img, 0, 0);
+        setVideoBgCanvas(c);
+      };
+      img.src = url;
+    }catch{}
+  }
+
+  function captureVideoBackground(){
+    const live = ids('videoReplayLive');
+    if(!live || !live.videoWidth || !live.videoHeight || live.readyState < 2){
+      setVideoReplayStatus('摄像头尚未提供画面。请稍候，再次尝试拍摄背景。', 'warn');
+      return;
+    }
+    const c = document.createElement('canvas');
+    c.width = live.videoWidth;
+    c.height = live.videoHeight;
+    c.getContext('2d').drawImage(live, 0, 0);
+    setVideoBgCanvas(c);
+    try{
+      localStorage.setItem(VIDEO_BG_STORAGE_KEY, c.toDataURL('image/jpeg', 0.8));
+    }catch{
+      // Sin espacio en localStorage: el fondo queda solo para esta sesión.
+    }
+    setVideoReplayStatus('背景已拍摄。请确认拍摄瞬间台面上没有球杆或手臂。', 'good');
+  }
+
   function locatorCornersNormalized(){
     if(!photoLocator.fromOverheadCamera || !photoLocator.image) return null;
     const iw = photoLocator.image.naturalWidth || photoLocator.image.width;
@@ -12363,7 +13168,7 @@ function drawStartMarks(){
   }
 
   function drawVideoReplayOverlay(g, cw, ch, opts){
-    const H = videoReplayHomography(cw, ch);
+    const H = (opts && opts.H) ? opts.H : videoReplayHomography(cw, ch);
     if(!H) return;
     const W2V = p => applyHomography(H, p);
 
@@ -12373,6 +13178,8 @@ function drawStartMarks(){
     g.save();
     g.lineJoin = 'round';
     g.lineCap = 'round';
+
+    if(opts && opts.handles){
 
     // Marco del área jugable proyectado sobre el video.
     g.beginPath();
@@ -12391,6 +13198,7 @@ function drawStartMarks(){
     for(const d of diamondPts){
       const q = W2V(d); if(!q) continue;
       g.beginPath(); g.arc(q.x, q.y, 3.1, 0, Math.PI*2); g.fill(); g.stroke();
+    }
     }
 
     // Anillos en las posiciones registradas de las bolas: si coinciden
@@ -12581,8 +13389,15 @@ function drawStartMarks(){
         g.restore();
       }
     } else if(videoReplay.mode === 'replay'){
+      const frameChk = ids('videoReplayShowFrame');
+      let rectified = false;
+      if(vw && vh && (!frameChk || frameChk.checked)){
+        rectified = drawRectifiedReplayScene(g, source, cw, ch, dpr);
+      }
       const chk = ids('videoReplayShowGuide');
-      if(!chk || chk.checked) drawVideoReplayOverlay(g, cw, ch, {route:true, handles:false});
+      if(!chk || chk.checked){
+        drawVideoReplayOverlay(g, cw, ch, {route:true, handles:false, H: rectified ? rectifiedSceneHomography(cw, ch) : null});
+      }
       syncVideoReplayScrub();
     }
   }
@@ -13064,12 +13879,19 @@ function drawStartMarks(){
       videoReplay.exportRaf = requestAnimationFrame(drawExportFrame);
       g.fillStyle = '#05070a';
       g.fillRect(0, 0, vw, vh);
-      g.save();
-      g.translate(vw, vh);
-      g.rotate(Math.PI);
-      g.drawImage(srcVideo, 0, 0, vw, vh);
-      g.restore();
-      drawVideoReplayOverlay(g, vw, vh, {route:true, handles:false});
+      const frameChk = ids('videoReplayShowFrame');
+      let rectified = false;
+      if(!frameChk || frameChk.checked){
+        rectified = drawRectifiedReplayScene(g, srcVideo, vw, vh, 1);
+      }
+      if(!rectified){
+        g.save();
+        g.translate(vw, vh);
+        g.rotate(Math.PI);
+        g.drawImage(srcVideo, 0, 0, vw, vh);
+        g.restore();
+      }
+      drawVideoReplayOverlay(g, vw, vh, {route:true, handles:false, H: rectified ? rectifiedSceneHomography(vw, vh) : null});
       if(total){
         const pct = Math.min(100, Math.round((srcVideo.currentTime/total)*100));
         setVideoReplayStatus('正在导出含线路视频… ' + pct + ' %。完成前请勿切换标签页。');
@@ -13176,6 +13998,11 @@ function drawStartMarks(){
       videoReplay.corners = corners;
       setVideoReplayStatus('已载入检测器的四角。请确认球环与视频对齐，然后保存校准。', 'good');
     });
+
+    const captureBgBtn = ids('videoReplayCaptureBgBtn');
+    if(captureBgBtn) captureBgBtn.addEventListener('click', captureVideoBackground);
+    loadVideoBackground();
+    updateVideoBgStatus();
 
     const saveCalibBtn = ids('videoReplaySaveCalibBtn');
     if(saveCalibBtn) saveCalibBtn.addEventListener('click', () => {
