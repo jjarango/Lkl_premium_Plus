@@ -10531,6 +10531,8 @@ function drawStartMarks(){
     {id:'red', type:'ball', ball:'red', label:'빨간 공 중심'}
   ];
 
+  let photoSessionCorners = null; // esquinas aplicadas en esta sesión (memoria; se limpia al recargar).
+
   const photoLocator = {
     active:false,
     dragging:false,
@@ -11217,6 +11219,55 @@ function drawStartMarks(){
     return {ok,checks,quad,geometry,balls:detected,reason:ok?'accepted':'one or more criteria were not met'};
   }
 
+  function photoImageDims(){
+    const img = photoLocator.image;
+    if(!img) return null;
+    const w = img.naturalWidth || img.width || 0;
+    const h = img.naturalHeight || img.height || 0;
+    return (w > 1 && h > 1) ? {w, h} : null;
+  }
+
+  function currentPhotoOrientation(){
+    const sel = ids('photoViewpoint');
+    return sel ? sel.value : '';
+  }
+
+  // Reutilización de esquinas DENTRO de la sesión: si ni la cámara ni la
+  // mesa se han movido, la geometría de la captura anterior sigue siendo
+  // válida, así que solo cambian las bolas. Se reutiliza únicamente si
+  // las dimensiones de la imagen y la orientación coinciden con las de
+  // la captura aplicada. Recargar la app reinicia la sesión (esa es la
+  // vía para recalibrar esquinas: sin botones adicionales).
+  function maybeReuseSessionCorners(){
+    photoLocator.reusedCorners = false;
+    if(!photoSessionCorners) return false;
+    const dims = photoImageDims();
+    if(!dims) return false;
+    if(dims.w !== photoSessionCorners.w || dims.h !== photoSessionCorners.h) return false;
+    if(currentPhotoOrientation() !== photoSessionCorners.orientation) return false;
+    for(const id of ['tl','tr','br','bl']){
+      const p = photoSessionCorners.pts[id];
+      if(!p || !Number.isFinite(p.x) || !Number.isFinite(p.y)) return false;
+    }
+    for(const id of ['tl','tr','br','bl']){
+      photoLocator.points[id] = {x:photoSessionCorners.pts[id].x, y:photoSessionCorners.pts[id].y};
+    }
+    photoLocator.reusedCorners = true;
+    return true;
+  }
+
+  function rememberSessionCorners(){
+    const dims = photoImageDims();
+    if(!dims) return;
+    const pts = {};
+    for(const id of ['tl','tr','br','bl']){
+      const p = photoLocator.points[id];
+      if(!p) return;
+      pts[id] = {x:p.x, y:p.y};
+    }
+    photoSessionCorners = {w:dims.w, h:dims.h, orientation:currentPhotoOrientation(), pts};
+  }
+
   function autoDetectPhotoLocatorPoints(fromLoad=false){
     if(!photoLocator.image){
       setPhotoDetectStatus('먼저 사진을 불러오십시오.', 'warn');
@@ -11228,7 +11279,7 @@ function drawStartMarks(){
       setPhotoDetectStatus('인식용 이미지를 준비하지 못했습니다.', 'bad');
       return;
     }
-    const quad = tableQuadFromBlueMask(pd);
+    const quad = photoLocator.reusedCorners ? null : tableQuadFromBlueMask(pd);
     const found = {corners:false, balls:0};
     if(quad){
       Object.assign(photoLocator.points, quad.appOrder);
@@ -11252,12 +11303,18 @@ function drawStartMarks(){
       }
     }
 
-    photoLocator.stepIndex = 0;
+    photoLocator.stepIndex = photoLocator.reusedCorners ? 4 : 0;
     const first = currentPhotoStep();
     photoLocator.current = photoLocator.points[first.id] ? {...photoLocator.points[first.id]} : null;
     drawPhotoLocator();
     const total = (found.corners ? 4 : 0) + found.balls;
-    if(found.corners && found.balls === 3){
+    if(photoLocator.reusedCorners){
+      if(found.balls === 3){
+        setPhotoDetectStatus('이전 촬영의 모서리를 재사용했습니다(카메라와 테이블이 그대로인 경우). 세 공이 자동으로 인식되었습니다. 세 공의 중심을 확인한 뒤 적용하십시오. 모서리를 처음부터 다시 지정하려면 앱을 새로 고치십시오.', 'good');
+      }else{
+        setPhotoDetectStatus(`이전 촬영의 모서리를 재사용했습니다. 인식된 공: ${found.balls}/3. 공의 중심을 수동으로 완성하거나 수정하십시오. 모서리를 처음부터 다시 지정하려면 앱을 새로 고치십시오.`, 'warn');
+      }
+    }else if(found.corners && found.balls === 3){
       setPhotoDetectStatus('Detección completa: las esquinas fueron corregidas 5 cm hacia adentro según la orientación seleccionada. Revise los siete puntos; la superficie jugable de 284 × 142 cm quedará definida por los cuatro puntos confirmados.', 'good');
     }else if(total > 0){
       setPhotoDetectStatus(`Partial detection: ${found.corners ? 'corners detected and offset 5 cm inward' : 'corners not detected'}, ${found.balls}/3 balls detected. Correct or complete the points manually.`, 'warn');
@@ -11290,6 +11347,7 @@ function drawStartMarks(){
     if(viewSel){
       updatePhotoViewpointHint();
       viewSel.addEventListener('change', () => {
+        photoLocator.reusedCorners = false;
         updatePhotoViewpointHint();
         setPhotoDetectStatus('방향이 변경되었습니다. 자동 인식을 다시 실행하거나 다른 사진을 불러오십시오.', 'neutral');
         const st = ids('photoLocatorStatus');
@@ -11583,6 +11641,7 @@ function drawStartMarks(){
     photoLocator.current = null;
     photoLocator.points = {};
     photoLocator.active = true;
+    maybeReuseSessionCorners();
     openPhotoLocator();
     const status = ids('photoLocatorStatus');
     if(status){
@@ -11661,6 +11720,7 @@ function drawStartMarks(){
         photoLocator.current = null;
         photoLocator.points = {};
         photoLocator.active = true;
+        maybeReuseSessionCorners();
         openPhotoLocator();
         if(status) status.textContent = '사진을 불러왔습니다. 앱이 모서리와 공을 자동으로 인식합니다.';
         setTimeout(() => autoDetectPhotoLocatorPoints(true), 120);
@@ -12047,6 +12107,7 @@ function drawStartMarks(){
     recalculateAll('photo-locator-apply');
     const status = ids('photoLocatorStatus');
     if(status) status.textContent = '사진에서 공 위치를 불러왔습니다. 화면으로 확인하고 필요하면 수동 조정하십시오.';
+    rememberSessionCorners();
     maybeAdoptVideoCalibrationFromLocator();
     closePhotoLocator();
   }
