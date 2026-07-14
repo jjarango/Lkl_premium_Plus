@@ -12348,7 +12348,21 @@ function drawStartMarks(){
     return [S, 0, tx, 0, S, ty, 0, 0, 1];
   }
 
-  const videoRectifyGL = { canvas:null, gl:null, prog:null, tex:null, buf:null, loc:null, failed:false };
+  // Pipeline WebGL de cuatro programas:
+  //   rect: paño rectificado (como siempre).
+  //   mask: máscara del taco por sustracción de fondo, comparando
+  //         cromaticidad (insensible a sombras) más un término de luma
+  //         con zona muerta, en umbral casi binario.
+  //   morph: dilatación/erosión 3×3; dos dilataciones seguidas de dos
+  //         erosiones = cierre morfológico, que rellena los huecos
+  //         interiores de la silueta (a 1/3 de resolución, cierra
+  //         huecos de hasta ~15 px reales y de paso suaviza el borde).
+  //   comp: composición final, video recortado por la máscara cerrada,
+  //         con salida premultiplicada.
+  const videoRectifyGL = {
+    canvas:null, gl:null, buf:null, tex:null, bgTex:null, bgUploaded:false,
+    progs:null, fboA:null, fboB:null, maskW:0, maskH:0, failed:false
+  };
 
   function ensureVideoRectifyGL(){
     if(videoRectifyGL.failed) return null;
@@ -12359,25 +12373,46 @@ function drawStartMarks(){
       const gl = canvas.getContext('webgl', attrs) || canvas.getContext('experimental-webgl', attrs);
       if(!gl) throw new Error('Sin contexto WebGL');
 
+      // u_ysign: -1 para dibujar al lienzo (origen arriba-izquierda del
+      // canvas 2D), +1 para dibujar a framebuffers intermedios (así las
+      // coordenadas de textura de la máscara coinciden entre pases).
       const vsSrc =
         'attribute vec2 a_pos;' +
+        'uniform float u_ysign;' +
         'varying vec2 v_uv;' +
         'void main(){' +
         '  v_uv = a_pos;' +
-        '  gl_Position = vec4(a_pos.x * 2.0 - 1.0, 1.0 - a_pos.y * 2.0, 0.0, 1.0);' +
+        '  gl_Position = vec4(a_pos.x * 2.0 - 1.0, (a_pos.y * 2.0 - 1.0) * u_ysign, 0.0, 1.0);' +
         '}';
-      // v_uv recorre el lienzo con origen arriba-izquierda; se convierte
-      // a coordenadas de mundo, se aplica la homografía de calibración
-      // (que apunta al cuadro girado 180°) y se deshace el giro para
-      // muestrear el video crudo. Dos modos:
-      //   u_mode 0: paño rectificado (opaco).
-      //   u_mode 1: recorte del taco por sustracción de fondo. Solo actúa
-      //     fuera de la superficie jugable; compara el cuadro actual con
-      //     la placa de fondo capturada (mesa despejada) y deja pasar,
-      //     con transparencia suave, únicamente los píxeles que difieren
-      //     (el taco y los brazos). Promedia 5 muestras en cruz para
-      //     reducir el ruido del sensor. Salida premultiplicada.
-      const fsSrc =
+
+      // Rectificación del paño (idéntica a la versión anterior).
+      const fsRect =
+        'precision mediump float;' +
+        'varying vec2 v_uv;' +
+        'uniform sampler2D u_tex;' +
+        'uniform mat3 u_H;' +
+        'uniform vec2 u_worldMin;' +
+        'uniform vec2 u_worldSize;' +
+        'void main(){' +
+        '  vec2 w = u_worldMin + v_uv * u_worldSize;' +
+        '  vec3 q = u_H * vec3(w, 1.0);' +
+        '  vec2 n = q.xy / q.z;' +
+        '  vec2 uv = vec2(1.0) - n;' +
+        '  if(uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0){' +
+        '    gl_FragColor = vec4(0.024, 0.035, 0.055, 1.0);' +
+        '    return;' +
+        '  }' +
+        '  gl_FragColor = vec4(texture2D(u_tex, uv).rgb, 1.0);' +
+        '}';
+
+      // Generación de la máscara. La diferencia combina cromaticidad
+      // (el tono no cambia bajo una sombra) y un término de luma con
+      // zona muerta de 0.25 (las sombras oscurecen sin cambiar el tono,
+      // así que quedan por debajo de la zona muerta y no se recortan).
+      // La exclusión de la superficie jugable va 0.25 unidades HACIA
+      // ADENTRO del paño: en esa franja el recorte dibuja video sobre
+      // video idéntico (invisible) y el brazo cruza el borde sin cortes.
+      const fsMask =
         'precision mediump float;' +
         'varying vec2 v_uv;' +
         'uniform sampler2D u_tex;' +
@@ -12387,24 +12422,28 @@ function drawStartMarks(){
         'uniform vec2 u_worldSize;' +
         'uniform vec2 u_texSize;' +
         'uniform vec2 u_thresh;' +
-        'uniform int u_mode;' +
         'float dif(vec2 uv){' +
-        '  return distance(texture2D(u_tex, uv).rgb, texture2D(u_bg, uv).rgb);' +
+        '  vec3 a = texture2D(u_tex, uv).rgb;' +
+        '  vec3 b = texture2D(u_bg, uv).rgb;' +
+        '  float la = max(a.r + a.g + a.b, 0.06);' +
+        '  float lb = max(b.r + b.g + b.b, 0.06);' +
+        '  vec2 ca = a.rg / la;' +
+        '  vec2 cb = b.rg / lb;' +
+        '  float dc = distance(ca, cb);' +
+        '  float dl = abs(la - lb) / 3.0;' +
+        '  return dc * 2.2 + max(0.0, dl - 0.25) * 0.9;' +
         '}' +
         'void main(){' +
         '  vec2 w = u_worldMin + v_uv * u_worldSize;' +
         '  vec3 q = u_H * vec3(w, 1.0);' +
         '  vec2 n = q.xy / q.z;' +
         '  vec2 uv = vec2(1.0) - n;' +
-        '  bool fuera = uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0;' +
-        '  if(u_mode == 0){' +
-        '    if(fuera){ gl_FragColor = vec4(0.024, 0.035, 0.055, 1.0); return; }' +
-        '    gl_FragColor = vec4(texture2D(u_tex, uv).rgb, 1.0);' +
+        '  if(uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0){' +
+        '    gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);' +
         '    return;' +
         '  }' +
-        '  if(fuera){ gl_FragColor = vec4(0.0); return; }' +
-        '  if(w.x > -0.2 && w.x < 80.2 && w.y > -0.2 && w.y < 40.2){' +
-        '    gl_FragColor = vec4(0.0);' +
+        '  if(w.x > 0.25 && w.x < 79.75 && w.y > 0.25 && w.y < 39.75){' +
+        '    gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);' +
         '    return;' +
         '  }' +
         '  vec2 o = vec2(1.5) / u_texSize;' +
@@ -12414,7 +12453,49 @@ function drawStartMarks(){
         '          + dif(uv + vec2(0.0, o.y))' +
         '          + dif(uv - vec2(0.0, o.y));' +
         '  d /= 5.0;' +
-        '  float a = smoothstep(u_thresh.x, u_thresh.y, d);' +
+        '  float m = smoothstep(u_thresh.x, u_thresh.y, d);' +
+        '  gl_FragColor = vec4(m, m, m, 1.0);' +
+        '}';
+
+      // Morfología 3×3: u_erode 0 = dilatar (máximo), 1 = erosionar (mínimo).
+      const fsMorph =
+        'precision mediump float;' +
+        'varying vec2 v_uv;' +
+        'uniform sampler2D u_mask;' +
+        'uniform vec2 u_px;' +
+        'uniform float u_erode;' +
+        'void main(){' +
+        '  float m = 0.0;' +
+        '  for(int dy = -1; dy <= 1; dy++){' +
+        '    for(int dx = -1; dx <= 1; dx++){' +
+        '      float v = texture2D(u_mask, v_uv + vec2(float(dx), float(dy)) * u_px).r;' +
+        '      if(u_erode > 0.5) v = 1.0 - v;' +
+        '      m = max(m, v);' +
+        '    }' +
+        '  }' +
+        '  if(u_erode > 0.5) m = 1.0 - m;' +
+        '  gl_FragColor = vec4(m, m, m, 1.0);' +
+        '}';
+
+      // Composición: video recortado por la máscara cerrada. El muestreo
+      // LINEAR de la máscara a baja resolución da un borde suave de un
+      // par de píxeles, sin medias tintas en el interior.
+      const fsComp =
+        'precision mediump float;' +
+        'varying vec2 v_uv;' +
+        'uniform sampler2D u_tex;' +
+        'uniform sampler2D u_mask;' +
+        'uniform mat3 u_H;' +
+        'uniform vec2 u_worldMin;' +
+        'uniform vec2 u_worldSize;' +
+        'void main(){' +
+        '  float a = texture2D(u_mask, v_uv).r;' +
+        '  if(a < 0.02){ gl_FragColor = vec4(0.0); return; }' +
+        '  vec2 w = u_worldMin + v_uv * u_worldSize;' +
+        '  vec3 q = u_H * vec3(w, 1.0);' +
+        '  vec2 n = q.xy / q.z;' +
+        '  vec2 uv = vec2(1.0) - n;' +
+        '  if(uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0){ gl_FragColor = vec4(0.0); return; }' +
         '  vec3 col = texture2D(u_tex, uv).rgb;' +
         '  gl_FragColor = vec4(col * a, a);' +
         '}';
@@ -12428,13 +12509,27 @@ function drawStartMarks(){
         }
         return sh;
       };
-      const prog = gl.createProgram();
-      gl.attachShader(prog, compile(gl.VERTEX_SHADER, vsSrc));
-      gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, fsSrc));
-      gl.linkProgram(prog);
-      if(!gl.getProgramParameter(prog, gl.LINK_STATUS)){
-        throw new Error('Programa: ' + gl.getProgramInfoLog(prog));
-      }
+      const vs = compile(gl.VERTEX_SHADER, vsSrc);
+      const makeProg = fs => {
+        const p = gl.createProgram();
+        gl.attachShader(p, vs);
+        gl.attachShader(p, compile(gl.FRAGMENT_SHADER, fs));
+        gl.linkProgram(p);
+        if(!gl.getProgramParameter(p, gl.LINK_STATUS)){
+          throw new Error('Programa: ' + gl.getProgramInfoLog(p));
+        }
+        return {
+          prog: p,
+          a_pos: gl.getAttribLocation(p, 'a_pos'),
+          u: name => gl.getUniformLocation(p, name)
+        };
+      };
+      const progs = {
+        rect: makeProg(fsRect),
+        mask: makeProg(fsMask),
+        morph: makeProg(fsMorph),
+        comp: makeProg(fsComp)
+      };
 
       const buf = gl.createBuffer();
       gl.bindBuffer(gl.ARRAY_BUFFER, buf);
@@ -12449,27 +12544,23 @@ function drawStartMarks(){
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         return t;
       };
-      const tex = makeTex();
-      const bgTex = makeTex();
+      const makeFbo = () => {
+        const t = makeTex();
+        const fb = gl.createFramebuffer();
+        return {tex:t, fb};
+      };
 
       videoRectifyGL.canvas = canvas;
       videoRectifyGL.gl = gl;
-      videoRectifyGL.prog = prog;
       videoRectifyGL.buf = buf;
-      videoRectifyGL.tex = tex;
-      videoRectifyGL.bgTex = bgTex;
+      videoRectifyGL.tex = makeTex();
+      videoRectifyGL.bgTex = makeTex();
       videoRectifyGL.bgUploaded = false;
-      videoRectifyGL.loc = {
-        a_pos: gl.getAttribLocation(prog, 'a_pos'),
-        u_tex: gl.getUniformLocation(prog, 'u_tex'),
-        u_bg: gl.getUniformLocation(prog, 'u_bg'),
-        u_H: gl.getUniformLocation(prog, 'u_H'),
-        u_worldMin: gl.getUniformLocation(prog, 'u_worldMin'),
-        u_worldSize: gl.getUniformLocation(prog, 'u_worldSize'),
-        u_texSize: gl.getUniformLocation(prog, 'u_texSize'),
-        u_thresh: gl.getUniformLocation(prog, 'u_thresh'),
-        u_mode: gl.getUniformLocation(prog, 'u_mode')
-      };
+      videoRectifyGL.progs = progs;
+      videoRectifyGL.fboA = makeFbo();
+      videoRectifyGL.fboB = makeFbo();
+      videoRectifyGL.maskW = 0;
+      videoRectifyGL.maskH = 0;
       return videoRectifyGL;
     }catch(error){
       videoRectifyGL.failed = true;
@@ -12478,85 +12569,171 @@ function drawStartMarks(){
     }
   }
 
+  function glSizeFbo(R, fbo, w, h){
+    const gl = R.gl;
+    gl.bindTexture(gl.TEXTURE_2D, fbo.tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo.fb);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, fbo.tex, 0);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  }
+
+  function glQuad(R, P, ysign){
+    const gl = R.gl;
+    gl.useProgram(P.prog);
+    gl.bindBuffer(gl.ARRAY_BUFFER, R.buf);
+    gl.enableVertexAttribArray(P.a_pos);
+    gl.vertexAttribPointer(P.a_pos, 2, gl.FLOAT, false, 0, 0);
+    gl.uniform1f(P.u('u_ysign'), ysign);
+  }
+
+  function glSetHomography(gl, P, Hn, Hd, cw, ch){
+    gl.uniformMatrix3fv(P.u('u_H'), false, new Float32Array([
+      Hn[0], Hn[3], Hn[6],
+      Hn[1], Hn[4], Hn[7],
+      Hn[2], Hn[5], Hn[8]
+    ]));
+    gl.uniform2f(P.u('u_worldMin'), -Hd[2] / Hd[0], -Hd[5] / Hd[4]);
+    gl.uniform2f(P.u('u_worldSize'), cw / Hd[0], ch / Hd[4]);
+  }
+
+  function glUploadVideo(R, videoEl){
+    const gl = R.gl;
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, R.tex);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, videoEl);
+  }
+
+  function glResizeCanvas(R, cw, ch, dpr){
+    const pw = Math.max(2, Math.round(cw * dpr));
+    const ph = Math.max(2, Math.round(ch * dpr));
+    if(R.canvas.width !== pw || R.canvas.height !== ph){
+      R.canvas.width = pw;
+      R.canvas.height = ph;
+    }
+    return {pw, ph};
+  }
+
   // Hn: homografía mundo -> coordenadas normalizadas del cuadro girado.
   // Hd: homografía afín mundo -> píxeles lógicos del lienzo destino.
-  // mode 0: paño rectificado. mode 1: recorte del taco (requiere fondo).
-  function glRectifyPass(g, videoEl, Hn, Hd, cw, ch, dpr, mode){
+  function drawRectifiedVideoGL(g, videoEl, Hn, Hd, cw, ch, dpr){
     const R = ensureVideoRectifyGL();
     if(!R) return false;
     try{
       const gl = R.gl;
-      if(mode === 1){
-        if(!videoReplay.bgCanvas) return false;
-        if(!R.bgUploaded){
-          gl.activeTexture(gl.TEXTURE1);
-          gl.bindTexture(gl.TEXTURE_2D, R.bgTex);
-          gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, videoReplay.bgCanvas);
-          R.bgUploaded = true;
-        }
-      }
-      const pw = Math.max(2, Math.round(cw * dpr));
-      const ph = Math.max(2, Math.round(ch * dpr));
-      if(R.canvas.width !== pw || R.canvas.height !== ph){
-        R.canvas.width = pw;
-        R.canvas.height = ph;
-      }
+      const {pw, ph} = glResizeCanvas(R, cw, ch, dpr);
+      glUploadVideo(R, videoEl);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       gl.viewport(0, 0, pw, ph);
       gl.clearColor(0, 0, 0, 0);
       gl.clear(gl.COLOR_BUFFER_BIT);
-      gl.useProgram(R.prog);
-      gl.bindBuffer(gl.ARRAY_BUFFER, R.buf);
-      gl.enableVertexAttribArray(R.loc.a_pos);
-      gl.vertexAttribPointer(R.loc.a_pos, 2, gl.FLOAT, false, 0, 0);
-      gl.activeTexture(gl.TEXTURE0);
-      gl.bindTexture(gl.TEXTURE_2D, R.tex);
-      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, videoEl);
-      gl.activeTexture(gl.TEXTURE1);
-      gl.bindTexture(gl.TEXTURE_2D, R.bgTex);
-      gl.uniform1i(R.loc.u_tex, 0);
-      gl.uniform1i(R.loc.u_bg, 1);
-      gl.uniform1i(R.loc.u_mode, mode);
-      // mat3 en orden de columnas.
-      gl.uniformMatrix3fv(R.loc.u_H, false, new Float32Array([
-        Hn[0], Hn[3], Hn[6],
-        Hn[1], Hn[4], Hn[7],
-        Hn[2], Hn[5], Hn[8]
-      ]));
-      gl.uniform2f(R.loc.u_worldMin, -Hd[2] / Hd[0], -Hd[5] / Hd[4]);
-      gl.uniform2f(R.loc.u_worldSize, cw / Hd[0], ch / Hd[4]);
-      gl.uniform2f(R.loc.u_texSize,
-        Math.max(2, videoEl.videoWidth || videoEl.width || 1920),
-        Math.max(2, videoEl.videoHeight || videoEl.height || 1080));
-      // Sensibilidad del recorte: el deslizador (0-100) baja los umbrales
-      // de diferencia de color. Valores por defecto pensados para taco de
-      // madera o carbono sobre baranda café y piso oscuro.
-      let t0 = 0.215;
-      const sense = ids('videoReplayCueSense');
-      if(sense){
-        const v = clamp(parseFloat(sense.value) || 45, 0, 100);
-        t0 = 0.35 - 0.003 * v;
-      }
-      gl.uniform2f(R.loc.u_thresh, t0, t0 + 0.12);
+      const P = R.progs.rect;
+      glQuad(R, P, -1);
+      gl.uniform1i(P.u('u_tex'), 0);
+      glSetHomography(gl, P, Hn, Hd, cw, ch);
       gl.drawArrays(gl.TRIANGLES, 0, 6);
       g.drawImage(R.canvas, 0, 0, cw, ch);
       return true;
     }catch(error){
-      // Error transitorio (p. ej. cuadro aún no disponible): no se
-      // inhabilita WebGL de forma permanente.
       return false;
     }
   }
 
-  function drawRectifiedVideoGL(g, videoEl, Hn, Hd, cw, ch, dpr){
-    return glRectifyPass(g, videoEl, Hn, Hd, cw, ch, dpr, 0);
-  }
-
-  // Capa del taco: por encima del marco sintético, deja ver los píxeles
-  // del video que difieren de la placa de fondo (mesa despejada).
+  // Capa del taco: máscara por sustracción de fondo, cierre morfológico
+  // (rellena huecos y suaviza el contorno) y composición premultiplicada.
   function drawCueCutoutGL(g, videoEl, Hn, Hd, cw, ch, dpr){
-    return glRectifyPass(g, videoEl, Hn, Hd, cw, ch, dpr, 1);
+    const R = ensureVideoRectifyGL();
+    if(!R || !videoReplay.bgCanvas) return false;
+    try{
+      const gl = R.gl;
+      const {pw, ph} = glResizeCanvas(R, cw, ch, dpr);
+      // La máscara trabaja a 1/3 de resolución: el cierre 3×3 doble
+      // equivale a ~15 px reales y el muestreo LINEAR suaviza el borde.
+      // Importante: dimensionar los FBO ANTES de subir texturas, porque
+      // glSizeFbo enlaza texturas y pisaría la unidad activa.
+      const mw = Math.max(2, Math.round(pw / 3));
+      const mh = Math.max(2, Math.round(ph / 3));
+      if(R.maskW !== mw || R.maskH !== mh){
+        gl.activeTexture(gl.TEXTURE2);
+        glSizeFbo(R, R.fboA, mw, mh);
+        glSizeFbo(R, R.fboB, mw, mh);
+        R.maskW = mw;
+        R.maskH = mh;
+      }
+      if(!R.bgUploaded){
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, R.bgTex);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, videoReplay.bgCanvas);
+        R.bgUploaded = true;
+      }
+      glUploadVideo(R, videoEl);
+      // Enlaces explícitos e independientes del estado previo.
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, R.tex);
+      gl.activeTexture(gl.TEXTURE1);
+      gl.bindTexture(gl.TEXTURE_2D, R.bgTex);
+
+      // Sensibilidad del recorte (0-100): baja el umbral de la métrica
+      // combinada croma+luma. Banda de transición estrecha: casi binario.
+      let t0 = 0.152;
+      const sense = ids('videoReplayCueSense');
+      if(sense){
+        const v = clamp(parseFloat(sense.value) || 45, 0, 100);
+        t0 = 0.26 - 0.0024 * v;
+      }
+
+      // 1) máscara cruda -> FBO A (a 1/3 de resolución).
+      gl.bindFramebuffer(gl.FRAMEBUFFER, R.fboA.fb);
+      gl.viewport(0, 0, mw, mh);
+      let P = R.progs.mask;
+      glQuad(R, P, 1);
+      gl.uniform1i(P.u('u_tex'), 0);
+      gl.uniform1i(P.u('u_bg'), 1);
+      gl.uniform2f(P.u('u_texSize'),
+        Math.max(2, videoEl.videoWidth || videoEl.width || 1920),
+        Math.max(2, videoEl.videoHeight || videoEl.height || 1080));
+      gl.uniform2f(P.u('u_thresh'), t0, t0 + 0.05);
+      glSetHomography(gl, P, Hn, Hd, cw, ch);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+      // 2) cierre morfológico: dilatar ×2 y erosionar ×2 (ping-pong A/B).
+      P = R.progs.morph;
+      glQuad(R, P, 1);
+      gl.uniform1i(P.u('u_mask'), 2);
+      gl.uniform2f(P.u('u_px'), 1 / mw, 1 / mh);
+      gl.activeTexture(gl.TEXTURE2);
+      const morphPass = (srcFbo, dstFbo, erode) => {
+        gl.bindTexture(gl.TEXTURE_2D, srcFbo.tex);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, dstFbo.fb);
+        gl.viewport(0, 0, mw, mh);
+        gl.uniform1f(P.u('u_erode'), erode);
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+      };
+      morphPass(R.fboA, R.fboB, 0);
+      morphPass(R.fboB, R.fboA, 0);
+      morphPass(R.fboA, R.fboB, 1);
+      morphPass(R.fboB, R.fboA, 1);
+
+      // 3) composición al lienzo.
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.viewport(0, 0, pw, ph);
+      gl.clearColor(0, 0, 0, 0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      P = R.progs.comp;
+      glQuad(R, P, -1);
+      gl.uniform1i(P.u('u_tex'), 0);
+      gl.uniform1i(P.u('u_mask'), 2);
+      gl.activeTexture(gl.TEXTURE2);
+      gl.bindTexture(gl.TEXTURE_2D, R.fboA.tex);
+      glSetHomography(gl, P, Hn, Hd, cw, ch);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+      g.drawImage(R.canvas, 0, 0, cw, ch);
+      return true;
+    }catch(error){
+      return false;
+    }
   }
 
   // Plan B sin WebGL: malla de triángulos por cuadro, solo el paño.
