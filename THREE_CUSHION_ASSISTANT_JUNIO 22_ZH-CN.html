@@ -750,6 +750,63 @@
       visibility:visible;
       transform:translateX(-50%) translateY(0);
     }
+    .noPlanBtn{
+      display:block;
+      width:100%;
+      margin:0 0 10px;
+      padding:10px 12px;
+      border-radius:10px;
+      border:1px solid rgba(98,215,255,.28);
+      background:#20303f;
+      color:#dfeefb;
+      font-weight:600;
+      cursor:pointer;
+    }
+    .noPlanBtn:hover{background:#27394b}
+    .noPlanBtn.active{
+      background:#2c4a63;
+      border-color:rgba(98,215,255,.75);
+      box-shadow:0 0 0 1px rgba(98,215,255,.35) inset;
+      color:#eaf7ff;
+    }
+    .cameraForceBtn{
+      display:block;
+      width:100%;
+      margin-top:8px;
+      padding:10px 12px;
+      border-radius:10px;
+      border:1px solid rgba(255,90,82,.55);
+      background:#8f1616;
+      color:#ffe9e9;
+      font-weight:600;
+      cursor:pointer;
+    }
+    .cameraForceBtn:hover{background:#a81a1a}
+    .cameraRefocusBtn{
+      display:block;
+      width:100%;
+      margin-top:8px;
+      padding:10px 12px;
+      border-radius:10px;
+      border:1px solid rgba(255,189,89,.55);
+      background:#7a520f;
+      color:#fff3dd;
+      font-weight:600;
+      cursor:pointer;
+    }
+    .cameraRefocusBtn:hover{background:#8f6114}
+    .cameraUseAnywayBtn{
+      display:block;
+      width:100%;
+      margin-top:8px;
+      padding:9px 12px;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,.22);
+      background:rgba(255,255,255,.06);
+      color:#e8eef6;
+      cursor:pointer;
+    }
+    .cameraUseAnywayBtn:hover{background:rgba(255,255,255,.11)}
     .cameraCaptureStatus{
       min-height:38px;
       margin:0 0 10px;
@@ -1863,7 +1920,7 @@ html,body,button,input,select,textarea{font-family:"PingFang SC","Microsoft YaHe
 </select>
 </div>
 </div>
-</div></div></details><details class="menuModule photoCameraModule" id="modulePhoto"><summary><span class="moduleTitle">通过照片或顶置摄像头摆放球位</span><span class="moduleState" id="modulePhotoState">顶置摄像头或图片文件</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><p class="small" style="margin:0 0 10px;">可用顶置摄像头直接拍摄球台，也可上传照片。应用会尝试自动识别四角和三颗球；随后可用放大镜和微调修正各点。 <b>最终确认的四个角点将定义 284 × 142 cm 的比赛区域。</b></p><div class="cameraCaptureTooltipWrap"><button aria-describedby="cameraCaptureTooltip" class="cameraCaptureBtn" id="captureTableBtn" title="仅在已安装顶置摄像头时使用此功能；否则请在下方上传图片文件。" type="button">拍摄球台</button><div class="cameraCaptureTooltip" id="cameraCaptureTooltip" role="tooltip">仅在已安装顶置摄像头时使用此功能；否则请在下方上传图片文件。</div></div><div aria-live="polite" class="cameraCaptureStatus" id="cameraCaptureStatus" role="status">应用会以稳定的 1920 × 1080 模式打开摄像头一次，等待 3 秒完成对焦，然后把图像直接送入识别器。</div><div class="photoSourceDivider"><span>或上传照片</span></div><div class="photoOrientationBox" data-tip="Take the photograph from the greatest height possible. Standing on a chair can help.">
+</div></div></details><details class="menuModule photoCameraModule" id="modulePhoto"><summary><span class="moduleTitle">通过照片或顶置摄像头摆放球位</span><span class="moduleState" id="modulePhotoState">顶置摄像头或图片文件</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><p class="small" style="margin:0 0 10px;">可用顶置摄像头直接拍摄球台，也可上传照片。应用会尝试自动识别四角和三颗球；随后可用放大镜和微调修正各点。 <b>最终确认的四个角点将定义 284 × 142 cm 的比赛区域。</b></p><div class="cameraCaptureTooltipWrap"><button aria-describedby="cameraCaptureTooltip" class="cameraCaptureBtn" id="captureTableBtn" title="仅在已安装顶置摄像头时使用此功能；否则请在下方上传图片文件。" type="button">拍摄球台</button><div class="cameraCaptureTooltip" id="cameraCaptureTooltip" role="tooltip">仅在已安装顶置摄像头时使用此功能；否则请在下方上传图片文件。</div></div><div aria-live="polite" class="cameraCaptureStatus" id="cameraCaptureStatus" role="status">应用会以稳定的 1920 × 1080 模式打开摄像头一次，等待 3 秒完成对焦，然后把图像直接送入识别器。</div><button class="cameraForceBtn" id="forceCaptureBtn" style="display:none" type="button">我确认已安装顶置摄像头：自担责任，直接使用这张照片</button><button class="cameraRefocusBtn" id="refocusCaptureBtn" style="display:none" type="button">自动重新对焦并重拍</button><button class="cameraUseAnywayBtn" id="useBlurryCaptureBtn" style="display:none" type="button">直接使用这张照片</button><div class="photoSourceDivider"><span>或上传照片</span></div><div class="photoOrientationBox" data-tip="Take the photograph from the greatest height possible. Standing on a chair can help.">
 <label for="photoViewpoint">照片拍摄方向</label>
 <select id="photoViewpoint" title="请选择拍照所在的球台一侧，以便正确排列四个角点。">
 <option selected="" title="球台左上角对应照片右上角。" value="shortRight">从右侧短库拍摄</option>
@@ -1876,7 +1933,7 @@ html,body,button,input,select,textarea{font-family:"PingFang SC","Microsoft YaHe
             </div>
 </div><div class="photoFileWrap" data-tip="Take the photograph from the greatest height possible. Standing on a chair can help.">
 <input accept="image/*" id="photoLocatorInput" type="file"/>
-</div><div class="photoStatus" id="photoLocatorStatus">建议先选择照片的拍摄方向。自动识别会给出初始点，并将四角向内偏移 5 cm；最终比赛区域由确认后的四个角点定义。</div></div></details><details class="menuModule" id="moduleSequence"><summary><span class="moduleTitle">击球顺序</span><span class="moduleState" id="moduleSequenceState">先碰球 · 上方长库 → 右侧短库</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><label for="mode" id="modeLabel">主球出发方式</label><select id="mode">
+</div><div class="photoStatus" id="photoLocatorStatus">建议先选择照片的拍摄方向。自动识别会给出初始点，并将四角向内偏移 5 cm；最终比赛区域由确认后的四个角点定义。</div></div></details><details class="menuModule" id="moduleSequence"><summary><span class="moduleTitle">击球顺序</span><span class="moduleState" id="moduleSequenceState">先碰球 · 上方长库 → 右侧短库</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><button aria-pressed="false" class="noPlanBtn" id="noPlanSequenceBtn" type="button">不规划本杆线路</button><p class="small" style="margin:-4px 0 12px;">适用于不使用 LKL / Base 50 或 Plus 系统的自由击球：不显示线路和进攻点，录像中只显示球的圆圈。选择任意线路后自动关闭。</p><label for="mode" id="modeLabel">主球出发方式</label><select id="mode">
 <option value="ballFirst">先碰球，再走库</option>
 <option value="cushionFirst">先走库，再碰球</option>
 </select><label for="firstBall" id="firstBallLabel">第二目标球</label><select id="firstBall">
@@ -2272,6 +2329,7 @@ html,body,button,input,select,textarea{font-family:"PingFang SC","Microsoft YaHe
   let dragKey = null;
   let geom = { scale:1, ox:0, oy:0, w:0, h:0, dpr:1 };
   let currentShot = null;
+  let noPlanSequence = false;
   let calculationState = { version:0, reason:'init', shot:null, error:null };
   let loupeRenderMode = false;
   let loupeFixedCornerName = null;
@@ -9906,11 +9964,37 @@ html,body,button,input,select,textarea{font-family:"PingFang SC","Microsoft YaHe
     el.style.fontSize = `${fontSize}px`;
   }
 
+  function setNoPlanSequence(on){
+    noPlanSequence = !!on;
+    const btn = ids('noPlanSequenceBtn');
+    if(btn){
+      btn.classList.toggle('active', noPlanSequence);
+      btn.setAttribute('aria-pressed', noPlanSequence ? 'true' : 'false');
+    }
+    recalculateAll(noPlanSequence ? 'no-plan-on' : 'no-plan-off');
+    updateModuleSummaries();
+  }
+
   function recalculateAll(reason='user-change'){
     resetCalculationState(reason);
 
     const c = controls();
     if(c.systemMode !== 'plus') lastSystemMode = c.systemMode;
+
+    if(noPlanSequence){
+      calculationState = {
+        version: (calculationState?.version || 0) + 1,
+        reason,
+        shot: null,
+        error: null
+      };
+      currentShot = null;
+      drawTable();
+      drawBalls();
+      const diag = ids('diagnostic');
+      if(diag) diag.textContent = '未规划：自由录制，仅显示球圈。';
+      return;
+    }
 
     // Enrutamiento correcto por módulos:
     // - Plus usa motor Carrasco propio.
@@ -10561,8 +10645,6 @@ function drawStartMarks(){
     {id:'yellow', type:'ball', ball:'yellow', label:'Center of the yellow ball'},
     {id:'red', type:'ball', ball:'red', label:'Center of the red ball'}
   ];
-
-  let photoSessionCorners = null; // esquinas aplicadas en esta sesión (memoria; se limpia al recargar).
 
   const photoLocator = {
     active:false,
@@ -11246,57 +11328,38 @@ function drawStartMarks(){
       }
     }
 
-    const ok=Object.values(checks).every(Boolean);
-    return {ok,checks,quad,geometry,balls:detected,reason:ok?'accepted':'one or more criteria were not met'};
+    const geometryOk = checks.largeFelt && checks.fourCorners && checks.notCropped &&
+      checks.approximatelyRectangular && checks.physicalAspect && checks.limitedPerspective;
+    const ballsOk = checks.threeBalls && checks.coherentBallSizes;
+    return {
+      ok: geometryOk,
+      ballsOk,
+      checks,
+      quad,
+      geometry,
+      balls: detected,
+      reason: geometryOk ? 'ok' : 'geometry'
+    };
   }
 
-  function photoImageDims(){
-    const img = photoLocator.image;
-    if(!img) return null;
-    const w = img.naturalWidth || img.width || 0;
-    const h = img.naturalHeight || img.height || 0;
-    return (w > 1 && h > 1) ? {w, h} : null;
+  function describeCaptureRejection(validation){
+    if(!validation) return '';
+    const c = validation.checks || {};
+    if(validation.reason === 'image could not be processed') return '无法处理该图像。';
+    if(validation.reason === 'cloth playing surface not recognized') return '未能在图像中识别出台呢表面。';
+    if(validation.reason === 'geometry cannot be evaluated') return '无法评估所检测表面的几何形状。';
+    if(!c.largeFelt) return '原因：台呢在画面中所占面积过小（摄像头太远或偏离）。';
+    if(!c.fourCorners) return '原因：未能定位台呢的四个角。';
+    if(!c.notCropped) return '原因：球台触及图像边缘，画面将其裁切。';
+    if(!c.approximatelyRectangular) return '原因：检测到的形状不接近矩形。';
+    if(!c.physicalAspect) return '原因：长宽比例与开仑球台不符。';
+    if(!c.limitedPerspective) return '原因：透视过于倾斜，不符合顶置摄像头。';
+    return '';
   }
 
-  function currentPhotoOrientation(){
-    const sel = ids('photoViewpoint');
-    return sel ? sel.value : '';
-  }
-
-  // Reutilización de esquinas DENTRO de la sesión: si ni la cámara ni la
-  // mesa se han movido, la geometría de la captura anterior sigue siendo
-  // válida, así que solo cambian las bolas. Se reutiliza únicamente si
-  // las dimensiones de la imagen y la orientación coinciden con las de
-  // la captura aplicada. Recargar la app reinicia la sesión (esa es la
-  // vía para recalibrar esquinas: sin botones adicionales).
-  function maybeReuseSessionCorners(){
-    photoLocator.reusedCorners = false;
-    if(!photoSessionCorners) return false;
-    const dims = photoImageDims();
-    if(!dims) return false;
-    if(dims.w !== photoSessionCorners.w || dims.h !== photoSessionCorners.h) return false;
-    if(currentPhotoOrientation() !== photoSessionCorners.orientation) return false;
-    for(const id of ['tl','tr','br','bl']){
-      const p = photoSessionCorners.pts[id];
-      if(!p || !Number.isFinite(p.x) || !Number.isFinite(p.y)) return false;
-    }
-    for(const id of ['tl','tr','br','bl']){
-      photoLocator.points[id] = {x:photoSessionCorners.pts[id].x, y:photoSessionCorners.pts[id].y};
-    }
-    photoLocator.reusedCorners = true;
-    return true;
-  }
-
-  function rememberSessionCorners(){
-    const dims = photoImageDims();
-    if(!dims) return;
-    const pts = {};
-    for(const id of ['tl','tr','br','bl']){
-      const p = photoLocator.points[id];
-      if(!p) return;
-      pts[id] = {x:p.x, y:p.y};
-    }
-    photoSessionCorners = {w:dims.w, h:dims.h, orientation:currentPhotoOrientation(), pts};
+  function showForceCaptureButton(show){
+    const btn = ids('forceCaptureBtn');
+    if(btn) btn.style.display = show ? '' : 'none';
   }
 
   function autoDetectPhotoLocatorPoints(fromLoad=false){
@@ -11310,7 +11373,7 @@ function drawStartMarks(){
       setPhotoDetectStatus('The image could not be prepared for detection.', 'bad');
       return;
     }
-    const quad = photoLocator.reusedCorners ? null : tableQuadFromBlueMask(pd);
+    const quad = tableQuadFromBlueMask(pd);
     const found = {corners:false, balls:0};
     if(quad){
       Object.assign(photoLocator.points, quad.appOrder);
@@ -11334,18 +11397,12 @@ function drawStartMarks(){
       }
     }
 
-    photoLocator.stepIndex = photoLocator.reusedCorners ? 4 : 0;
+    photoLocator.stepIndex = 0;
     const first = currentPhotoStep();
     photoLocator.current = photoLocator.points[first.id] ? {...photoLocator.points[first.id]} : null;
     drawPhotoLocator();
     const total = (found.corners ? 4 : 0) + found.balls;
-    if(photoLocator.reusedCorners){
-      if(found.balls === 3){
-        setPhotoDetectStatus('已复用本次会话的四角（摄像头与球台未移动）。三颗球已自动识别：请检查三个球心后应用。若需重新标定四角，请刷新应用。', 'good');
-      }else{
-        setPhotoDetectStatus(`已复用本次会话的四角。已识别球数：${found.balls}/3，请手动补齐或修正球心。若需重新标定四角，请刷新应用。`, 'warn');
-      }
-    }else if(found.corners && found.balls === 3){
+    if(found.corners && found.balls === 3){
       setPhotoDetectStatus('Detection complete: the corners were offset 5 cm inward according to the selected orientation. Review all seven points; the 284 × 142 cm playing surface will be defined by the four confirmed corners.', 'good');
     }else if(total > 0){
       setPhotoDetectStatus(`Partial detection: ${found.corners ? 'corners detected and offset 5 cm inward' : 'corners not detected'}, ${found.balls}/3 balls detected. Correct or complete the points manually.`, 'warn');
@@ -11368,6 +11425,36 @@ function drawStartMarks(){
     input.addEventListener('change', handlePhotoLocatorFile);
     const captureBtn = ids('captureTableBtn');
     if(captureBtn) captureBtn.addEventListener('click', captureTableFromCamera);
+    const forceBtn = ids('forceCaptureBtn');
+    if(forceBtn) forceBtn.addEventListener('click', () => {
+      const capture = cameraCaptureState.rejectedCapture;
+      if(!capture){
+        setCameraCaptureStatus('没有待处理的被拒照片。请先使用拍摄球台。', 'bad');
+        showForceCaptureButton(false);
+        return;
+      }
+      cameraCaptureState.rejectedCapture = null;
+      showForceCaptureButton(false);
+      setCameraCaptureStatus(`已在您的责任下接受照片（${capture.width} × ${capture.height}），未经过顶置验证。请在检测器中特别仔细核对四角与球的位置。`, 'warn');
+      deliverCameraCaptureToDetector(capture);
+    });
+    const refocusBtn = ids('refocusCaptureBtn');
+    if(refocusBtn) refocusBtn.addEventListener('click', () => {
+      cameraCaptureState.blurryCapture = null;
+      showBlurryCaptureButtons(false);
+      captureTableFromCamera({autofocus:true});
+    });
+    const useBlurryBtn = ids('useBlurryCaptureBtn');
+    if(useBlurryBtn) useBlurryBtn.addEventListener('click', () => {
+      const capture = cameraCaptureState.blurryCapture;
+      showBlurryCaptureButtons(false);
+      if(!capture){
+        setCameraCaptureStatus('没有待处理的照片。请先使用拍摄球台。', 'bad');
+        return;
+      }
+      cameraCaptureState.blurryCapture = null;
+      processCameraCapture(capture, ' 说明：这张照片带有失焦被接受，请特别仔细核对各点。');
+    });
     closeBtn.addEventListener('click', closePhotoLocator);
     ids('photoConfirmPoint').addEventListener('click', confirmPhotoLocatorPoint);
     ids('photoPrevPoint').addEventListener('click', previousPhotoLocatorPoint);
@@ -11378,7 +11465,6 @@ function drawStartMarks(){
     if(viewSel){
       updatePhotoViewpointHint();
       viewSel.addEventListener('change', () => {
-        photoLocator.reusedCorners = false;
         updatePhotoViewpointHint();
         setPhotoDetectStatus('Orientation changed. Run automatic detection again or load another photo.', 'neutral');
         const st = ids('photoLocatorStatus');
@@ -11414,7 +11500,9 @@ function drawStartMarks(){
 
   const cameraCaptureState = {
     busy:false,
-    stream:null
+    stream:null,
+    rejectedCapture:null,
+    blurryCapture:null
   };
 
   function setCameraCaptureStatus(message, tone='neutral'){
@@ -11672,7 +11760,6 @@ function drawStartMarks(){
     photoLocator.current = null;
     photoLocator.points = {};
     photoLocator.active = true;
-    maybeReuseSessionCorners();
     openPhotoLocator();
     const status = ids('photoLocatorStatus');
     if(status){
@@ -11683,10 +11770,104 @@ function drawStartMarks(){
     setTimeout(() => autoDetectPhotoLocatorPoints(true), 150);
   }
 
-  async function captureTableFromCamera(){
+  const CAPTURE_SHARPNESS_MIN = 30;
+
+  function measureImageSharpness(source){
+    try{
+      const sw = source.width || source.naturalWidth || 0;
+      const sh = source.height || source.naturalHeight || 0;
+      if(!sw || !sh) return {ok:false, value:0};
+      const w = 640, h = Math.max(2, Math.round(sh * w / sw));
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      const g = c.getContext('2d', {willReadFrequently:true});
+      g.drawImage(source, 0, 0, w, h);
+      const d = g.getImageData(0, 0, w, h).data;
+      const gray = new Float32Array(w * h);
+      for(let i = 0, p = 0; i < d.length; i += 4, p++){
+        gray[p] = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+      }
+      let sum = 0, sum2 = 0, n = 0;
+      for(let y = 1; y < h - 1; y++){
+        for(let x = 1; x < w - 1; x++){
+          const i = y * w + x;
+          const Lp = 4 * gray[i] - gray[i - 1] - gray[i + 1] - gray[i - w] - gray[i + w];
+          sum += Lp; sum2 += Lp * Lp; n++;
+        }
+      }
+      const mean = sum / n;
+      return {ok:true, value: sum2 / n - mean * mean};
+    }catch{
+      return {ok:false, value:0};
+    }
+  }
+
+  async function engagePhotoAutofocus(track){
+    try{
+      if(!track || typeof track.getCapabilities !== 'function' || typeof track.applyConstraints !== 'function') return false;
+      const caps = track.getCapabilities();
+      if(!caps || !Array.isArray(caps.focusMode) || !caps.focusMode.includes('continuous')) return false;
+      await track.applyConstraints({advanced:[{focusMode:'continuous'}]});
+      return true;
+    }catch{ return false; }
+  }
+
+  async function freezePhotoFocus(track){
+    try{
+      if(!track || typeof track.getCapabilities !== 'function' || typeof track.applyConstraints !== 'function') return false;
+      const caps = track.getCapabilities();
+      if(!caps || !Array.isArray(caps.focusMode) || !caps.focusMode.includes('manual')) return false;
+      const settings = track.getSettings ? track.getSettings() : {};
+      const constraint = {focusMode:'manual'};
+      if(Number.isFinite(settings.focusDistance)) constraint.focusDistance = settings.focusDistance;
+      await track.applyConstraints({advanced:[constraint]});
+      return true;
+    }catch{ return false; }
+  }
+
+  function showBlurryCaptureButtons(show){
+    for(const id of ['refocusCaptureBtn', 'useBlurryCaptureBtn']){
+      const btn = ids(id);
+      if(btn) btn.style.display = show ? '' : 'none';
+    }
+  }
+
+  function processCameraCapture(capture, extraNote = ''){
+      const validation = validateCapturedTableImage(capture.source);
+      if(!validation.ok){
+        cameraCaptureState.rejectedCapture = capture;
+        const reasonText = describeCaptureRejection(validation);
+        const rejectionMessage = `拍摄的图像看起来不像从正上方俯视的完整球台。${reasonText} 请调整摄像头后重试，或在下方字段上传照片，或点击红色按钮自担责任直接使用这张照片。`;
+        setCameraCaptureStatus(rejectionMessage, 'bad');
+        const photoStatus = ids('photoLocatorStatus');
+        if(photoStatus) photoStatus.textContent = rejectionMessage;
+        showForceCaptureButton(true);
+        console.warn('Overhead capture validation rejected:', validation);
+        return;
+      }
+      cameraCaptureState.rejectedCapture = null;
+      showForceCaptureButton(false);
+      if(validation.ballsOk){
+        setCameraCaptureStatus(`Overhead capture accepted: ${capture.width} × ${capture.height}. The playing surface, all four corners, and all three balls were recognized with an acceptable perspective.${extraNote}`, extraNote ? 'warn' : 'good');
+      }else{
+        setCameraCaptureStatus(`顶置拍摄已通过：${capture.width} × ${capture.height}。球台识别正常，但未能自动识别三颗球（球紧贴库边时常见）。请在检测步骤中手动确认并放置。${extraNote}`, 'warn');
+      }
+      deliverCameraCaptureToDetector(capture);
+  }
+
+  async function captureTableFromCamera(eventOrOptions){
+    const options = (eventOrOptions && eventOrOptions.autofocus === true) ? eventOrOptions : {};
+    return captureTableFromCameraImpl(options);
+  }
+
+  async function captureTableFromCameraImpl(options){
     if(cameraCaptureState.busy) return;
     const button = ids('captureTableBtn');
     cameraCaptureState.busy = true;
+    cameraCaptureState.rejectedCapture = null;
+    cameraCaptureState.blurryCapture = null;
+    showForceCaptureButton(false);
+    showBlurryCaptureButtons(false);
     if(button){
       button.disabled = true;
       button.textContent = 'Preparing camera…';
@@ -11696,6 +11877,10 @@ function drawStartMarks(){
     try{
       setCameraCaptureStatus('Opening the Logitech Brio in stable 1920 × 1080 mode…', 'neutral');
       const prepared = await openBrioForCapture();
+      if(options.autofocus){
+        setCameraCaptureStatus('正在自动重新对焦：倒计时期间自动对焦将寻找球台…', 'neutral');
+        await engagePhotoAutofocus(prepared.track);
+      }
       const streamSettings = prepared.track.getSettings ? prepared.track.getSettings() : prepared.settings || {};
       const streamWidth = prepared.video.videoWidth || streamSettings.width || 0;
       const streamHeight = prepared.video.videoHeight || streamSettings.height || 0;
@@ -11707,21 +11892,25 @@ function drawStartMarks(){
 
       if(button) button.textContent = 'Taking photo…';
       setCameraCaptureStatus('Taking the photo and sending it to the automatic detector…', 'neutral');
+      if(options.autofocus){
+        await freezePhotoFocus(prepared.track);
+      }
       const rawCapture = await takeHighestResolutionPhoto(prepared.track, prepared.video);
       const capture = rotateCameraCapture180(rawCapture);
       setCameraCaptureStatus(`Resolution received: ${capture.width} × ${capture.height}. Checking whether the image shows a complete table from a top-down view…`, 'neutral');
-      const validation = validateCapturedTableImage(capture.source);
-      stopCameraCaptureStream();
-      if(!validation.ok){
-        const rejectionMessage = 'The captured image does not appear to show a complete billiard table from a top-down view. Check the overhead camera or upload a photo in the field below.';
-        setCameraCaptureStatus(rejectionMessage, 'bad');
-        const photoStatus = ids('photoLocatorStatus');
-        if(photoStatus) photoStatus.textContent = rejectionMessage;
-        console.warn('Overhead-capture validation rejected:', validation);
+      const sharpness = measureImageSharpness(capture.source);
+      if(sharpness.ok && sharpness.value < CAPTURE_SHARPNESS_MIN && !options.autofocus){
+        stopCameraCaptureStream();
+        cameraCaptureState.blurryCapture = capture;
+        setCameraCaptureStatus(`照片似乎失焦（清晰度 ${Math.round(sharpness.value)}；最低要求 ${CAPTURE_SHARPNESS_MIN}）。您可以自动重新对焦并重拍，或直接使用这张照片。`, 'warn');
+        showBlurryCaptureButtons(true);
         return;
       }
-      setCameraCaptureStatus(`Overhead capture accepted: ${capture.width} × ${capture.height}. The playing surface, all four corners, and all three balls were recognized with an acceptable perspective.`, 'good');
-      deliverCameraCaptureToDetector(capture);
+      const blurNote = (sharpness.ok && sharpness.value < CAPTURE_SHARPNESS_MIN)
+        ? ' 注意：重新对焦后图像仍略有失焦，请特别仔细核对各点。'
+        : '';
+      stopCameraCaptureStream();
+      processCameraCapture(capture, blurNote);
     }catch(error){
       stopCameraCaptureStream();
       setCameraCaptureStatus(cameraErrorMessage(error), 'bad');
@@ -11751,7 +11940,6 @@ function drawStartMarks(){
         photoLocator.current = null;
         photoLocator.points = {};
         photoLocator.active = true;
-        maybeReuseSessionCorners();
         openPhotoLocator();
         if(status) status.textContent = 'Photo loaded. The app will attempt to detect the corners and balls automatically.';
         setTimeout(() => autoDetectPhotoLocatorPoints(true), 120);
@@ -12138,7 +12326,6 @@ function drawStartMarks(){
     recalculateAll('photo-locator-apply');
     const status = ids('photoLocatorStatus');
     if(status) status.textContent = 'Positions loaded from the photo. Review them visually and adjust manually if necessary.';
-    rememberSessionCorners();
     maybeAdoptVideoCalibrationFromLocator();
     closePhotoLocator();
   }
@@ -12181,7 +12368,9 @@ function drawStartMarks(){
     exportRecorder:null,
     exportChunks:[],
     exportVideoEl:null,
-    focusLocked:false
+    focusLocked:false,
+    focusRespected:false,
+    focusTouched:false
   };
 
   function loadVideoCalibration(){
@@ -12302,6 +12491,14 @@ function drawStartMarks(){
     try{
       const caps = track.getCapabilities();
       if(!caps || !Array.isArray(caps.focusMode) || !caps.focusMode.includes('manual')) return false;
+      const current = track.getSettings ? track.getSettings() : {};
+      if(current.focusMode === 'manual'){
+        videoReplay.focusLocked = true;
+        videoReplay.focusRespected = true;
+        videoReplay.focusTouched = false;
+        return true;
+      }
+      videoReplay.focusRespected = false;
       setVideoReplayStatus('正在对焦球台并锁定焦点…');
       if(caps.focusMode.includes('continuous')){
         try{ await track.applyConstraints({advanced:[{focusMode:'continuous'}]}); }catch{}
@@ -12312,6 +12509,7 @@ function drawStartMarks(){
       if(Number.isFinite(settings.focusDistance)) constraint.focusDistance = settings.focusDistance;
       await track.applyConstraints({advanced:[constraint]});
       videoReplay.focusLocked = true;
+      videoReplay.focusTouched = true;
       return true;
     }catch(error){
       console.warn('击球视频：无法锁定焦点。', error);
@@ -12321,6 +12519,9 @@ function drawStartMarks(){
   }
 
   function videoReplayFocusNote(){
+    if(videoReplay.focusLocked && videoReplay.focusRespected){
+      return ' 检测到固定对焦（由您设置）：保持不变，不会重新对焦。';
+    }
     return videoReplay.focusLocked
       ? ' 焦点已锁定：录制期间不会重新对焦。'
       : ' 此摄像头或浏览器不支持锁定焦点，自动对焦将保持启用（可用 Logi Tune 锁定）。';
@@ -12333,8 +12534,18 @@ function drawStartMarks(){
     videoReplay.recorder = null;
     videoReplay.focusLocked = false;
     if(videoReplay.stream){
-      videoReplay.stream.getTracks().forEach(t => { try{ t.stop(); }catch{} });
+      const tracks = videoReplay.stream.getTracks();
+      const vTrack = videoReplay.stream.getVideoTracks()[0];
       videoReplay.stream = null;
+      if(videoReplay.focusTouched && vTrack && typeof vTrack.applyConstraints === 'function'){
+        videoReplay.focusTouched = false;
+        vTrack.applyConstraints({advanced:[{focusMode:'continuous'}]})
+          .catch(() => {})
+          .finally(() => { tracks.forEach(t => { try{ t.stop(); }catch{} }); });
+      } else {
+        videoReplay.focusTouched = false;
+        tracks.forEach(t => { try{ t.stop(); }catch{} });
+      }
     }
     const live = ids('videoReplayLive');
     if(live) live.srcObject = null;
@@ -13384,6 +13595,9 @@ function drawStartMarks(){
     setModuleState('modulePrecisePositionState', 'Three balls · centimeters');
     setModuleState('modulePhotoState', 'Overhead camera · file');
 
+    if(noPlanSequence){
+      setModuleState('moduleSequenceState', '未规划 · 仅显示球圈');
+    } else {
     const start=ids('mode')?.value==='cushionFirst' ? 'Cushion-first' : 'Ball-first';
     const rails=[ids('rail1')?.value,ids('rail2')?.value,ids('thirdRail')?.value]
       .filter(v=>v && v!=='none' && v!=='auto')
@@ -13391,6 +13605,7 @@ function drawStartMarks(){
     const fourth=ids('fourthRail')?.value;
     if(fourth && fourth!=='none') rails.push(shortRailName(fourth));
     setModuleState('moduleSequenceState', `${start}${rails.length?' · '+rails.join(' → '):''}`);
+    }
 
     const dir=ids('english')?.value==='negative' ? 'Negative' : (ids('english')?.value==='neutral' ? 'No sidespin' : 'Positive');
     const effect=ids('tips')?.value ?? '0';
@@ -13417,6 +13632,13 @@ function drawStartMarks(){
     if(diagnostic) new MutationObserver(updateModuleSummaries).observe(diagnostic,{childList:true,subtree:true,characterData:true});
     updateModuleSummaries();
   }
+
+  const noPlanBtn = ids('noPlanSequenceBtn');
+  if(noPlanBtn) noPlanBtn.addEventListener('click', () => setNoPlanSequence(!noPlanSequence));
+  ['mode','firstBall','rail1','rail2','thirdRail','fourthRail','fifthRail','sixthRail'].forEach(id => {
+    const el = ids(id);
+    if(el) el.addEventListener('change', () => { if(noPlanSequence) setNoPlanSequence(false); });
+  });
 
   setupCollapsibleMenu();
   ids('reset').addEventListener('click',()=>window.location.reload());
