@@ -750,6 +750,19 @@
       visibility:visible;
       transform:translateX(-50%) translateY(0);
     }
+    .cameraForceBtn{
+      display:block;
+      width:100%;
+      margin-top:8px;
+      padding:10px 12px;
+      border-radius:10px;
+      border:1px solid rgba(255,90,82,.55);
+      background:#8f1616;
+      color:#ffe9e9;
+      font-weight:600;
+      cursor:pointer;
+    }
+    .cameraForceBtn:hover{background:#a81a1a}
     .cameraCaptureStatus{
       min-height:38px;
       margin:0 0 10px;
@@ -1879,7 +1892,7 @@
 </select>
 </div>
 </div>
-</div></div></details><details class="menuModule photoCameraModule" id="modulePhoto"><summary><span class="moduleTitle">Ubicación desde fotografía o cámara cenital</span><span class="moduleState" id="modulePhotoState">Cámara cenital o archivo</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><p class="small" style="margin:0 0 10px;">Capture directamente la mesa con la cámara cenital o suba una fotografía. La app intentará detectar automáticamente esquinas y bolas; luego podrá corregir cualquier punto con lupa y ajuste fino. <b>La superficie jugable de 284 × 142 cm será la definida por los cuatro puntos finalmente confirmados.</b></p><div class="cameraCaptureTooltipWrap"><button aria-describedby="cameraCaptureTooltip" class="cameraCaptureBtn" id="captureTableBtn" title="Use esta función solo si tiene instalada una cámara cenital. En caso contrario, suba un archivo fotográfico en el campo que está más abajo." type="button">Capturar mesa</button><div class="cameraCaptureTooltip" id="cameraCaptureTooltip" role="tooltip">Use esta función solo si tiene instalada una cámara cenital. En caso contrario, suba un archivo fotográfico en el campo que está más abajo.</div></div><div aria-live="polite" class="cameraCaptureStatus" id="cameraCaptureStatus" role="status">La app abrirá la cámara una sola vez en modo estable 1920 × 1080, esperará 3 segundos para que enfoque y enviará la captura directamente al detector.</div><div class="photoSourceDivider"><span>o suba una fotografía</span></div><div class="photoOrientationBox" data-tip="Se sugiere tomar la fotografía desde la mayor altura posible. Una silla ayuda mucho">
+</div></div></details><details class="menuModule photoCameraModule" id="modulePhoto"><summary><span class="moduleTitle">Ubicación desde fotografía o cámara cenital</span><span class="moduleState" id="modulePhotoState">Cámara cenital o archivo</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><p class="small" style="margin:0 0 10px;">Capture directamente la mesa con la cámara cenital o suba una fotografía. La app intentará detectar automáticamente esquinas y bolas; luego podrá corregir cualquier punto con lupa y ajuste fino. <b>La superficie jugable de 284 × 142 cm será la definida por los cuatro puntos finalmente confirmados.</b></p><div class="cameraCaptureTooltipWrap"><button aria-describedby="cameraCaptureTooltip" class="cameraCaptureBtn" id="captureTableBtn" title="Use esta función solo si tiene instalada una cámara cenital. En caso contrario, suba un archivo fotográfico en el campo que está más abajo." type="button">Capturar mesa</button><div class="cameraCaptureTooltip" id="cameraCaptureTooltip" role="tooltip">Use esta función solo si tiene instalada una cámara cenital. En caso contrario, suba un archivo fotográfico en el campo que está más abajo.</div></div><div aria-live="polite" class="cameraCaptureStatus" id="cameraCaptureStatus" role="status">La app abrirá la cámara una sola vez en modo estable 1920 × 1080, esperará 3 segundos para que enfoque y enviará la captura directamente al detector.</div><button class="cameraForceBtn" id="forceCaptureBtn" style="display:none" type="button">Certifico que tengo una cámara cenital instalada: aceptar esta captura de todos modos, bajo mi responsabilidad</button><div class="photoSourceDivider"><span>o suba una fotografía</span></div><div class="photoOrientationBox" data-tip="Se sugiere tomar la fotografía desde la mayor altura posible. Una silla ayuda mucho">
 <label for="photoViewpoint">Punto desde donde fue tomada la foto</label>
 <select id="photoViewpoint" title="Seleccione desde qué lado de la mesa tomó la fotografía para ordenar correctamente las cuatro esquinas.">
 <option selected="" title="La esquina superior izquierda de la mesa corresponde a la esquina superior derecha de la foto." value="shortRight">Desde la banda corta derecha</option>
@@ -11175,8 +11188,46 @@ function drawStartMarks(){
       }
     }
 
-    const ok=Object.values(checks).every(Boolean);
-    return {ok,checks,quad,geometry,balls:detected,reason:ok?'aceptada':'uno o más criterios no se cumplieron'};
+    // La geometría es lo que certifica "cámara cenital sobre mesa
+    // completa". La detección de bolas NO es evidencia de cámara
+    // cenital, así que ya no veta la captura: con bolas pegadas a la
+    // banda es normal que falle, y en ese caso se ubican a mano en el
+    // detector (que de todos modos exige confirmar los 7 puntos).
+    const geometryOk = checks.largeFelt && checks.fourCorners && checks.notCropped &&
+      checks.approximatelyRectangular && checks.physicalAspect && checks.limitedPerspective;
+    const ballsOk = checks.threeBalls && checks.coherentBallSizes;
+    return {
+      ok: geometryOk,
+      ballsOk,
+      checks,
+      quad,
+      geometry,
+      balls: detected,
+      reason: geometryOk ? (ballsOk ? 'aceptada' : 'aceptada sin las tres bolas') : 'geometría cenital no verificada'
+    };
+  }
+
+  // Traduce el primer criterio geométrico fallido a lenguaje humano,
+  // para que el usuario sepa si debe corregir la cámara o usar el
+  // botón de forzar con conocimiento de causa.
+  function describeCaptureRejection(validation){
+    if(!validation) return '';
+    const c = validation.checks || {};
+    if(validation.reason === 'imagen no procesable') return 'La imagen no se pudo procesar.';
+    if(validation.reason === 'superficie de paño no reconocida') return 'No se reconoció una superficie de paño de billar en la imagen.';
+    if(validation.reason === 'geometría no evaluable') return 'No se pudo evaluar la geometría de la superficie detectada.';
+    if(!c.largeFelt) return 'Motivo: el paño ocupa muy poca área del encuadre (cámara muy lejos o desviada).';
+    if(!c.fourCorners) return 'Motivo: no se ubicaron las cuatro esquinas del paño.';
+    if(!c.notCropped) return 'Motivo: la mesa toca el borde de la imagen; el encuadre la está recortando.';
+    if(!c.approximatelyRectangular) return 'Motivo: la forma detectada no es aproximadamente rectangular.';
+    if(!c.physicalAspect) return 'Motivo: la proporción largo/ancho no corresponde a una mesa de carambola.';
+    if(!c.limitedPerspective) return 'Motivo: la perspectiva es demasiado inclinada para una cámara cenital.';
+    return '';
+  }
+
+  function showForceCaptureButton(show){
+    const btn = ids('forceCaptureBtn');
+    if(btn) btn.style.display = show ? '' : 'none';
   }
 
   function photoImageDims(){
@@ -11297,6 +11348,19 @@ function drawStartMarks(){
     input.addEventListener('change', handlePhotoLocatorFile);
     const captureBtn = ids('captureTableBtn');
     if(captureBtn) captureBtn.addEventListener('click', captureTableFromCamera);
+    const forceBtn = ids('forceCaptureBtn');
+    if(forceBtn) forceBtn.addEventListener('click', () => {
+      const capture = cameraCaptureState.rejectedCapture;
+      if(!capture){
+        setCameraCaptureStatus('No hay una captura rechazada pendiente. Use Capturar mesa primero.', 'bad');
+        showForceCaptureButton(false);
+        return;
+      }
+      cameraCaptureState.rejectedCapture = null;
+      showForceCaptureButton(false);
+      setCameraCaptureStatus(`Captura aceptada bajo su responsabilidad (${capture.width} × ${capture.height}), sin validación cenital. Revise con especial cuidado las esquinas y las bolas en el detector.`, 'warn');
+      deliverCameraCaptureToDetector(capture);
+    });
     closeBtn.addEventListener('click', closePhotoLocator);
     ids('photoConfirmPoint').addEventListener('click', confirmPhotoLocatorPoint);
     ids('photoPrevPoint').addEventListener('click', previousPhotoLocatorPoint);
@@ -11343,7 +11407,8 @@ function drawStartMarks(){
 
   const cameraCaptureState = {
     busy:false,
-    stream:null
+    stream:null,
+    rejectedCapture:null
   };
 
   function setCameraCaptureStatus(message, tone='neutral'){
@@ -11616,6 +11681,8 @@ function drawStartMarks(){
     if(cameraCaptureState.busy) return;
     const button = ids('captureTableBtn');
     cameraCaptureState.busy = true;
+    cameraCaptureState.rejectedCapture = null;
+    showForceCaptureButton(false);
     if(button){
       button.disabled = true;
       button.textContent = 'Preparando cámara…';
@@ -11642,14 +11709,23 @@ function drawStartMarks(){
       const validation = validateCapturedTableImage(capture.source);
       stopCameraCaptureStream();
       if(!validation.ok){
-        const rejectionMessage = 'La imagen capturada no parece corresponder a una mesa de billar completa vista desde arriba. Verifique la cámara cenital o suba una fotografía en el campo que aparece más abajo.';
+        cameraCaptureState.rejectedCapture = capture; // se conserva para el botón de forzar.
+        const reasonText = describeCaptureRejection(validation);
+        const rejectionMessage = `La imagen capturada no parece corresponder a una mesa de billar completa vista desde arriba. ${reasonText} Corrija la cámara y vuelva a intentarlo, suba una fotografía en el campo de más abajo, o use el botón rojo para aceptar esta misma captura bajo su responsabilidad.`;
         setCameraCaptureStatus(rejectionMessage, 'bad');
         const photoStatus = ids('photoLocatorStatus');
         if(photoStatus) photoStatus.textContent = rejectionMessage;
+        showForceCaptureButton(true);
         console.warn('Validación de captura cenital rechazada:', validation);
         return;
       }
-      setCameraCaptureStatus(`Captura cenital aceptada: ${capture.width} × ${capture.height}. Se reconocieron la superficie de juego, las cuatro esquinas y las tres bolas con una perspectiva compatible.`, 'good');
+      cameraCaptureState.rejectedCapture = null;
+      showForceCaptureButton(false);
+      if(validation.ballsOk){
+        setCameraCaptureStatus(`Captura cenital aceptada: ${capture.width} × ${capture.height}. Se reconocieron la superficie de juego, las cuatro esquinas y las tres bolas con una perspectiva compatible.`, 'good');
+      }else{
+        setCameraCaptureStatus(`Captura cenital aceptada: ${capture.width} × ${capture.height}. La mesa se reconoció correctamente, pero no se identificaron automáticamente las tres bolas (frecuente cuando alguna está pegada a la banda). Revise y ubíquelas manualmente en los pasos del detector.`, 'warn');
+      }
       deliverCameraCaptureToDetector(capture);
     }catch(error){
       stopCameraCaptureStream();
