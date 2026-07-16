@@ -750,6 +750,25 @@
       visibility:visible;
       transform:translateX(-50%) translateY(0);
     }
+    .noPlanBtn{
+      display:block;
+      width:100%;
+      margin:0 0 10px;
+      padding:10px 12px;
+      border-radius:10px;
+      border:1px solid rgba(98,215,255,.28);
+      background:#20303f;
+      color:#dfeefb;
+      font-weight:600;
+      cursor:pointer;
+    }
+    .noPlanBtn:hover{background:#27394b}
+    .noPlanBtn.active{
+      background:#2c4a63;
+      border-color:rgba(98,215,255,.75);
+      box-shadow:0 0 0 1px rgba(98,215,255,.35) inset;
+      color:#eaf7ff;
+    }
     .cameraForceBtn{
       display:block;
       width:100%;
@@ -1930,7 +1949,7 @@
             </div>
 </div><div class="photoFileWrap" data-tip="Se sugiere tomar la fotografía desde la mayor altura posible. Una silla ayuda mucho">
 <input accept="image/*" id="photoLocatorInput" type="file"/>
-</div><div class="photoStatus" id="photoLocatorStatus">Recomendación: escoja primero desde qué lado tomó la foto. La detección automática propone puntos iniciales y corrige las esquinas 5 cm hacia adentro; la superficie jugable final será la definida por los cuatro puntos confirmados.</div></div></details><details class="menuModule" id="moduleSequence"><summary><span class="moduleTitle">Secuencia de la jugada</span><span class="moduleState" id="moduleSequenceState">Bola primero · larga superior → corta derecha</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><label for="mode" id="modeLabel">Salida de la tacadora</label><select id="mode">
+</div><div class="photoStatus" id="photoLocatorStatus">Recomendación: escoja primero desde qué lado tomó la foto. La detección automática propone puntos iniciales y corrige las esquinas 5 cm hacia adentro; la superficie jugable final será la definida por los cuatro puntos confirmados.</div></div></details><details class="menuModule" id="moduleSequence"><summary><span class="moduleTitle">Secuencia de la jugada</span><span class="moduleState" id="moduleSequenceState">Bola primero · larga superior → corta derecha</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><button aria-pressed="false" class="noPlanBtn" id="noPlanSequenceBtn" type="button">No planear secuencia de la jugada</button><p class="small" style="margin:-4px 0 12px;">Para carambolas libres que no se tacan con LKL / Base 50 ni Plus: sin trayectorias ni puntos de ataque; la grabación mostrará únicamente los círculos de las bolas. Se desactiva al elegir cualquier secuencia.</p><label for="mode" id="modeLabel">Salida de la tacadora</label><select id="mode">
 <option value="ballFirst">Bola primero, luego bandas</option>
 <option value="cushionFirst">Banda previa, luego bola</option>
 </select><label for="firstBall" id="firstBallLabel">Primera bola</label><select id="firstBall">
@@ -2226,6 +2245,7 @@
   let dragKey = null;
   let geom = { scale:1, ox:0, oy:0, w:0, h:0, dpr:1 };
   let currentShot = null;
+  let noPlanSequence = false; // modo "No planear secuencia de la jugada".
   let calculationState = { version:0, reason:'init', shot:null, error:null };
   let loupeRenderMode = false;
   let loupeFixedCornerName = null;
@@ -5604,6 +5624,20 @@
       error: null
     };
     currentShot = null;
+  }
+
+  // Activa o desactiva el modo sin planear. El botón funciona como un
+  // conmutador, y elegir cualquier opción de Secuencia de la jugada lo
+  // apaga automáticamente (ver el cableado de los selectores al final).
+  function setNoPlanSequence(on){
+    noPlanSequence = !!on;
+    const btn = ids('noPlanSequenceBtn');
+    if(btn){
+      btn.classList.toggle('active', noPlanSequence);
+      btn.setAttribute('aria-pressed', noPlanSequence ? 'true' : 'false');
+    }
+    recalculateAll(noPlanSequence ? 'no-plan-on' : 'no-plan-off');
+    updateModuleSummaries();
   }
 
 
@@ -9866,6 +9900,27 @@
     const c = controls();
     if(c.systemMode !== 'plus') lastSystemMode = c.systemMode;
 
+    // Modo "No planear secuencia de la jugada": sin trayectorias, sin
+    // puntos de ataque ni rótulos de LKL / Base 50 o Plus. Solo mesa y
+    // bolas; en el video quedan únicamente los círculos de las bolas,
+    // porque la ruta superpuesta y el rótulo de Ataque nacen de
+    // currentShot, que aquí queda nulo. Se desactiva automáticamente al
+    // elegir cualquier opción normal de Secuencia de la jugada.
+    if(noPlanSequence){
+      calculationState = {
+        version: (calculationState?.version || 0) + 1,
+        reason,
+        shot: null,
+        error: null
+      };
+      currentShot = null;
+      drawTable();
+      drawBalls();
+      const diag = ids('diagnostic');
+      if(diag) diag.textContent = 'Sin planear: grabación libre, solo círculos de bolas.';
+      return;
+    }
+
     // Enrutamiento correcto por módulos:
     // - Plus usa motor Carrasco propio.
     // - Corta-larga-corta conserva su motor anterior.
@@ -13563,13 +13618,17 @@ function drawStartMarks(){
     setModuleState('modulePrecisePositionState', 'Tres bolas · centímetros');
     setModuleState('modulePhotoState', 'Cámara cenital · archivo');
 
-    const start=ids('mode')?.value==='cushionFirst' ? 'Banda previa' : 'Bola primero';
-    const rails=[ids('rail1')?.value,ids('rail2')?.value,ids('thirdRail')?.value]
-      .filter(v=>v && v!=='none' && v!=='auto')
-      .map(shortRailName);
-    const fourth=ids('fourthRail')?.value;
-    if(fourth && fourth!=='none') rails.push(shortRailName(fourth));
-    setModuleState('moduleSequenceState', `${start}${rails.length?' · '+rails.join(' → '):''}`);
+    if(noPlanSequence){
+      setModuleState('moduleSequenceState', 'Sin planear · solo círculos de bolas');
+    } else {
+      const start=ids('mode')?.value==='cushionFirst' ? 'Banda previa' : 'Bola primero';
+      const rails=[ids('rail1')?.value,ids('rail2')?.value,ids('thirdRail')?.value]
+        .filter(v=>v && v!=='none' && v!=='auto')
+        .map(shortRailName);
+      const fourth=ids('fourthRail')?.value;
+      if(fourth && fourth!=='none') rails.push(shortRailName(fourth));
+      setModuleState('moduleSequenceState', `${start}${rails.length?' · '+rails.join(' → '):''}`);
+    }
 
     const dir=ids('english')?.value==='negative' ? 'Negativo' : (ids('english')?.value==='neutral' ? 'Sin lateral' : 'Positivo');
     const effect=ids('tips')?.value ?? '0';
@@ -13596,6 +13655,13 @@ function drawStartMarks(){
     if(diagnostic) new MutationObserver(updateModuleSummaries).observe(diagnostic,{childList:true,subtree:true,characterData:true});
     updateModuleSummaries();
   }
+
+  const noPlanBtn = ids('noPlanSequenceBtn');
+  if(noPlanBtn) noPlanBtn.addEventListener('click', () => setNoPlanSequence(!noPlanSequence));
+  ['mode','firstBall','rail1','rail2','thirdRail','fourthRail','fifthRail','sixthRail'].forEach(id => {
+    const el = ids(id);
+    if(el) el.addEventListener('change', () => { if(noPlanSequence) setNoPlanSequence(false); });
+  });
 
   setupCollapsibleMenu();
   ids('reset').addEventListener('click',()=>window.location.reload());
