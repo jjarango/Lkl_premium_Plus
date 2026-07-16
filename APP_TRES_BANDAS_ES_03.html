@@ -763,6 +763,31 @@
       cursor:pointer;
     }
     .cameraForceBtn:hover{background:#a81a1a}
+    .cameraRefocusBtn{
+      display:block;
+      width:100%;
+      margin-top:8px;
+      padding:10px 12px;
+      border-radius:10px;
+      border:1px solid rgba(255,189,89,.55);
+      background:#7a520f;
+      color:#fff3dd;
+      font-weight:600;
+      cursor:pointer;
+    }
+    .cameraRefocusBtn:hover{background:#8f6114}
+    .cameraUseAnywayBtn{
+      display:block;
+      width:100%;
+      margin-top:8px;
+      padding:9px 12px;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,.22);
+      background:rgba(255,255,255,.06);
+      color:#e8eef6;
+      cursor:pointer;
+    }
+    .cameraUseAnywayBtn:hover{background:rgba(255,255,255,.11)}
     .cameraCaptureStatus{
       min-height:38px;
       margin:0 0 10px;
@@ -1892,7 +1917,7 @@
 </select>
 </div>
 </div>
-</div></div></details><details class="menuModule photoCameraModule" id="modulePhoto"><summary><span class="moduleTitle">Ubicación desde fotografía o cámara cenital</span><span class="moduleState" id="modulePhotoState">Cámara cenital o archivo</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><p class="small" style="margin:0 0 10px;">Capture directamente la mesa con la cámara cenital o suba una fotografía. La app intentará detectar automáticamente esquinas y bolas; luego podrá corregir cualquier punto con lupa y ajuste fino. <b>La superficie jugable de 284 × 142 cm será la definida por los cuatro puntos finalmente confirmados.</b></p><div class="cameraCaptureTooltipWrap"><button aria-describedby="cameraCaptureTooltip" class="cameraCaptureBtn" id="captureTableBtn" title="Use esta función solo si tiene instalada una cámara cenital. En caso contrario, suba un archivo fotográfico en el campo que está más abajo." type="button">Capturar mesa</button><div class="cameraCaptureTooltip" id="cameraCaptureTooltip" role="tooltip">Use esta función solo si tiene instalada una cámara cenital. En caso contrario, suba un archivo fotográfico en el campo que está más abajo.</div></div><div aria-live="polite" class="cameraCaptureStatus" id="cameraCaptureStatus" role="status">La app abrirá la cámara una sola vez en modo estable 1920 × 1080, esperará 3 segundos para que enfoque y enviará la captura directamente al detector.</div><button class="cameraForceBtn" id="forceCaptureBtn" style="display:none" type="button">Certifico que tengo una cámara cenital instalada: aceptar esta captura de todos modos, bajo mi responsabilidad</button><div class="photoSourceDivider"><span>o suba una fotografía</span></div><div class="photoOrientationBox" data-tip="Se sugiere tomar la fotografía desde la mayor altura posible. Una silla ayuda mucho">
+</div></div></details><details class="menuModule photoCameraModule" id="modulePhoto"><summary><span class="moduleTitle">Ubicación desde fotografía o cámara cenital</span><span class="moduleState" id="modulePhotoState">Cámara cenital o archivo</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><p class="small" style="margin:0 0 10px;">Capture directamente la mesa con la cámara cenital o suba una fotografía. La app intentará detectar automáticamente esquinas y bolas; luego podrá corregir cualquier punto con lupa y ajuste fino. <b>La superficie jugable de 284 × 142 cm será la definida por los cuatro puntos finalmente confirmados.</b></p><div class="cameraCaptureTooltipWrap"><button aria-describedby="cameraCaptureTooltip" class="cameraCaptureBtn" id="captureTableBtn" title="Use esta función solo si tiene instalada una cámara cenital. En caso contrario, suba un archivo fotográfico en el campo que está más abajo." type="button">Capturar mesa</button><div class="cameraCaptureTooltip" id="cameraCaptureTooltip" role="tooltip">Use esta función solo si tiene instalada una cámara cenital. En caso contrario, suba un archivo fotográfico en el campo que está más abajo.</div></div><div aria-live="polite" class="cameraCaptureStatus" id="cameraCaptureStatus" role="status">La app abrirá la cámara una sola vez en modo estable 1920 × 1080, esperará 3 segundos para que enfoque y enviará la captura directamente al detector.</div><button class="cameraForceBtn" id="forceCaptureBtn" style="display:none" type="button">Certifico que tengo una cámara cenital instalada: aceptar esta captura de todos modos, bajo mi responsabilidad</button><button class="cameraRefocusBtn" id="refocusCaptureBtn" style="display:none" type="button">Reenfocar automáticamente y recapturar</button><button class="cameraUseAnywayBtn" id="useBlurryCaptureBtn" style="display:none" type="button">Usar esta captura de todos modos</button><div class="photoSourceDivider"><span>o suba una fotografía</span></div><div class="photoOrientationBox" data-tip="Se sugiere tomar la fotografía desde la mayor altura posible. Una silla ayuda mucho">
 <label for="photoViewpoint">Punto desde donde fue tomada la foto</label>
 <select id="photoViewpoint" title="Seleccione desde qué lado de la mesa tomó la fotografía para ordenar correctamente las cuatro esquinas.">
 <option selected="" title="La esquina superior izquierda de la mesa corresponde a la esquina superior derecha de la foto." value="shortRight">Desde la banda corta derecha</option>
@@ -11361,6 +11386,23 @@ function drawStartMarks(){
       setCameraCaptureStatus(`Captura aceptada bajo su responsabilidad (${capture.width} × ${capture.height}), sin validación cenital. Revise con especial cuidado las esquinas y las bolas en el detector.`, 'warn');
       deliverCameraCaptureToDetector(capture);
     });
+    const refocusBtn = ids('refocusCaptureBtn');
+    if(refocusBtn) refocusBtn.addEventListener('click', () => {
+      cameraCaptureState.blurryCapture = null;
+      showBlurryCaptureButtons(false);
+      captureTableFromCamera({autofocus:true});
+    });
+    const useBlurryBtn = ids('useBlurryCaptureBtn');
+    if(useBlurryBtn) useBlurryBtn.addEventListener('click', () => {
+      const capture = cameraCaptureState.blurryCapture;
+      showBlurryCaptureButtons(false);
+      if(!capture){
+        setCameraCaptureStatus('No hay una captura pendiente. Use Capturar mesa primero.', 'bad');
+        return;
+      }
+      cameraCaptureState.blurryCapture = null;
+      processCameraCapture(capture, ' Nota: esta captura se aceptó con desenfoque; revise los puntos con especial cuidado.');
+    });
     closeBtn.addEventListener('click', closePhotoLocator);
     ids('photoConfirmPoint').addEventListener('click', confirmPhotoLocatorPoint);
     ids('photoPrevPoint').addEventListener('click', previousPhotoLocatorPoint);
@@ -11408,7 +11450,8 @@ function drawStartMarks(){
   const cameraCaptureState = {
     busy:false,
     stream:null,
-    rejectedCapture:null
+    rejectedCapture:null,
+    blurryCapture:null
   };
 
   function setCameraCaptureStatus(message, tone='neutral'){
@@ -11677,12 +11720,89 @@ function drawStartMarks(){
     setTimeout(() => autoDetectPhotoLocatorPoints(true), 150);
   }
 
-  async function captureTableFromCamera(){
+  // Nitidez por varianza del laplaciano, medida a un ancho fijo de 640 px
+  // para que el umbral sea comparable entre resoluciones. Imágenes nítidas
+  // de una mesa dan valores de cientos; un desenfoque evidente cae por
+  // debajo de ~30. Umbral conservador: solo marca lo claramente borroso.
+  const CAPTURE_SHARPNESS_MIN = 30;
+
+  function measureImageSharpness(source){
+    try{
+      const sw = source.width || source.naturalWidth || 0;
+      const sh = source.height || source.naturalHeight || 0;
+      if(!sw || !sh) return {ok:false, value:0};
+      const w = 640, h = Math.max(2, Math.round(sh * w / sw));
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      const g = c.getContext('2d', {willReadFrequently:true});
+      g.drawImage(source, 0, 0, w, h);
+      const d = g.getImageData(0, 0, w, h).data;
+      const gray = new Float32Array(w * h);
+      for(let i = 0, p = 0; i < d.length; i += 4, p++){
+        gray[p] = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+      }
+      let sum = 0, sum2 = 0, n = 0;
+      for(let y = 1; y < h - 1; y++){
+        for(let x = 1; x < w - 1; x++){
+          const i = y * w + x;
+          const L = 4 * gray[i] - gray[i - 1] - gray[i + 1] - gray[i - w] - gray[i + w];
+          sum += L; sum2 += L * L; n++;
+        }
+      }
+      const mean = sum / n;
+      return {ok:true, value: sum2 / n - mean * mean};
+    }catch{
+      return {ok:false, value:0};
+    }
+  }
+
+  // Reenfoque bajo demanda: activa el autofoco continuo para que converja
+  // durante la cuenta regresiva, y justo antes del disparo congela en modo
+  // manual a la distancia encontrada. La cámara queda en manual (coherente
+  // con la preferencia del usuario) pero con la distancia corregida.
+  async function engagePhotoAutofocus(track){
+    try{
+      if(!track || typeof track.getCapabilities !== 'function' || typeof track.applyConstraints !== 'function') return false;
+      const caps = track.getCapabilities();
+      if(!caps || !Array.isArray(caps.focusMode) || !caps.focusMode.includes('continuous')) return false;
+      await track.applyConstraints({advanced:[{focusMode:'continuous'}]});
+      return true;
+    }catch{ return false; }
+  }
+
+  async function freezePhotoFocus(track){
+    try{
+      if(!track || typeof track.getCapabilities !== 'function' || typeof track.applyConstraints !== 'function') return false;
+      const caps = track.getCapabilities();
+      if(!caps || !Array.isArray(caps.focusMode) || !caps.focusMode.includes('manual')) return false;
+      const settings = track.getSettings ? track.getSettings() : {};
+      const constraint = {focusMode:'manual'};
+      if(Number.isFinite(settings.focusDistance)) constraint.focusDistance = settings.focusDistance;
+      await track.applyConstraints({advanced:[constraint]});
+      return true;
+    }catch{ return false; }
+  }
+
+  function showBlurryCaptureButtons(show){
+    for(const id of ['refocusCaptureBtn', 'useBlurryCaptureBtn']){
+      const btn = ids(id);
+      if(btn) btn.style.display = show ? '' : 'none';
+    }
+  }
+
+  async function captureTableFromCamera(eventOrOptions){
+    const options = (eventOrOptions && eventOrOptions.autofocus === true) ? eventOrOptions : {};
+    return captureTableFromCameraImpl(options);
+  }
+
+  async function captureTableFromCameraImpl(options){
     if(cameraCaptureState.busy) return;
     const button = ids('captureTableBtn');
     cameraCaptureState.busy = true;
     cameraCaptureState.rejectedCapture = null;
+    cameraCaptureState.blurryCapture = null;
     showForceCaptureButton(false);
+    showBlurryCaptureButtons(false);
     if(button){
       button.disabled = true;
       button.textContent = 'Preparando cámara…';
@@ -11692,6 +11812,10 @@ function drawStartMarks(){
     try{
       setCameraCaptureStatus('Abriendo la Logitech Brio en modo estable 1920 × 1080…', 'neutral');
       const prepared = await openBrioForCapture();
+      if(options.autofocus){
+        setCameraCaptureStatus('Reenfocando automáticamente: el autofoco buscará la mesa durante la cuenta regresiva…', 'neutral');
+        await engagePhotoAutofocus(prepared.track);
+      }
       const streamSettings = prepared.track.getSettings ? prepared.track.getSettings() : prepared.settings || {};
       const streamWidth = prepared.video.videoWidth || streamSettings.width || 0;
       const streamHeight = prepared.video.videoHeight || streamSettings.height || 0;
@@ -11701,13 +11825,44 @@ function drawStartMarks(){
         await waitCamera(1000);
       }
 
+      if(options.autofocus){
+        await freezePhotoFocus(prepared.track);
+      }
       if(button) button.textContent = 'Tomando fotografía…';
       setCameraCaptureStatus('Tomando la fotografía y enviándola al detector automático…', 'neutral');
       const rawCapture = await takeHighestResolutionPhoto(prepared.track, prepared.video);
       const capture = rotateCameraCapture180(rawCapture);
       setCameraCaptureStatus(`Resolución recibida: ${capture.width} × ${capture.height}. Validando que la imagen corresponda a una mesa completa vista desde arriba…`, 'neutral');
-      const validation = validateCapturedTableImage(capture.source);
+      const sharpness = measureImageSharpness(capture.source);
+      if(sharpness.ok && sharpness.value < CAPTURE_SHARPNESS_MIN && !options.autofocus){
+        stopCameraCaptureStream();
+        cameraCaptureState.blurryCapture = capture;
+        setCameraCaptureStatus(`La captura parece desenfocada (nitidez ${Math.round(sharpness.value)}; mínimo esperado ${CAPTURE_SHARPNESS_MIN}). Puede reenfocar automáticamente y recapturar, o usar esta misma captura de todos modos.`, 'warn');
+        showBlurryCaptureButtons(true);
+        return;
+      }
+      const blurNote = (sharpness.ok && sharpness.value < CAPTURE_SHARPNESS_MIN)
+        ? ' Atención: la imagen sigue algo desenfocada pese al reenfoque; revise los puntos con especial cuidado.'
+        : '';
       stopCameraCaptureStream();
+      processCameraCapture(capture, blurNote);
+    }catch(error){
+      stopCameraCaptureStream();
+      setCameraCaptureStatus(cameraErrorMessage(error), 'bad');
+      console.error('Captura cenital:', error);
+    }finally{
+      cameraCaptureState.busy = false;
+      if(button){
+        button.disabled = false;
+        button.textContent = 'Capturar mesa';
+      }
+    }
+  }
+
+  // Validación cenital y entrega al detector (compartido por la captura
+  // normal, el reenfoque y el botón de usar una captura borrosa).
+  function processCameraCapture(capture, extraNote = ''){
+      const validation = validateCapturedTableImage(capture.source);
       if(!validation.ok){
         cameraCaptureState.rejectedCapture = capture; // se conserva para el botón de forzar.
         const reasonText = describeCaptureRejection(validation);
@@ -11722,22 +11877,11 @@ function drawStartMarks(){
       cameraCaptureState.rejectedCapture = null;
       showForceCaptureButton(false);
       if(validation.ballsOk){
-        setCameraCaptureStatus(`Captura cenital aceptada: ${capture.width} × ${capture.height}. Se reconocieron la superficie de juego, las cuatro esquinas y las tres bolas con una perspectiva compatible.`, 'good');
+        setCameraCaptureStatus(`Captura cenital aceptada: ${capture.width} × ${capture.height}. Se reconocieron la superficie de juego, las cuatro esquinas y las tres bolas con una perspectiva compatible.${extraNote}`, extraNote ? 'warn' : 'good');
       }else{
-        setCameraCaptureStatus(`Captura cenital aceptada: ${capture.width} × ${capture.height}. La mesa se reconoció correctamente, pero no se identificaron automáticamente las tres bolas (frecuente cuando alguna está pegada a la banda). Revise y ubíquelas manualmente en los pasos del detector.`, 'warn');
+        setCameraCaptureStatus(`Captura cenital aceptada: ${capture.width} × ${capture.height}. La mesa se reconoció correctamente, pero no se identificaron automáticamente las tres bolas (frecuente cuando alguna está pegada a la banda). Revise y ubíquelas manualmente en los pasos del detector.${extraNote}`, 'warn');
       }
       deliverCameraCaptureToDetector(capture);
-    }catch(error){
-      stopCameraCaptureStream();
-      setCameraCaptureStatus(cameraErrorMessage(error), 'bad');
-      console.error('Captura cenital:', error);
-    }finally{
-      cameraCaptureState.busy = false;
-      if(button){
-        button.disabled = false;
-        button.textContent = 'Capturar mesa';
-      }
-    }
   }
 
   function handlePhotoLocatorFile(e){
@@ -12186,7 +12330,9 @@ function drawStartMarks(){
     exportRecorder:null,
     exportChunks:[],
     exportVideoEl:null,
-    focusLocked:false
+    focusLocked:false,
+    focusRespected:false,
+    focusTouched:false
   };
 
   function loadVideoCalibration(){
@@ -12307,6 +12453,17 @@ function drawStartMarks(){
     try{
       const caps = track.getCapabilities();
       if(!caps || !Array.isArray(caps.focusMode) || !caps.focusMode.includes('manual')) return false;
+      const current = track.getSettings ? track.getSettings() : {};
+      if(current.focusMode === 'manual'){
+        // La cámara ya llegó en enfoque manual (configurado por el usuario,
+        // p. ej. en Logi Capture o Logi Tune). Esa distancia calibrada es la
+        // única fuente de verdad: no se toca nada, ni autofoco ni rebloqueo.
+        videoReplay.focusLocked = true;
+        videoReplay.focusRespected = true;
+        videoReplay.focusTouched = false;
+        return true;
+      }
+      videoReplay.focusRespected = false;
       setVideoReplayStatus('Enfocando la mesa y bloqueando el enfoque…');
       if(caps.focusMode.includes('continuous')){
         try{ await track.applyConstraints({advanced:[{focusMode:'continuous'}]}); }catch{}
@@ -12317,6 +12474,7 @@ function drawStartMarks(){
       if(Number.isFinite(settings.focusDistance)) constraint.focusDistance = settings.focusDistance;
       await track.applyConstraints({advanced:[constraint]});
       videoReplay.focusLocked = true;
+      videoReplay.focusTouched = true;
       return true;
     }catch(error){
       console.warn('Video de la jugada: no fue posible bloquear el enfoque.', error);
@@ -12326,6 +12484,9 @@ function drawStartMarks(){
   }
 
   function videoReplayFocusNote(){
+    if(videoReplay.focusLocked && videoReplay.focusRespected){
+      return ' Enfoque fijo detectado (configurado por usted): se respeta tal cual, sin reenfoques.';
+    }
     return videoReplay.focusLocked
       ? ' El enfoque quedó bloqueado: no habrá reenfoques durante la grabación.'
       : ' El bloqueo de enfoque no está disponible en esta cámara o navegador; el autofoco seguirá activo (puede fijarlo con Logi Tune).';
@@ -12338,8 +12499,20 @@ function drawStartMarks(){
     videoReplay.recorder = null;
     videoReplay.focusLocked = false;
     if(videoReplay.stream){
-      videoReplay.stream.getTracks().forEach(t => { try{ t.stop(); }catch{} });
+      const tracks = videoReplay.stream.getTracks();
+      const vTrack = videoReplay.stream.getVideoTracks()[0];
       videoReplay.stream = null;
+      if(videoReplay.focusTouched && vTrack && typeof vTrack.applyConstraints === 'function'){
+        // La app cambió el modo de enfoque en esta sesión (la cámara llegó
+        // en automático): se deja como se encontró antes de apagar.
+        videoReplay.focusTouched = false;
+        vTrack.applyConstraints({advanced:[{focusMode:'continuous'}]})
+          .catch(() => {})
+          .finally(() => { tracks.forEach(t => { try{ t.stop(); }catch{} }); });
+      } else {
+        videoReplay.focusTouched = false;
+        tracks.forEach(t => { try{ t.stop(); }catch{} });
+      }
     }
     const live = ids('videoReplayLive');
     if(live) live.srcObject = null;
