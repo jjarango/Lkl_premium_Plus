@@ -750,6 +750,63 @@
       visibility:visible;
       transform:translateX(-50%) translateY(0);
     }
+    .noPlanBtn{
+      display:block;
+      width:100%;
+      margin:0 0 10px;
+      padding:10px 12px;
+      border-radius:10px;
+      border:1px solid rgba(98,215,255,.28);
+      background:#20303f;
+      color:#dfeefb;
+      font-weight:600;
+      cursor:pointer;
+    }
+    .noPlanBtn:hover{background:#27394b}
+    .noPlanBtn.active{
+      background:#2c4a63;
+      border-color:rgba(98,215,255,.75);
+      box-shadow:0 0 0 1px rgba(98,215,255,.35) inset;
+      color:#eaf7ff;
+    }
+    .cameraForceBtn{
+      display:block;
+      width:100%;
+      margin-top:8px;
+      padding:10px 12px;
+      border-radius:10px;
+      border:1px solid rgba(255,90,82,.55);
+      background:#8f1616;
+      color:#ffe9e9;
+      font-weight:600;
+      cursor:pointer;
+    }
+    .cameraForceBtn:hover{background:#a81a1a}
+    .cameraRefocusBtn{
+      display:block;
+      width:100%;
+      margin-top:8px;
+      padding:10px 12px;
+      border-radius:10px;
+      border:1px solid rgba(255,189,89,.55);
+      background:#7a520f;
+      color:#fff3dd;
+      font-weight:600;
+      cursor:pointer;
+    }
+    .cameraRefocusBtn:hover{background:#8f6114}
+    .cameraUseAnywayBtn{
+      display:block;
+      width:100%;
+      margin-top:8px;
+      padding:9px 12px;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,.22);
+      background:rgba(255,255,255,.06);
+      color:#e8eef6;
+      cursor:pointer;
+    }
+    .cameraUseAnywayBtn:hover{background:rgba(255,255,255,.11)}
     .cameraCaptureStatus{
       min-height:38px;
       margin:0 0 10px;
@@ -1889,7 +1946,7 @@
 </select>
 </div>
 </div>
-</div></div></details><details class="menuModule photoCameraModule" id="modulePhoto"><summary><span class="moduleTitle">Position from photo or overhead camera</span><span class="moduleState" id="modulePhotoState">Overhead camera or image file</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><p class="small" style="margin:0 0 10px;">Capture the table directly with the overhead camera or upload a photo. The app will attempt to detect the corners and balls automatically; you can then correct any point with the magnifier and fine adjustment. <b>The 284 × 142 cm playing surface will be defined by the four confirmed corner points.</b></p><div class="cameraCaptureTooltipWrap"><button aria-describedby="cameraCaptureTooltip" class="cameraCaptureBtn" id="captureTableBtn" title="Use this function only if an overhead camera is installed. Otherwise, upload an image file in the field below." type="button">Capture table</button><div class="cameraCaptureTooltip" id="cameraCaptureTooltip" role="tooltip">Use this function only if an overhead camera is installed. Otherwise, upload an image file in the field below.</div></div><div aria-live="polite" class="cameraCaptureStatus" id="cameraCaptureStatus" role="status">The app opens the camera once in stable 1920 × 1080 mode, waits 3 seconds for focus, and sends the image directly to the detector.</div><div class="photoSourceDivider"><span>or upload a photo</span></div><div class="photoOrientationBox" data-tip="Take the photograph from the greatest height possible. Standing on a chair can help.">
+</div></div></details><details class="menuModule photoCameraModule" id="modulePhoto"><summary><span class="moduleTitle">Position from photo or overhead camera</span><span class="moduleState" id="modulePhotoState">Overhead camera or image file</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><p class="small" style="margin:0 0 10px;">Capture the table directly with the overhead camera or upload a photo. The app will attempt to detect the corners and balls automatically; you can then correct any point with the magnifier and fine adjustment. <b>The 284 × 142 cm playing surface will be defined by the four confirmed corner points.</b></p><div class="cameraCaptureTooltipWrap"><button aria-describedby="cameraCaptureTooltip" class="cameraCaptureBtn" id="captureTableBtn" title="Use this function only if an overhead camera is installed. Otherwise, upload an image file in the field below." type="button">Capture table</button><div class="cameraCaptureTooltip" id="cameraCaptureTooltip" role="tooltip">Use this function only if an overhead camera is installed. Otherwise, upload an image file in the field below.</div></div><div aria-live="polite" class="cameraCaptureStatus" id="cameraCaptureStatus" role="status">The app opens the camera once in stable 1920 × 1080 mode, waits 3 seconds for focus, and sends the image directly to the detector.</div><button class="cameraForceBtn" id="forceCaptureBtn" style="display:none" type="button">I certify that I have an overhead camera installed: accept this capture anyway, at my own risk</button><button class="cameraRefocusBtn" id="refocusCaptureBtn" style="display:none" type="button">Refocus automatically and recapture</button><button class="cameraUseAnywayBtn" id="useBlurryCaptureBtn" style="display:none" type="button">Use this capture anyway</button><div class="photoSourceDivider"><span>or upload a photo</span></div><div class="photoOrientationBox" data-tip="Take the photograph from the greatest height possible. Standing on a chair can help.">
 <label for="photoViewpoint">Camera viewpoint</label>
 <select id="photoViewpoint" title="Select the side of the table from which the photograph was taken so the four corners can be ordered correctly.">
 <option selected="" title="The table's upper-left corner corresponds to the photograph's upper-right corner." value="shortRight">From the right short cushion</option>
@@ -1902,7 +1959,7 @@
             </div>
 </div><div class="photoFileWrap" data-tip="Take the photograph from the greatest height possible. Standing on a chair can help.">
 <input accept="image/*" id="photoLocatorInput" type="file"/>
-</div><div class="photoStatus" id="photoLocatorStatus">Recommendation: first choose the side from which the photo was taken. Automatic detection proposes initial points and offsets the corners 5 cm inward; the final playing surface is defined by the four confirmed points.</div></div></details><details class="menuModule" id="moduleSequence"><summary><span class="moduleTitle">Shot sequence</span><span class="moduleState" id="moduleSequenceState">Ball-first · upper long cushion → right short cushion</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><label for="mode" id="modeLabel">Cue-ball start</label><select id="mode">
+</div><div class="photoStatus" id="photoLocatorStatus">Recommendation: first choose the side from which the photo was taken. Automatic detection proposes initial points and offsets the corners 5 cm inward; the final playing surface is defined by the four confirmed points.</div></div></details><details class="menuModule" id="moduleSequence"><summary><span class="moduleTitle">Shot sequence</span><span class="moduleState" id="moduleSequenceState">Ball-first · upper long cushion → right short cushion</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><button aria-pressed="false" class="noPlanBtn" id="noPlanSequenceBtn" type="button">Do not plan the shot sequence</button><p class="small" style="margin:-4px 0 12px;">For free shots that are not played with LKL / Base 50 or Plus: no trajectories, no attack points; the recording will show only the ball circles. It turns off when you choose any sequence.</p><label for="mode" id="modeLabel">Cue-ball start</label><select id="mode">
 <option value="ballFirst">Ball first, then cushions</option>
 <option value="cushionFirst">Cushion first, then ball</option>
 </select><label for="firstBall" id="firstBallLabel">Ball 2</label><select id="firstBall">
@@ -2198,6 +2255,7 @@
   let dragKey = null;
   let geom = { scale:1, ox:0, oy:0, w:0, h:0, dpr:1 };
   let currentShot = null;
+  let noPlanSequence = false;
   let calculationState = { version:0, reason:'init', shot:null, error:null };
   let loupeRenderMode = false;
   let loupeFixedCornerName = null;
@@ -9853,11 +9911,37 @@
     el.style.fontSize = `${fontSize}px`;
   }
 
+  function setNoPlanSequence(on){
+    noPlanSequence = !!on;
+    const btn = ids('noPlanSequenceBtn');
+    if(btn){
+      btn.classList.toggle('active', noPlanSequence);
+      btn.setAttribute('aria-pressed', noPlanSequence ? 'true' : 'false');
+    }
+    recalculateAll(noPlanSequence ? 'no-plan-on' : 'no-plan-off');
+    updateModuleSummaries();
+  }
+
   function recalculateAll(reason='user-change'){
     resetCalculationState(reason);
 
     const c = controls();
     if(c.systemMode !== 'plus') lastSystemMode = c.systemMode;
+
+    if(noPlanSequence){
+      calculationState = {
+        version: (calculationState?.version || 0) + 1,
+        reason,
+        shot: null,
+        error: null
+      };
+      currentShot = null;
+      drawTable();
+      drawBalls();
+      const diag = ids('diagnostic');
+      if(diag) diag.textContent = 'Not planned: free recording, ball circles only.';
+      return;
+    }
 
     // Enrutamiento correcto por módulos:
     // - Plus usa motor Carrasco propio.
@@ -10532,8 +10616,6 @@ function drawStartMarks(){
     {id:'yellow', type:'ball', ball:'yellow', label:'Center of the yellow ball'},
     {id:'red', type:'ball', ball:'red', label:'Center of the red ball'}
   ];
-
-  let photoSessionCorners = null; // esquinas aplicadas en esta sesión (memoria; se limpia al recargar).
 
   const photoLocator = {
     active:false,
@@ -11217,57 +11299,38 @@ function drawStartMarks(){
       }
     }
 
-    const ok=Object.values(checks).every(Boolean);
-    return {ok,checks,quad,geometry,balls:detected,reason:ok?'accepted':'one or more criteria were not met'};
+    const geometryOk = checks.largeFelt && checks.fourCorners && checks.notCropped &&
+      checks.approximatelyRectangular && checks.physicalAspect && checks.limitedPerspective;
+    const ballsOk = checks.threeBalls && checks.coherentBallSizes;
+    return {
+      ok: geometryOk,
+      ballsOk,
+      checks,
+      quad,
+      geometry,
+      balls: detected,
+      reason: geometryOk ? 'ok' : 'geometry'
+    };
   }
 
-  function photoImageDims(){
-    const img = photoLocator.image;
-    if(!img) return null;
-    const w = img.naturalWidth || img.width || 0;
-    const h = img.naturalHeight || img.height || 0;
-    return (w > 1 && h > 1) ? {w, h} : null;
+  function describeCaptureRejection(validation){
+    if(!validation) return '';
+    const c = validation.checks || {};
+    if(validation.reason === 'image could not be processed') return 'The image could not be processed.';
+    if(validation.reason === 'cloth playing surface not recognized') return 'No billiard cloth surface was recognized in the image.';
+    if(validation.reason === 'geometry cannot be evaluated') return 'The geometry of the detected surface could not be evaluated.';
+    if(!c.largeFelt) return 'Reason: the cloth occupies too little of the frame (camera too far or off-axis).';
+    if(!c.fourCorners) return 'Reason: the four cloth corners could not be located.';
+    if(!c.notCropped) return 'Reason: the table touches the edge of the image; the framing is cropping it.';
+    if(!c.approximatelyRectangular) return 'Reason: the detected shape is not approximately rectangular.';
+    if(!c.physicalAspect) return 'Reason: the length/width ratio does not match a carom table.';
+    if(!c.limitedPerspective) return 'Reason: the perspective is too tilted for an overhead camera.';
+    return '';
   }
 
-  function currentPhotoOrientation(){
-    const sel = ids('photoViewpoint');
-    return sel ? sel.value : '';
-  }
-
-  // Reutilización de esquinas DENTRO de la sesión: si ni la cámara ni la
-  // mesa se han movido, la geometría de la captura anterior sigue siendo
-  // válida, así que solo cambian las bolas. Se reutiliza únicamente si
-  // las dimensiones de la imagen y la orientación coinciden con las de
-  // la captura aplicada. Recargar la app reinicia la sesión (esa es la
-  // vía para recalibrar esquinas: sin botones adicionales).
-  function maybeReuseSessionCorners(){
-    photoLocator.reusedCorners = false;
-    if(!photoSessionCorners) return false;
-    const dims = photoImageDims();
-    if(!dims) return false;
-    if(dims.w !== photoSessionCorners.w || dims.h !== photoSessionCorners.h) return false;
-    if(currentPhotoOrientation() !== photoSessionCorners.orientation) return false;
-    for(const id of ['tl','tr','br','bl']){
-      const p = photoSessionCorners.pts[id];
-      if(!p || !Number.isFinite(p.x) || !Number.isFinite(p.y)) return false;
-    }
-    for(const id of ['tl','tr','br','bl']){
-      photoLocator.points[id] = {x:photoSessionCorners.pts[id].x, y:photoSessionCorners.pts[id].y};
-    }
-    photoLocator.reusedCorners = true;
-    return true;
-  }
-
-  function rememberSessionCorners(){
-    const dims = photoImageDims();
-    if(!dims) return;
-    const pts = {};
-    for(const id of ['tl','tr','br','bl']){
-      const p = photoLocator.points[id];
-      if(!p) return;
-      pts[id] = {x:p.x, y:p.y};
-    }
-    photoSessionCorners = {w:dims.w, h:dims.h, orientation:currentPhotoOrientation(), pts};
+  function showForceCaptureButton(show){
+    const btn = ids('forceCaptureBtn');
+    if(btn) btn.style.display = show ? '' : 'none';
   }
 
   function autoDetectPhotoLocatorPoints(fromLoad=false){
@@ -11281,7 +11344,7 @@ function drawStartMarks(){
       setPhotoDetectStatus('The image could not be prepared for detection.', 'bad');
       return;
     }
-    const quad = photoLocator.reusedCorners ? null : tableQuadFromBlueMask(pd);
+    const quad = tableQuadFromBlueMask(pd);
     const found = {corners:false, balls:0};
     if(quad){
       Object.assign(photoLocator.points, quad.appOrder);
@@ -11305,18 +11368,12 @@ function drawStartMarks(){
       }
     }
 
-    photoLocator.stepIndex = photoLocator.reusedCorners ? 4 : 0;
+    photoLocator.stepIndex = 0;
     const first = currentPhotoStep();
     photoLocator.current = photoLocator.points[first.id] ? {...photoLocator.points[first.id]} : null;
     drawPhotoLocator();
     const total = (found.corners ? 4 : 0) + found.balls;
-    if(photoLocator.reusedCorners){
-      if(found.balls === 3){
-        setPhotoDetectStatus('Session corners reused (same camera, same table). All three balls were detected automatically: review the three centres and apply. To recalibrate the corners from scratch, reload the app.', 'good');
-      }else{
-        setPhotoDetectStatus(`Session corners reused. Balls detected ${found.balls}/3; complete or correct the centres manually. To recalibrate the corners from scratch, reload the app.`, 'warn');
-      }
-    }else if(found.corners && found.balls === 3){
+    if(found.corners && found.balls === 3){
       setPhotoDetectStatus('Detection complete: the corners were offset 5 cm inward according to the selected orientation. Review all seven points; the 284 × 142 cm playing surface will be defined by the four confirmed corners.', 'good');
     }else if(total > 0){
       setPhotoDetectStatus(`Partial detection: ${found.corners ? 'corners detected and offset 5 cm inward' : 'corners not detected'}, ${found.balls}/3 balls detected. Correct or complete the points manually.`, 'warn');
@@ -11339,6 +11396,36 @@ function drawStartMarks(){
     input.addEventListener('change', handlePhotoLocatorFile);
     const captureBtn = ids('captureTableBtn');
     if(captureBtn) captureBtn.addEventListener('click', captureTableFromCamera);
+    const forceBtn = ids('forceCaptureBtn');
+    if(forceBtn) forceBtn.addEventListener('click', () => {
+      const capture = cameraCaptureState.rejectedCapture;
+      if(!capture){
+        setCameraCaptureStatus('There is no rejected capture pending. Use Capture table first.', 'bad');
+        showForceCaptureButton(false);
+        return;
+      }
+      cameraCaptureState.rejectedCapture = null;
+      showForceCaptureButton(false);
+      setCameraCaptureStatus(`Capture accepted at your own risk (${capture.width} × ${capture.height}), without overhead validation. Review corners and balls in the detector with special care.`, 'warn');
+      deliverCameraCaptureToDetector(capture);
+    });
+    const refocusBtn = ids('refocusCaptureBtn');
+    if(refocusBtn) refocusBtn.addEventListener('click', () => {
+      cameraCaptureState.blurryCapture = null;
+      showBlurryCaptureButtons(false);
+      captureTableFromCamera({autofocus:true});
+    });
+    const useBlurryBtn = ids('useBlurryCaptureBtn');
+    if(useBlurryBtn) useBlurryBtn.addEventListener('click', () => {
+      const capture = cameraCaptureState.blurryCapture;
+      showBlurryCaptureButtons(false);
+      if(!capture){
+        setCameraCaptureStatus('There is no pending capture. Use Capture table first.', 'bad');
+        return;
+      }
+      cameraCaptureState.blurryCapture = null;
+      processCameraCapture(capture, ' Note: this capture was accepted with some blur; review the points with special care.');
+    });
     closeBtn.addEventListener('click', closePhotoLocator);
     ids('photoConfirmPoint').addEventListener('click', confirmPhotoLocatorPoint);
     ids('photoPrevPoint').addEventListener('click', previousPhotoLocatorPoint);
@@ -11349,7 +11436,6 @@ function drawStartMarks(){
     if(viewSel){
       updatePhotoViewpointHint();
       viewSel.addEventListener('change', () => {
-        photoLocator.reusedCorners = false;
         updatePhotoViewpointHint();
         setPhotoDetectStatus('Orientation changed. Run automatic detection again or load another photo.', 'neutral');
         const st = ids('photoLocatorStatus');
@@ -11385,7 +11471,9 @@ function drawStartMarks(){
 
   const cameraCaptureState = {
     busy:false,
-    stream:null
+    stream:null,
+    rejectedCapture:null,
+    blurryCapture:null
   };
 
   function setCameraCaptureStatus(message, tone='neutral'){
@@ -11643,7 +11731,6 @@ function drawStartMarks(){
     photoLocator.current = null;
     photoLocator.points = {};
     photoLocator.active = true;
-    maybeReuseSessionCorners();
     openPhotoLocator();
     const status = ids('photoLocatorStatus');
     if(status){
@@ -11654,10 +11741,104 @@ function drawStartMarks(){
     setTimeout(() => autoDetectPhotoLocatorPoints(true), 150);
   }
 
-  async function captureTableFromCamera(){
+  const CAPTURE_SHARPNESS_MIN = 30;
+
+  function measureImageSharpness(source){
+    try{
+      const sw = source.width || source.naturalWidth || 0;
+      const sh = source.height || source.naturalHeight || 0;
+      if(!sw || !sh) return {ok:false, value:0};
+      const w = 640, h = Math.max(2, Math.round(sh * w / sw));
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      const g = c.getContext('2d', {willReadFrequently:true});
+      g.drawImage(source, 0, 0, w, h);
+      const d = g.getImageData(0, 0, w, h).data;
+      const gray = new Float32Array(w * h);
+      for(let i = 0, p = 0; i < d.length; i += 4, p++){
+        gray[p] = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+      }
+      let sum = 0, sum2 = 0, n = 0;
+      for(let y = 1; y < h - 1; y++){
+        for(let x = 1; x < w - 1; x++){
+          const i = y * w + x;
+          const Lp = 4 * gray[i] - gray[i - 1] - gray[i + 1] - gray[i - w] - gray[i + w];
+          sum += Lp; sum2 += Lp * Lp; n++;
+        }
+      }
+      const mean = sum / n;
+      return {ok:true, value: sum2 / n - mean * mean};
+    }catch{
+      return {ok:false, value:0};
+    }
+  }
+
+  async function engagePhotoAutofocus(track){
+    try{
+      if(!track || typeof track.getCapabilities !== 'function' || typeof track.applyConstraints !== 'function') return false;
+      const caps = track.getCapabilities();
+      if(!caps || !Array.isArray(caps.focusMode) || !caps.focusMode.includes('continuous')) return false;
+      await track.applyConstraints({advanced:[{focusMode:'continuous'}]});
+      return true;
+    }catch{ return false; }
+  }
+
+  async function freezePhotoFocus(track){
+    try{
+      if(!track || typeof track.getCapabilities !== 'function' || typeof track.applyConstraints !== 'function') return false;
+      const caps = track.getCapabilities();
+      if(!caps || !Array.isArray(caps.focusMode) || !caps.focusMode.includes('manual')) return false;
+      const settings = track.getSettings ? track.getSettings() : {};
+      const constraint = {focusMode:'manual'};
+      if(Number.isFinite(settings.focusDistance)) constraint.focusDistance = settings.focusDistance;
+      await track.applyConstraints({advanced:[constraint]});
+      return true;
+    }catch{ return false; }
+  }
+
+  function showBlurryCaptureButtons(show){
+    for(const id of ['refocusCaptureBtn', 'useBlurryCaptureBtn']){
+      const btn = ids(id);
+      if(btn) btn.style.display = show ? '' : 'none';
+    }
+  }
+
+  function processCameraCapture(capture, extraNote = ''){
+      const validation = validateCapturedTableImage(capture.source);
+      if(!validation.ok){
+        cameraCaptureState.rejectedCapture = capture;
+        const reasonText = describeCaptureRejection(validation);
+        const rejectionMessage = `The captured image does not appear to show a complete billiard table seen from above. ${reasonText} Adjust the camera and try again, upload a photograph in the field below, or use the red button to accept this same capture at your own risk.`;
+        setCameraCaptureStatus(rejectionMessage, 'bad');
+        const photoStatus = ids('photoLocatorStatus');
+        if(photoStatus) photoStatus.textContent = rejectionMessage;
+        showForceCaptureButton(true);
+        console.warn('Overhead capture validation rejected:', validation);
+        return;
+      }
+      cameraCaptureState.rejectedCapture = null;
+      showForceCaptureButton(false);
+      if(validation.ballsOk){
+        setCameraCaptureStatus(`Overhead capture accepted: ${capture.width} × ${capture.height}. The playing surface, all four corners, and all three balls were recognized with an acceptable perspective.${extraNote}`, extraNote ? 'warn' : 'good');
+      }else{
+        setCameraCaptureStatus(`Overhead capture accepted: ${capture.width} × ${capture.height}. The table was recognized correctly, but the three balls were not identified automatically (common when a ball is tight against a cushion). Review and place them manually in the detector steps.${extraNote}`, 'warn');
+      }
+      deliverCameraCaptureToDetector(capture);
+  }
+
+  async function captureTableFromCamera(eventOrOptions){
+    const options = (eventOrOptions && eventOrOptions.autofocus === true) ? eventOrOptions : {};
+    return captureTableFromCameraImpl(options);
+  }
+
+  async function captureTableFromCameraImpl(options){
     if(cameraCaptureState.busy) return;
     const button = ids('captureTableBtn');
     cameraCaptureState.busy = true;
+    cameraCaptureState.rejectedCapture = null;
+    cameraCaptureState.blurryCapture = null;
+    showForceCaptureButton(false);
+    showBlurryCaptureButtons(false);
     if(button){
       button.disabled = true;
       button.textContent = 'Preparing camera…';
@@ -11667,6 +11848,10 @@ function drawStartMarks(){
     try{
       setCameraCaptureStatus('Opening the Logitech Brio in stable 1920 × 1080 mode…', 'neutral');
       const prepared = await openBrioForCapture();
+      if(options.autofocus){
+        setCameraCaptureStatus('Refocusing automatically: the autofocus will search for the table during the countdown…', 'neutral');
+        await engagePhotoAutofocus(prepared.track);
+      }
       const streamSettings = prepared.track.getSettings ? prepared.track.getSettings() : prepared.settings || {};
       const streamWidth = prepared.video.videoWidth || streamSettings.width || 0;
       const streamHeight = prepared.video.videoHeight || streamSettings.height || 0;
@@ -11678,21 +11863,25 @@ function drawStartMarks(){
 
       if(button) button.textContent = 'Taking photo…';
       setCameraCaptureStatus('Taking the photo and sending it to the automatic detector…', 'neutral');
+      if(options.autofocus){
+        await freezePhotoFocus(prepared.track);
+      }
       const rawCapture = await takeHighestResolutionPhoto(prepared.track, prepared.video);
       const capture = rotateCameraCapture180(rawCapture);
       setCameraCaptureStatus(`Resolution received: ${capture.width} × ${capture.height}. Checking whether the image shows a complete table from a top-down view…`, 'neutral');
-      const validation = validateCapturedTableImage(capture.source);
-      stopCameraCaptureStream();
-      if(!validation.ok){
-        const rejectionMessage = 'The captured image does not appear to show a complete billiard table from a top-down view. Check the overhead camera or upload a photo in the field below.';
-        setCameraCaptureStatus(rejectionMessage, 'bad');
-        const photoStatus = ids('photoLocatorStatus');
-        if(photoStatus) photoStatus.textContent = rejectionMessage;
-        console.warn('Overhead-capture validation rejected:', validation);
+      const sharpness = measureImageSharpness(capture.source);
+      if(sharpness.ok && sharpness.value < CAPTURE_SHARPNESS_MIN && !options.autofocus){
+        stopCameraCaptureStream();
+        cameraCaptureState.blurryCapture = capture;
+        setCameraCaptureStatus(`The capture looks out of focus (sharpness ${Math.round(sharpness.value)}; expected minimum ${CAPTURE_SHARPNESS_MIN}). You can refocus automatically and recapture, or use this same capture anyway.`, 'warn');
+        showBlurryCaptureButtons(true);
         return;
       }
-      setCameraCaptureStatus(`Overhead capture accepted: ${capture.width} × ${capture.height}. The playing surface, all four corners, and all three balls were recognized with an acceptable perspective.`, 'good');
-      deliverCameraCaptureToDetector(capture);
+      const blurNote = (sharpness.ok && sharpness.value < CAPTURE_SHARPNESS_MIN)
+        ? ' Warning: the image is still somewhat out of focus despite refocusing; review the points with special care.'
+        : '';
+      stopCameraCaptureStream();
+      processCameraCapture(capture, blurNote);
     }catch(error){
       stopCameraCaptureStream();
       setCameraCaptureStatus(cameraErrorMessage(error), 'bad');
@@ -11722,7 +11911,6 @@ function drawStartMarks(){
         photoLocator.current = null;
         photoLocator.points = {};
         photoLocator.active = true;
-        maybeReuseSessionCorners();
         openPhotoLocator();
         if(status) status.textContent = 'Photo loaded. The app will attempt to detect the corners and balls automatically.';
         setTimeout(() => autoDetectPhotoLocatorPoints(true), 120);
@@ -12109,7 +12297,6 @@ function drawStartMarks(){
     recalculateAll('photo-locator-apply');
     const status = ids('photoLocatorStatus');
     if(status) status.textContent = 'Positions loaded from the photo. Review them visually and adjust manually if necessary.';
-    rememberSessionCorners();
     maybeAdoptVideoCalibrationFromLocator();
     closePhotoLocator();
   }
@@ -12152,7 +12339,9 @@ function drawStartMarks(){
     exportRecorder:null,
     exportChunks:[],
     exportVideoEl:null,
-    focusLocked:false
+    focusLocked:false,
+    focusRespected:false,
+    focusTouched:false
   };
 
   function loadVideoCalibration(){
@@ -12273,6 +12462,14 @@ function drawStartMarks(){
     try{
       const caps = track.getCapabilities();
       if(!caps || !Array.isArray(caps.focusMode) || !caps.focusMode.includes('manual')) return false;
+      const current = track.getSettings ? track.getSettings() : {};
+      if(current.focusMode === 'manual'){
+        videoReplay.focusLocked = true;
+        videoReplay.focusRespected = true;
+        videoReplay.focusTouched = false;
+        return true;
+      }
+      videoReplay.focusRespected = false;
       setVideoReplayStatus('Focusing on the table and locking the focus…');
       if(caps.focusMode.includes('continuous')){
         try{ await track.applyConstraints({advanced:[{focusMode:'continuous'}]}); }catch{}
@@ -12283,6 +12480,7 @@ function drawStartMarks(){
       if(Number.isFinite(settings.focusDistance)) constraint.focusDistance = settings.focusDistance;
       await track.applyConstraints({advanced:[constraint]});
       videoReplay.focusLocked = true;
+      videoReplay.focusTouched = true;
       return true;
     }catch(error){
       console.warn('Shot video: focus could not be locked.', error);
@@ -12292,6 +12490,9 @@ function drawStartMarks(){
   }
 
   function videoReplayFocusNote(){
+    if(videoReplay.focusLocked && videoReplay.focusRespected){
+      return ' Fixed focus detected (configured by you): it is respected as is, with no refocusing.';
+    }
     return videoReplay.focusLocked
       ? ' Focus is now locked: there will be no refocusing during the recording.'
       : ' Focus lock is not available on this camera or browser; autofocus will remain active (you can lock it with Logi Tune).';
@@ -12304,8 +12505,18 @@ function drawStartMarks(){
     videoReplay.recorder = null;
     videoReplay.focusLocked = false;
     if(videoReplay.stream){
-      videoReplay.stream.getTracks().forEach(t => { try{ t.stop(); }catch{} });
+      const tracks = videoReplay.stream.getTracks();
+      const vTrack = videoReplay.stream.getVideoTracks()[0];
       videoReplay.stream = null;
+      if(videoReplay.focusTouched && vTrack && typeof vTrack.applyConstraints === 'function'){
+        videoReplay.focusTouched = false;
+        vTrack.applyConstraints({advanced:[{focusMode:'continuous'}]})
+          .catch(() => {})
+          .finally(() => { tracks.forEach(t => { try{ t.stop(); }catch{} }); });
+      } else {
+        videoReplay.focusTouched = false;
+        tracks.forEach(t => { try{ t.stop(); }catch{} });
+      }
     }
     const live = ids('videoReplayLive');
     if(live) live.srcObject = null;
@@ -13356,6 +13567,9 @@ function drawStartMarks(){
     setModuleState('modulePrecisePositionState', 'Three balls · centimeters');
     setModuleState('modulePhotoState', 'Overhead camera · file');
 
+    if(noPlanSequence){
+      setModuleState('moduleSequenceState', 'Not planned · ball circles only');
+    } else {
     const start=ids('mode')?.value==='cushionFirst' ? 'Cushion-first' : 'Ball-first';
     const rails=[ids('rail1')?.value,ids('rail2')?.value,ids('thirdRail')?.value]
       .filter(v=>v && v!=='none' && v!=='auto')
@@ -13363,6 +13577,7 @@ function drawStartMarks(){
     const fourth=ids('fourthRail')?.value;
     if(fourth && fourth!=='none') rails.push(shortRailName(fourth));
     setModuleState('moduleSequenceState', `${start}${rails.length?' · '+rails.join(' → '):''}`);
+    }
 
     const dir=ids('english')?.value==='negative' ? 'Negative' : (ids('english')?.value==='neutral' ? 'No sidespin' : 'Positive');
     const effect=ids('tips')?.value ?? '0';
@@ -13389,6 +13604,13 @@ function drawStartMarks(){
     if(diagnostic) new MutationObserver(updateModuleSummaries).observe(diagnostic,{childList:true,subtree:true,characterData:true});
     updateModuleSummaries();
   }
+
+  const noPlanBtn = ids('noPlanSequenceBtn');
+  if(noPlanBtn) noPlanBtn.addEventListener('click', () => setNoPlanSequence(!noPlanSequence));
+  ['mode','firstBall','rail1','rail2','thirdRail','fourthRail','fifthRail','sixthRail'].forEach(id => {
+    const el = ids(id);
+    if(el) el.addEventListener('change', () => { if(noPlanSequence) setNoPlanSequence(false); });
+  });
 
   setupCollapsibleMenu();
   ids('reset').addEventListener('click',()=>window.location.reload());
