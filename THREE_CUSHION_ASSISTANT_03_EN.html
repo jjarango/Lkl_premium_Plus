@@ -1621,7 +1621,7 @@
       pointer-events:none !important;
     }
 
-    /* ===== Shot video with the calculated route overlaid ===== */
+    /* ===== Shot video with data overlay ===== */
     .videoReplayModal{
       position:fixed;
       inset:0;
@@ -2019,7 +2019,7 @@
 <option value="bottom">Lower long cushion</option>
 <option value="left">Left short cushion</option>
 </select>
-</div><p class="small" id="sequenceHelp">Choose whether the shot starts ball-first or cushion-first, then set the cushion sequence.</p></div></details><details class="menuModule" id="moduleVideoReplay"><summary><span class="moduleTitle" style="color:#ff5a5a">Shot video with the calculated route overlaid</span><span class="moduleState" id="moduleVideoReplayState">Overhead camera · not calibrated</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><p class="small" style="margin:0 0 10px;">Record the real execution with the overhead camera and review it with the route calculated by the app overlaid on the video, with slow motion and frame-by-frame stepping. The recording includes audio from the camera microphone. It requires calibrating the four table corners once, as long as the camera does not move. <b>If you apply positions from an overhead capture of the automatic detector, that calibration is reused automatically.</b></p><button class="cameraCaptureBtn" id="videoReplayRecordBtn" type="button">Record shot</button><button id="videoReplayCalibBtn" type="button">Calibrate overlay</button><div aria-live="polite" class="cameraCaptureStatus" id="videoReplayModuleStatus" role="status">The overlaid route will be whichever one is calculated at that moment (for example, LKL / Base 50 with the chosen cue ball and cushion sequence).</div></div></details><details class="menuModule" id="moduleEffect"><summary><span class="moduleTitle">Spin and stroke</span><span class="moduleState" id="moduleEffectState">Positive sidespin · spin 3 · Long follow-through</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><div aria-controls="contiTooltip" aria-expanded="false" class="contiHelpAnchor" id="contiHelpAnchor" tabindex="0"><label for="english">Spin direction</label><span aria-hidden="true" class="contiHelpIcon">i</span></div><select id="english">
+</div><p class="small" id="sequenceHelp">Choose whether the shot starts ball-first or cushion-first, then set the cushion sequence.</p></div></details><details class="menuModule" id="moduleVideoReplay"><summary><span class="moduleTitle" style="color:#ff5a5a">Shot video with data overlay</span><span class="moduleState" id="moduleVideoReplayState">Overhead camera · not calibrated</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><p class="small" style="margin:0 0 10px;">Record the real execution with the overhead camera and review it with the shot data (Attack point and line, and Arrival point) overlaid on the video, with slow motion and frame-by-frame stepping. The recording includes the camera microphone audio. It requires calibrating the four table corners only once, as long as the camera does not move. <b>If you apply positions from an overhead capture of the automatic detector, that calibration is reused automatically.</b></p><button class="cameraCaptureBtn" id="videoReplayRecordBtn" type="button">Record shot</button><button id="videoReplayCalibBtn" type="button">Calibrate overlay</button><div aria-live="polite" class="cameraCaptureStatus" id="videoReplayModuleStatus" role="status">The overlaid data (Attack and Arrival) will be whatever is calculated at that moment (for example, LKL / Base 50 with the chosen cue ball and cushion sequence).</div></div></details><details class="menuModule" id="moduleEffect"><summary><span class="moduleTitle">Spin and stroke</span><span class="moduleState" id="moduleEffectState">Positive sidespin · spin 3 · Long follow-through</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><div aria-controls="contiTooltip" aria-expanded="false" class="contiHelpAnchor" id="contiHelpAnchor" tabindex="0"><label for="english">Spin direction</label><span aria-hidden="true" class="contiHelpIcon">i</span></div><select id="english">
 <option value="positive">Positive sidespin: opens / lengthens</option>
 <option value="neutral">No sidespin</option>
 <option value="negative">Negative sidespin: closes / shortens</option>
@@ -2035,7 +2035,7 @@
 <div aria-labelledby="videoReplayTitle" aria-modal="true" class="videoReplayShell" role="dialog">
 <div class="videoReplayHead">
 <div>
-<h2 class="videoReplayTitle" id="videoReplayTitle">Shot video with the calculated route overlaid</h2>
+<h2 class="videoReplayTitle" id="videoReplayTitle">Shot video with data overlay</h2>
 <div class="videoReplayStep" id="videoReplayStep">Preparing…</div>
 </div>
 <button class="videoReplayClose" id="videoReplayClose" type="button">Close</button>
@@ -2073,7 +2073,7 @@
 <div class="videoReplayRow">
 <button disabled="" id="videoReplayStopBtn" type="button">Stop and review</button>
 </div>
-<label style="display:flex; gap:8px; align-items:center; cursor:pointer;"><input checked="" id="videoReplayShowGuideRec" style="width:auto" type="checkbox"/> <span class="small">Show route while recording</span></label>
+<label style="display:flex; gap:8px; align-items:center; cursor:pointer;"><input checked="" id="videoReplayShowGuideRec" style="width:auto" type="checkbox"/> <span class="small">Show data while recording</span></label>
 </div>
 <div class="videoReplayGroup" id="videoReplayPlaybackPanel" style="display:none">
 <h3>Shot review</h3>
@@ -2086,13 +2086,13 @@
 <div class="videoReplayRow">
 <label style="display:flex; gap:8px; align-items:center;"><span class="small">Speed</span><select id="videoReplaySpeed" style="flex:1"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option selected="" value="1">1×</option></select></label>
 </div>
-<label style="display:flex; gap:8px; align-items:center; cursor:pointer;"><input checked="" id="videoReplayShowGuide" style="width:auto" type="checkbox"/> <span class="small">Overlay calculated route</span></label>
+<label style="display:flex; gap:8px; align-items:center; cursor:pointer;"><input checked="" id="videoReplayShowGuide" style="width:auto" type="checkbox"/> <span class="small">Overlay shot data</span></label>
 <div class="videoReplayRow">
 <button id="videoReplayAgainBtn" type="button">Record another shot</button>
 <button id="videoReplayDownloadBtn" type="button">Download original video</button>
 </div>
 <div class="videoReplayRow">
-<button class="cameraCaptureBtn" id="videoReplayExportBtn" style="margin:0" type="button">Download with route</button>
+<button class="cameraCaptureBtn" id="videoReplayExportBtn" style="margin:0" type="button">Download with data</button>
 </div>
 </div>
 <div class="videoReplayGroup">
@@ -12394,7 +12394,7 @@ function drawStartMarks(){
     if(!corners) return;
     saveVideoCalibration(corners, 'detector-cenital');
     const st = ids('videoReplayModuleStatus');
-    if(st) st.textContent = 'The video calibration was updated automatically with the four corners confirmed in the overhead detector. You can now record shots with the route overlaid.';
+    if(st) st.textContent = 'The video calibration was updated automatically with the four corners confirmed in the overhead detector. You can now record shots with the data overlay.';
   }
 
   async function findVideoReplayMicId(){
@@ -12594,6 +12594,90 @@ function drawStartMarks(){
     return null;
   }
 
+  // Punto de Llegada para el video: es un dato fijo del plan, no una
+  // proyección. En LKL / vueltas sale del connectorResult; en Plus el
+  // tablero no dibuja un punto de Llegada (su llegada es la escala verde
+  // de la banda del cero, que aparece con la casilla del menú), así que
+  // aquí se respeta lo mismo y no se inventa uno.
+  function videoReplayArrivalInfo(){
+    const shot = currentShot;
+    if(!shot) return null;
+    const cr = shot.connectorResult;
+    if(cr && cr.arrivalPoint && Number.isFinite(cr.arrivalValue)){
+      return {point: cr.arrivalPoint, number: cr.arrivalValue};
+    }
+    return null;
+  }
+
+  // Marcas numéricas de las bandas para el video (Salida, Llegada y
+  // Ataque según las casillas del menú de referencias). Espeja las
+  // mismas posiciones de mundo que usa el tablero (los generadores
+  // lklDeparture*/lklArrival*/lklAttack* y plusCShortPointFromNumberFixed
+  // son funciones puras compartidas), y las proyecta con la homografía.
+  const VIDEO_NUM_OFF_U = 2.0; // unidades hacia afuera de la nariz de la banda.
+  function videoReplayNumberMarks(){
+    const marks = [];
+    const shot = currentShot;
+    if(!shot) return marks;
+    const showS = ids('showNumSalida') ? ids('showNumSalida').checked : false;
+    const showL = ids('showNumLlegada') ? ids('showNumLlegada').checked : false;
+    const showA = ids('showNumAtaque') ? ids('showNumAtaque').checked : false;
+    if(!showS && !showL && !showA) return marks;
+
+    const pushLong = (rail, x, value, kind, main) => {
+      if(rail !== 'top' && rail !== 'bottom') return;
+      marks.push({x, y: rail === 'top' ? -VIDEO_NUM_OFF_U : TABLE.H + VIDEO_NUM_OFF_U, text:String(value), kind, main});
+    };
+    const pushShort = (rail, y, value, kind, main) => {
+      if(rail !== 'left' && rail !== 'right') return;
+      marks.push({x: rail === 'left' ? -VIDEO_NUM_OFF_U : TABLE.W + VIDEO_NUM_OFF_U, y, text:String(value), kind, main});
+    };
+
+    const pc = shot.plusC;
+    if(pc){
+      // En Plus la casilla Salida no aplica, igual que en el tablero.
+      if(showA && pc.firstShort && pc.secondLong){
+        for(let v = 0; v <= 40; v += 5){
+          const p = plusCShortPointFromNumberFixed(pc.firstShort, pc.secondLong, v);
+          if(p) pushShort(pc.firstShort, p.y, v, 'ataque', v % 10 === 0);
+        }
+      }
+      if(showL){
+        const zero = pc.actualZeroPoint || pc.zeroPoint;
+        if(zero && pc.zeroLong){
+          const direction = pc.referencePoint && pc.referencePoint.x < zero.x ? -1 : 1;
+          for(let v = 0; v <= 40; v += 5){
+            const x = zero.x + direction * 2 * v;
+            if(x < -0.05 || x > TABLE.W + 0.05) continue;
+            pushLong(pc.zeroLong, clamp(x, 0, TABLE.W), v, 'llegada', v % 10 === 0);
+          }
+        }
+      }
+      return marks;
+    }
+
+    if(!shot.canNumberArrival) return marks;
+    const rail = shot.arrivalRail;
+    const zeroSide = shot.zeroSide;
+
+    if(showS && (rail === 'top' || rail === 'bottom')){
+      for(const it of lklDepartureLongPositions(zeroSide)) pushLong(rail, it.x, it.value, 'salida', true);
+      for(const it of lklDepartureShortPositions(shot)) pushShort(it.rail, it.y, it.value, 'salida', true);
+    }
+    if(showL){
+      const pushArr = (item, main) => {
+        if(rail === 'top' || rail === 'bottom') pushLong(rail, item.x, item.value, 'llegada', main);
+        else pushShort(rail, item.x, item.value, 'llegada', main);
+      };
+      for(const it of lklArrivalIntermediatePositions(zeroSide)) pushArr(it, false);
+      for(const it of lklArrivalValuePositions(zeroSide)) pushArr(it, true);
+    }
+    if(showA && shot.c && (shot.c.rail1 === 'top' || shot.c.rail1 === 'bottom')){
+      for(const it of lklAttackPositions(zeroSide)) pushLong(shot.c.rail1, it.x, it.value, 'ataque', true);
+    }
+    return marks;
+  }
+
   // Homografía mundo (80 × 40) -> píxeles del lienzo de video,
   // reutilizando homographyFromFourPoints del localizador fotográfico.
   function videoReplayHomography(cw, ch){
@@ -12642,6 +12726,7 @@ function drawStartMarks(){
 
     // Anillos en las posiciones registradas de las bolas: si coinciden
     // con las bolas reales del video, la calibración es correcta.
+    if((opts && opts.handles) || noPlanSequence){
     for(const key of ['white','yellow','red']){
       const centre = balls[key]; if(!centre) continue;
       const q = W2V(centre); if(!q) continue;
@@ -12651,20 +12736,9 @@ function drawStartMarks(){
       g.strokeStyle = 'rgba(0,0,0,.75)'; g.lineWidth = 3.4; g.stroke();
       g.strokeStyle = colors[key]; g.lineWidth = 1.7; g.stroke();
     }
+    }
 
-    // Trayectoria teórica calculada por la app.
     if(opts.route){
-      const polys = videoReplayRouteWorld();
-      for(const poly of polys){
-        const pts = poly.pts.map(W2V);
-        if(pts.length < 2 || pts.some(p => !p)) continue;
-        g.beginPath();
-        pts.forEach((p,i) => i ? g.lineTo(p.x,p.y) : g.moveTo(p.x,p.y));
-        g.setLineDash(poly.dashed ? [10,8] : []);
-        g.strokeStyle = 'rgba(0,0,0,.78)'; g.lineWidth = 6.4; g.stroke();
-        g.strokeStyle = '#62d7ff'; g.lineWidth = 3.1; g.stroke();
-        g.setLineDash([]);
-      }
       const attackInfo = videoReplayAttackInfo();
       if(attackInfo){
         // Red attack line (Start -> Aim), same as on the table.
@@ -12698,6 +12772,51 @@ function drawStartMarks(){
           g.strokeText(label, q.x + dotR + 7, q.y - dotR - 4);
           g.fillText(label, q.x + dotR + 7, q.y - dotR - 4);
         }
+      }
+
+      const arrivalInfo = videoReplayArrivalInfo();
+      if(arrivalInfo){
+        const q = W2V(arrivalInfo.point);
+        if(q){
+          const dotR = Math.max(5.5, ch * .011);
+          g.beginPath(); g.arc(q.x, q.y, dotR, 0, Math.PI*2);
+          g.fillStyle = '#39ff14'; g.fill();
+          g.strokeStyle = 'rgba(0,0,0,.95)'; g.lineWidth = Math.max(2, ch * .004); g.stroke();
+          const label = arrivalInfo.number !== null ? ('Arrival ' + fmt(arrivalInfo.number, 1)) : 'Arrival';
+          const fs = Math.max(15, Math.round(ch * .032));
+          g.font = '900 ' + fs + 'px ui-sans-serif, system-ui';
+          g.lineWidth = Math.max(3.6, fs * .24);
+          g.strokeStyle = 'rgba(0,0,0,.92)';
+          g.fillStyle = '#39ff14';
+          const ly = arrivalInfo.point.y > TABLE.H / 2 ? (q.y - dotR - 6) : (q.y + dotR + fs * .8);
+          g.strokeText(label, q.x + dotR + 7, ly);
+          g.fillText(label, q.x + dotR + 7, ly);
+        }
+      }
+
+      const numberMarks = videoReplayNumberMarks();
+      if(numberMarks.length){
+        g.textAlign = 'center';
+        g.textBaseline = 'middle';
+        for(const mk of numberMarks){
+          const q = W2V({x:mk.x, y:mk.y});
+          if(!q) continue;
+          const fs = Math.max(mk.main ? 13 : 11, Math.round(ch * (mk.main ? .026 : .021)));
+          g.font = '900 ' + fs + 'px ui-sans-serif, system-ui';
+          if(mk.kind === 'salida'){
+            g.lineWidth = Math.max(2, fs * .16);
+            g.strokeStyle = 'rgba(255,255,255,.75)';
+            g.fillStyle = '#000000';
+          } else {
+            g.lineWidth = Math.max(2, fs * .15);
+            g.strokeStyle = 'rgba(0,0,0,.96)';
+            g.fillStyle = mk.kind === 'llegada' ? '#39ff14' : '#fc020e';
+          }
+          g.strokeText(mk.text, q.x, q.y);
+          g.fillText(mk.text, q.x, q.y);
+        }
+        g.textAlign = 'start';
+        g.textBaseline = 'alphabetic';
       }
     }
 
@@ -13089,7 +13208,7 @@ function drawStartMarks(){
       }
     };
     setVideoReplayMode('replay');
-    setVideoReplayStatus('Recording ready. Play it, step frame by frame or use slow motion to compare the execution with the calculated blue route.', 'good');
+    setVideoReplayStatus('Recording ready. Play, step frame by frame or use slow motion to compare the execution with the planned Attack and Arrival points.', 'good');
   }
 
   function videoReplayCanvasPointFromEvent(e){
@@ -13145,7 +13264,7 @@ function drawStartMarks(){
     const downloadBtn = ids('videoReplayDownloadBtn');
     if(exportBtn){
       exportBtn.disabled = busy;
-      exportBtn.textContent = busy ? 'Exporting…' : 'Download with route';
+      exportBtn.textContent = busy ? 'Exporting…' : 'Download with data';
     }
     if(againBtn) againBtn.disabled = busy;
     if(downloadBtn) downloadBtn.disabled = busy;
@@ -13163,7 +13282,7 @@ function drawStartMarks(){
       return;
     }
     if(!(videoReplay.calib && videoReplay.calib.corners)){
-      setVideoReplayStatus('There is no saved calibration: the route cannot be embedded.', 'bad');
+      setVideoReplayStatus('No calibration saved: the data cannot be embedded.', 'bad');
       return;
     }
     if(!window.MediaRecorder){
@@ -13296,7 +13415,7 @@ function drawStartMarks(){
       const a = document.createElement('a');
       const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
       a.href = url;
-      a.download = 'shot-with-route-' + stamp + (isMp4 ? '.mp4' : '.webm');
+      a.download = 'shot-with-data-' + stamp + (isMp4 ? '.mp4' : '.webm');
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -13319,7 +13438,7 @@ function drawStartMarks(){
       drawVideoReplayOverlay(g, vw, vh, {route:true, handles:false});
       if(total){
         const pct = Math.min(100, Math.round((srcVideo.currentTime/total)*100));
-        setVideoReplayStatus('Exporting with route… ' + pct + ' %. Do not switch tabs until it finishes.');
+        setVideoReplayStatus('Exporting with data… ' + pct + ' %. Do not switch tabs until it finishes.');
       }
     };
 
@@ -13513,7 +13632,7 @@ function drawStartMarks(){
       document.body.appendChild(a);
       a.click();
       a.remove();
-      setVideoReplayStatus('Original video downloaded, with its audio. It keeps the camera orientation (rotated 180°) and does not include the blue line. For a file with corrected orientation and the route embedded, use Download with route.', 'good');
+      setVideoReplayStatus('Original video downloaded, with its audio. It keeps the camera orientation (rotated 180°) and includes no overlay. For a file with corrected orientation and the data embedded, use Download with data.', 'good');
     });
   }
 
