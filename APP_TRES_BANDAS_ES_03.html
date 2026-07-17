@@ -1611,7 +1611,7 @@
     }
 
 
-    /* ===== Video de la jugada con trayectoria superpuesta ===== */
+    /* ===== Video de la jugada con datos superpuestos ===== */
     .videoReplayModal{
       position:fixed;
       inset:0;
@@ -2009,7 +2009,7 @@
 <option value="bottom">Larga inferior</option>
 <option value="left">Corta izquierda</option>
 </select>
-</div><p class="small" id="sequenceHelp">Seleccione si la jugada empieza con bola primero o con banda previa, y luego indique la secuencia de bandas.</p></div></details><details class="menuModule" id="moduleVideoReplay"><summary><span class="moduleTitle" style="color:#ff5a5a">Video de la jugada con trayectoria superpuesta</span><span class="moduleState" id="moduleVideoReplayState">Cámara cenital · sin calibrar</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><p class="small" style="margin:0 0 10px;">Grabe la ejecución real con la cámara cenital y revísela con la trayectoria calculada por la app superpuesta sobre el video, con cámara lenta y avance cuadro a cuadro. La grabación incluye el audio del micrófono de la cámara. Requiere calibrar una sola vez las cuatro esquinas de la mesa, mientras la cámara no se mueva. <b>Si aplica posiciones desde una captura cenital del detector automático, esa calibración se reutiliza sola.</b></p><button class="cameraCaptureBtn" id="videoReplayRecordBtn" type="button">Grabar jugada</button><button id="videoReplayCalibBtn" type="button">Calibrar superposición</button><div aria-live="polite" class="cameraCaptureStatus" id="videoReplayModuleStatus" role="status">La trayectoria superpuesta será la que esté calculada en ese momento (por ejemplo, LKL / Base 50 con la tacadora y la secuencia de bandas elegidas).</div></div></details><details class="menuModule" id="moduleEffect"><summary><span class="moduleTitle">Efecto y golpe</span><span class="moduleState" id="moduleEffectState">Positivo · efecto 3 · Penetrado largo</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><div aria-controls="contiTooltip" aria-expanded="false" class="contiHelpAnchor" id="contiHelpAnchor" tabindex="0"><label for="english">Dirección del efecto</label><span aria-hidden="true" class="contiHelpIcon">i</span></div><select id="english">
+</div><p class="small" id="sequenceHelp">Seleccione si la jugada empieza con bola primero o con banda previa, y luego indique la secuencia de bandas.</p></div></details><details class="menuModule" id="moduleVideoReplay"><summary><span class="moduleTitle" style="color:#ff5a5a">Video de la jugada con datos superpuestos</span><span class="moduleState" id="moduleVideoReplayState">Cámara cenital · sin calibrar</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><p class="small" style="margin:0 0 10px;">Grabe la ejecución real con la cámara cenital y revísela con los datos de la jugada (punto y línea de Ataque, y punto de Llegada) superpuestos sobre el video, con cámara lenta y avance cuadro a cuadro. La grabación incluye el audio del micrófono de la cámara. Requiere calibrar una sola vez las cuatro esquinas de la mesa, mientras la cámara no se mueva. <b>Si aplica posiciones desde una captura cenital del detector automático, esa calibración se reutiliza sola.</b></p><button class="cameraCaptureBtn" id="videoReplayRecordBtn" type="button">Grabar jugada</button><button id="videoReplayCalibBtn" type="button">Calibrar superposición</button><div aria-live="polite" class="cameraCaptureStatus" id="videoReplayModuleStatus" role="status">Los datos superpuestos (Ataque y Llegada) serán los que estén calculados en ese momento (por ejemplo, LKL / Base 50 con la tacadora y la secuencia de bandas elegidas).</div></div></details><details class="menuModule" id="moduleEffect"><summary><span class="moduleTitle">Efecto y golpe</span><span class="moduleState" id="moduleEffectState">Positivo · efecto 3 · Penetrado largo</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><div aria-controls="contiTooltip" aria-expanded="false" class="contiHelpAnchor" id="contiHelpAnchor" tabindex="0"><label for="english">Dirección del efecto</label><span aria-hidden="true" class="contiHelpIcon">i</span></div><select id="english">
 <option value="positive">Positivo: abre / alarga</option>
 <option value="neutral">Sin efecto lateral</option>
 <option value="negative">Negativo: cierra / acorta</option>
@@ -2025,7 +2025,7 @@
 <div aria-labelledby="videoReplayTitle" aria-modal="true" class="videoReplayShell" role="dialog">
 <div class="videoReplayHead">
 <div>
-<h2 class="videoReplayTitle" id="videoReplayTitle">Video de la jugada con trayectoria superpuesta</h2>
+<h2 class="videoReplayTitle" id="videoReplayTitle">Video de la jugada con datos superpuestos</h2>
 <div class="videoReplayStep" id="videoReplayStep">Preparando…</div>
 </div>
 <button class="videoReplayClose" id="videoReplayClose" type="button">Cerrar</button>
@@ -2063,7 +2063,7 @@
 <div class="videoReplayRow">
 <button disabled="" id="videoReplayStopBtn" type="button">Detener y revisar</button>
 </div>
-<label style="display:flex; gap:8px; align-items:center; cursor:pointer;"><input checked="" id="videoReplayShowGuideRec" style="width:auto" type="checkbox"/> <span class="small">Mostrar trayectoria durante la grabación</span></label>
+<label style="display:flex; gap:8px; align-items:center; cursor:pointer;"><input checked="" id="videoReplayShowGuideRec" style="width:auto" type="checkbox"/> <span class="small">Mostrar datos durante la grabación</span></label>
 </div>
 <div class="videoReplayGroup" id="videoReplayPlaybackPanel" style="display:none">
 <h3>Revisión de la jugada</h3>
@@ -2076,13 +2076,13 @@
 <div class="videoReplayRow">
 <label style="display:flex; gap:8px; align-items:center;"><span class="small">Velocidad</span><select id="videoReplaySpeed" style="flex:1"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option selected="" value="1">1×</option></select></label>
 </div>
-<label style="display:flex; gap:8px; align-items:center; cursor:pointer;"><input checked="" id="videoReplayShowGuide" style="width:auto" type="checkbox"/> <span class="small">Superponer trayectoria calculada</span></label>
+<label style="display:flex; gap:8px; align-items:center; cursor:pointer;"><input checked="" id="videoReplayShowGuide" style="width:auto" type="checkbox"/> <span class="small">Superponer datos de la jugada</span></label>
 <div class="videoReplayRow">
 <button id="videoReplayAgainBtn" type="button">Grabar otra jugada</button>
 <button id="videoReplayDownloadBtn" type="button">Descargar video original</button>
 </div>
 <div class="videoReplayRow">
-<button class="cameraCaptureBtn" id="videoReplayExportBtn" style="margin:0" type="button">Descargar con trayectoria</button>
+<button class="cameraCaptureBtn" id="videoReplayExportBtn" style="margin:0" type="button">Descargar con datos</button>
 </div>
 </div>
 <div class="videoReplayGroup">
@@ -12440,7 +12440,7 @@ function drawStartMarks(){
     if(!corners) return;
     saveVideoCalibration(corners, 'detector-cenital');
     const st = ids('videoReplayModuleStatus');
-    if(st) st.textContent = 'La calibración del video se actualizó automáticamente con las cuatro esquinas confirmadas en el detector cenital. Ya puede grabar jugadas con la trayectoria superpuesta.';
+    if(st) st.textContent = 'La calibración del video se actualizó automáticamente con las cuatro esquinas confirmadas en el detector cenital. Ya puede grabar jugadas con los datos superpuestos.';
   }
 
   async function findVideoReplayMicId(){
@@ -12645,6 +12645,90 @@ function drawStartMarks(){
     return null;
   }
 
+  // Punto de Llegada para el video: es un dato fijo del plan, no una
+  // proyección. En LKL / vueltas sale del connectorResult; en Plus el
+  // tablero no dibuja un punto de Llegada (su llegada es la escala verde
+  // de la banda del cero, que aparece con la casilla del menú), así que
+  // aquí se respeta lo mismo y no se inventa uno.
+  function videoReplayArrivalInfo(){
+    const shot = currentShot;
+    if(!shot) return null;
+    const cr = shot.connectorResult;
+    if(cr && cr.arrivalPoint && Number.isFinite(cr.arrivalValue)){
+      return {point: cr.arrivalPoint, number: cr.arrivalValue};
+    }
+    return null;
+  }
+
+  // Marcas numéricas de las bandas para el video (Salida, Llegada y
+  // Ataque según las casillas del menú de referencias). Espeja las
+  // mismas posiciones de mundo que usa el tablero (los generadores
+  // lklDeparture*/lklArrival*/lklAttack* y plusCShortPointFromNumberFixed
+  // son funciones puras compartidas), y las proyecta con la homografía.
+  const VIDEO_NUM_OFF_U = 2.0; // unidades hacia afuera de la nariz de la banda.
+  function videoReplayNumberMarks(){
+    const marks = [];
+    const shot = currentShot;
+    if(!shot) return marks;
+    const showS = ids('showNumSalida') ? ids('showNumSalida').checked : false;
+    const showL = ids('showNumLlegada') ? ids('showNumLlegada').checked : false;
+    const showA = ids('showNumAtaque') ? ids('showNumAtaque').checked : false;
+    if(!showS && !showL && !showA) return marks;
+
+    const pushLong = (rail, x, value, kind, main) => {
+      if(rail !== 'top' && rail !== 'bottom') return;
+      marks.push({x, y: rail === 'top' ? -VIDEO_NUM_OFF_U : TABLE.H + VIDEO_NUM_OFF_U, text:String(value), kind, main});
+    };
+    const pushShort = (rail, y, value, kind, main) => {
+      if(rail !== 'left' && rail !== 'right') return;
+      marks.push({x: rail === 'left' ? -VIDEO_NUM_OFF_U : TABLE.W + VIDEO_NUM_OFF_U, y, text:String(value), kind, main});
+    };
+
+    const pc = shot.plusC;
+    if(pc){
+      // En Plus la casilla Salida no aplica, igual que en el tablero.
+      if(showA && pc.firstShort && pc.secondLong){
+        for(let v = 0; v <= 40; v += 5){
+          const p = plusCShortPointFromNumberFixed(pc.firstShort, pc.secondLong, v);
+          if(p) pushShort(pc.firstShort, p.y, v, 'ataque', v % 10 === 0);
+        }
+      }
+      if(showL){
+        const zero = pc.actualZeroPoint || pc.zeroPoint;
+        if(zero && pc.zeroLong){
+          const direction = pc.referencePoint && pc.referencePoint.x < zero.x ? -1 : 1;
+          for(let v = 0; v <= 40; v += 5){
+            const x = zero.x + direction * 2 * v;
+            if(x < -0.05 || x > TABLE.W + 0.05) continue;
+            pushLong(pc.zeroLong, clamp(x, 0, TABLE.W), v, 'llegada', v % 10 === 0);
+          }
+        }
+      }
+      return marks;
+    }
+
+    if(!shot.canNumberArrival) return marks;
+    const rail = shot.arrivalRail;
+    const zeroSide = shot.zeroSide;
+
+    if(showS && (rail === 'top' || rail === 'bottom')){
+      for(const it of lklDepartureLongPositions(zeroSide)) pushLong(rail, it.x, it.value, 'salida', true);
+      for(const it of lklDepartureShortPositions(shot)) pushShort(it.rail, it.y, it.value, 'salida', true);
+    }
+    if(showL){
+      const pushArr = (item, main) => {
+        if(rail === 'top' || rail === 'bottom') pushLong(rail, item.x, item.value, 'llegada', main);
+        else pushShort(rail, item.x, item.value, 'llegada', main);
+      };
+      for(const it of lklArrivalIntermediatePositions(zeroSide)) pushArr(it, false);
+      for(const it of lklArrivalValuePositions(zeroSide)) pushArr(it, true);
+    }
+    if(showA && shot.c && (shot.c.rail1 === 'top' || shot.c.rail1 === 'bottom')){
+      for(const it of lklAttackPositions(zeroSide)) pushLong(shot.c.rail1, it.x, it.value, 'ataque', true);
+    }
+    return marks;
+  }
+
   // Homografía mundo (80 × 40) -> píxeles del lienzo de video,
   // reutilizando homographyFromFourPoints del localizador fotográfico.
   function videoReplayHomography(cw, ch){
@@ -12691,8 +12775,10 @@ function drawStartMarks(){
     }
     }
 
-    // Anillos en las posiciones registradas de las bolas: si coinciden
-    // con las bolas reales del video, la calibración es correcta.
+    // Anillos de las bolas: en la calibración sirven para verificarla a
+    // ojo; en el modo "No planear" son el único dato del video. En una
+    // jugada planeada NO se dibujan (estorban frente a la bola real).
+    if((opts && opts.handles) || noPlanSequence){
     for(const key of ['white','yellow','red']){
       const centre = balls[key]; if(!centre) continue;
       const q = W2V(centre); if(!q) continue;
@@ -12702,20 +12788,14 @@ function drawStartMarks(){
       g.strokeStyle = 'rgba(0,0,0,.75)'; g.lineWidth = 3.4; g.stroke();
       g.strokeStyle = colors[key]; g.lineWidth = 1.7; g.stroke();
     }
+    }
 
-    // Trayectoria teórica calculada por la app.
+    // Datos de la jugada: punto y línea de Ataque, punto de Llegada y,
+    // si las casillas del menú lo piden, las escalas numéricas de las
+    // bandas. Las polilíneas azules de proyección y la línea punteada
+    // NO se dibujan en el video: son construcción geométrica, no la
+    // rodadura real de la bola.
     if(opts.route){
-      const polys = videoReplayRouteWorld();
-      for(const poly of polys){
-        const pts = poly.pts.map(W2V);
-        if(pts.length < 2 || pts.some(p => !p)) continue;
-        g.beginPath();
-        pts.forEach((p,i) => i ? g.lineTo(p.x,p.y) : g.moveTo(p.x,p.y));
-        g.setLineDash(poly.dashed ? [10,8] : []);
-        g.strokeStyle = 'rgba(0,0,0,.78)'; g.lineWidth = 6.4; g.stroke();
-        g.strokeStyle = '#62d7ff'; g.lineWidth = 3.1; g.stroke();
-        g.setLineDash([]);
-      }
       const attackInfo = videoReplayAttackInfo();
       if(attackInfo){
         // Línea de ataque roja (Salida -> Ataque), igual que en la mesa.
@@ -12749,6 +12829,54 @@ function drawStartMarks(){
           g.strokeText(label, q.x + dotR + 7, q.y - dotR - 4);
           g.fillText(label, q.x + dotR + 7, q.y - dotR - 4);
         }
+      }
+
+      // Punto de Llegada, con su identidad verde del tablero.
+      const arrivalInfo = videoReplayArrivalInfo();
+      if(arrivalInfo){
+        const q = W2V(arrivalInfo.point);
+        if(q){
+          const dotR = Math.max(5.5, ch * .011);
+          g.beginPath(); g.arc(q.x, q.y, dotR, 0, Math.PI*2);
+          g.fillStyle = '#39ff14'; g.fill();
+          g.strokeStyle = 'rgba(0,0,0,.95)'; g.lineWidth = Math.max(2, ch * .004); g.stroke();
+          const label = arrivalInfo.number !== null ? ('Llegada ' + fmt(arrivalInfo.number, 1)) : 'Llegada';
+          const fs = Math.max(15, Math.round(ch * .032));
+          g.font = '900 ' + fs + 'px ui-sans-serif, system-ui';
+          g.lineWidth = Math.max(3.6, fs * .24);
+          g.strokeStyle = 'rgba(0,0,0,.92)';
+          g.fillStyle = '#39ff14';
+          // El rótulo se acomoda hacia el interior de la mesa según la banda.
+          const ly = arrivalInfo.point.y > TABLE.H / 2 ? (q.y - dotR - 6) : (q.y + dotR + fs * .8);
+          g.strokeText(label, q.x + dotR + 7, ly);
+          g.fillText(label, q.x + dotR + 7, ly);
+        }
+      }
+
+      // Escalas numéricas de las bandas (Salida, Llegada, Ataque).
+      const numberMarks = videoReplayNumberMarks();
+      if(numberMarks.length){
+        g.textAlign = 'center';
+        g.textBaseline = 'middle';
+        for(const mk of numberMarks){
+          const q = W2V({x:mk.x, y:mk.y});
+          if(!q) continue;
+          const fs = Math.max(mk.main ? 13 : 11, Math.round(ch * (mk.main ? .026 : .021)));
+          g.font = '900 ' + fs + 'px ui-sans-serif, system-ui';
+          if(mk.kind === 'salida'){
+            g.lineWidth = Math.max(2, fs * .16);
+            g.strokeStyle = 'rgba(255,255,255,.75)';
+            g.fillStyle = '#000000';
+          } else {
+            g.lineWidth = Math.max(2, fs * .15);
+            g.strokeStyle = 'rgba(0,0,0,.96)';
+            g.fillStyle = mk.kind === 'llegada' ? '#39ff14' : '#fc020e';
+          }
+          g.strokeText(mk.text, q.x, q.y);
+          g.fillText(mk.text, q.x, q.y);
+        }
+        g.textAlign = 'start';
+        g.textBaseline = 'alphabetic';
       }
     }
 
@@ -13140,7 +13268,7 @@ function drawStartMarks(){
       }
     };
     setVideoReplayMode('replay');
-    setVideoReplayStatus('Grabación lista. Reproduzca, avance cuadro a cuadro o use cámara lenta para comparar la ejecución con la trayectoria azul calculada.', 'good');
+    setVideoReplayStatus('Grabación lista. Reproduzca, avance cuadro a cuadro o use cámara lenta para comparar la ejecución con los puntos de Ataque y Llegada planeados.', 'good');
   }
 
   function videoReplayCanvasPointFromEvent(e){
@@ -13196,7 +13324,7 @@ function drawStartMarks(){
     const downloadBtn = ids('videoReplayDownloadBtn');
     if(exportBtn){
       exportBtn.disabled = busy;
-      exportBtn.textContent = busy ? 'Exportando…' : 'Descargar con trayectoria';
+      exportBtn.textContent = busy ? 'Exportando…' : 'Descargar con datos';
     }
     if(againBtn) againBtn.disabled = busy;
     if(downloadBtn) downloadBtn.disabled = busy;
@@ -13214,7 +13342,7 @@ function drawStartMarks(){
       return;
     }
     if(!(videoReplay.calib && videoReplay.calib.corners)){
-      setVideoReplayStatus('No hay calibración guardada: la trayectoria no puede incrustarse.', 'bad');
+      setVideoReplayStatus('No hay calibración guardada: los datos no pueden incrustarse.', 'bad');
       return;
     }
     if(!window.MediaRecorder){
@@ -13347,7 +13475,7 @@ function drawStartMarks(){
       const a = document.createElement('a');
       const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
       a.href = url;
-      a.download = 'jugada-con-trayectoria-' + stamp + (isMp4 ? '.mp4' : '.webm');
+      a.download = 'jugada-con-datos-' + stamp + (isMp4 ? '.mp4' : '.webm');
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -13370,7 +13498,7 @@ function drawStartMarks(){
       drawVideoReplayOverlay(g, vw, vh, {route:true, handles:false});
       if(total){
         const pct = Math.min(100, Math.round((srcVideo.currentTime/total)*100));
-        setVideoReplayStatus('Exportando con trayectoria… ' + pct + ' %. No cambie de pestaña hasta que termine.');
+        setVideoReplayStatus('Exportando con datos… ' + pct + ' %. No cambie de pestaña hasta que termine.');
       }
     };
 
@@ -13564,7 +13692,7 @@ function drawStartMarks(){
       document.body.appendChild(a);
       a.click();
       a.remove();
-      setVideoReplayStatus('Video original descargado, con su audio. Conserva la orientación de la cámara (girado 180°) y no incluye la línea azul. Para un archivo con la orientación corregida y la trayectoria incrustada, use Descargar con trayectoria.', 'good');
+      setVideoReplayStatus('Video original descargado, con su audio. Conserva la orientación de la cámara (girado 180°) y no incluye ninguna superposición. Para un archivo con la orientación corregida y los datos incrustados, use Descargar con datos.', 'good');
     });
   }
 
