@@ -1619,7 +1619,7 @@
       pointer-events:none !important;
     }
 
-    /* ===== 계산 궤적을 겹친 샷 영상 ===== */
+    /* ===== 데이터가 표시된 샷 영상 ===== */
     .videoReplayModal{
       position:fixed;
       inset:0;
@@ -2017,7 +2017,7 @@
 <option value="bottom">아래쪽 장쿠션</option>
 <option value="left">왼쪽 단쿠션</option>
 </select>
-</div><p class="small" id="sequenceHelp">목적구 먼저 또는 쿠션 먼저를 선택한 뒤 쿠션 순서를 지정하십시오.</p></div></details><details class="menuModule" id="moduleVideoReplay"><summary><span class="moduleTitle" style="color:#ff5a5a">계산 궤적을 겹친 샷 영상</span><span class="moduleState" id="moduleVideoReplayState">천장 카메라 · 보정 전</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><p class="small" style="margin:0 0 10px;">천장 카메라로 실제 샷을 녹화하고, 앱이 계산한 궤적을 영상 위에 겹쳐 슬로모션과 프레임 단위로 확인하십시오. 녹화에는 카메라 마이크의 소리가 포함됩니다. 카메라가 움직이지 않는 한 테이블 네 모서리 보정은 한 번만 하면 됩니다. <b>자동 감지기의 천장 카메라 촬영으로 공 위치를 적용하면 그 보정이 자동으로 재사용됩니다.</b></p><button class="cameraCaptureBtn" id="videoReplayRecordBtn" type="button">샷 녹화</button><button id="videoReplayCalibBtn" type="button">겹쳐 보기 보정</button><div aria-live="polite" class="cameraCaptureStatus" id="videoReplayModuleStatus" role="status">겹쳍지는 궤적은 그 시점에 계산되어 있는 궤적입니다(예: 선택한 수구와 쿠션 순서의 LKL / Base 50).</div></div></details><details class="menuModule" id="moduleEffect"><summary><span class="moduleTitle">회전과 스트로크</span><span class="moduleState" id="moduleEffectState">플러스 회전 · 회전 3 · 긴 팔로스루</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><div aria-controls="contiTooltip" aria-expanded="false" class="contiHelpAnchor" id="contiHelpAnchor" tabindex="0"><label for="english">회전 방향</label><span aria-hidden="true" class="contiHelpIcon">i</span></div><select id="english">
+</div><p class="small" id="sequenceHelp">목적구 먼저 또는 쿠션 먼저를 선택한 뒤 쿠션 순서를 지정하십시오.</p></div></details><details class="menuModule" id="moduleVideoReplay"><summary><span class="moduleTitle" style="color:#ff5a5a">데이터가 표시된 샷 영상</span><span class="moduleState" id="moduleVideoReplayState">천장 카메라 · 보정 전</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><p class="small" style="margin:0 0 10px;">천장 카메라로 실제 샷을 녹화하고, 샷 데이터(공격 지점과 공격선, 도착 지점)를 영상 위에 표시한 상태로 슬로모션과 프레임 단위 이동으로 확인하십시오. 녹화에는 카메라 마이크의 오디오가 포함됩니다. 카메라가 움직이지 않는 한 테이블 네 모서리 캘리브레이션은 한 번만 하면 됩니다. <b>자동 디텍터의 천장 촬영에서 위치를 적용하면 해당 캘리브레이션이 자동으로 재사용됩니다.</b></p><button class="cameraCaptureBtn" id="videoReplayRecordBtn" type="button">샷 녹화</button><button id="videoReplayCalibBtn" type="button">겹쳐 보기 보정</button><div aria-live="polite" class="cameraCaptureStatus" id="videoReplayModuleStatus" role="status">표시되는 데이터(공격과 도착)는 그 시점에 계산되어 있는 값입니다(예: 선택한 수구와 쿠션 시퀀스의 LKL / Base 50).</div></div></details><details class="menuModule" id="moduleEffect"><summary><span class="moduleTitle">회전과 스트로크</span><span class="moduleState" id="moduleEffectState">플러스 회전 · 회전 3 · 긴 팔로스루</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><div aria-controls="contiTooltip" aria-expanded="false" class="contiHelpAnchor" id="contiHelpAnchor" tabindex="0"><label for="english">회전 방향</label><span aria-hidden="true" class="contiHelpIcon">i</span></div><select id="english">
 <option value="positive">플러스 회전: 벌어짐 / 길어짐</option>
 <option value="neutral">무회전</option>
 <option value="negative">마이너스 회전: 좁아짐 / 짧아짐</option>
@@ -2033,7 +2033,7 @@
 <div aria-labelledby="videoReplayTitle" aria-modal="true" class="videoReplayShell" role="dialog">
 <div class="videoReplayHead">
 <div>
-<h2 class="videoReplayTitle" id="videoReplayTitle">계산 궤적을 겹친 샷 영상</h2>
+<h2 class="videoReplayTitle" id="videoReplayTitle">데이터가 표시된 샷 영상</h2>
 <div class="videoReplayStep" id="videoReplayStep">준비 중…</div>
 </div>
 <button class="videoReplayClose" id="videoReplayClose" type="button">닫기</button>
@@ -2071,7 +2071,7 @@
 <div class="videoReplayRow">
 <button disabled="" id="videoReplayStopBtn" type="button">중지 후 확인</button>
 </div>
-<label style="display:flex; gap:8px; align-items:center; cursor:pointer;"><input checked="" id="videoReplayShowGuideRec" style="width:auto" type="checkbox"/> <span class="small">녹화 중 궤적 표시</span></label>
+<label style="display:flex; gap:8px; align-items:center; cursor:pointer;"><input checked="" id="videoReplayShowGuideRec" style="width:auto" type="checkbox"/> <span class="small">녹화 중 데이터 표시</span></label>
 </div>
 <div class="videoReplayGroup" id="videoReplayPlaybackPanel" style="display:none">
 <h3>샷 확인</h3>
@@ -2084,13 +2084,13 @@
 <div class="videoReplayRow">
 <label style="display:flex; gap:8px; align-items:center;"><span class="small">속도</span><select id="videoReplaySpeed" style="flex:1"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option selected="" value="1">1×</option></select></label>
 </div>
-<label style="display:flex; gap:8px; align-items:center; cursor:pointer;"><input checked="" id="videoReplayShowGuide" style="width:auto" type="checkbox"/> <span class="small">계산 궤적 겹쳐 보기</span></label>
+<label style="display:flex; gap:8px; align-items:center; cursor:pointer;"><input checked="" id="videoReplayShowGuide" style="width:auto" type="checkbox"/> <span class="small">샷 데이터 표시</span></label>
 <div class="videoReplayRow">
 <button id="videoReplayAgainBtn" type="button">다른 샷 녹화</button>
 <button id="videoReplayDownloadBtn" type="button">원본 영상 다운로드</button>
 </div>
 <div class="videoReplayRow">
-<button class="cameraCaptureBtn" id="videoReplayExportBtn" style="margin:0" type="button">궤적 포함 다운로드</button>
+<button class="cameraCaptureBtn" id="videoReplayExportBtn" style="margin:0" type="button">데이터 포함 다운로드</button>
 </div>
 </div>
 <div class="videoReplayGroup">
@@ -12392,7 +12392,7 @@ function drawStartMarks(){
     if(!corners) return;
     saveVideoCalibration(corners, 'detector-cenital');
     const st = ids('videoReplayModuleStatus');
-    if(st) st.textContent = '천장 감지기에서 확정된 네 모서리로 영상 보정이 자동 갱신되었습니다. 이제 궤적을 겹친 샷 영상을 녹화할 수 있습니다.';
+    if(st) st.textContent = '천장 디텍터에서 확인한 네 모서리로 비디오 캘리브레이션이 자동 갱신되었습니다. 이제 데이터가 표시된 샷을 녹화할 수 있습니다.';
   }
 
   async function findVideoReplayMicId(){
@@ -12592,6 +12592,90 @@ function drawStartMarks(){
     return null;
   }
 
+  // Punto de Llegada para el video: es un dato fijo del plan, no una
+  // proyección. En LKL / vueltas sale del connectorResult; en Plus el
+  // tablero no dibuja un punto de Llegada (su llegada es la escala verde
+  // de la banda del cero, que aparece con la casilla del menú), así que
+  // aquí se respeta lo mismo y no se inventa uno.
+  function videoReplayArrivalInfo(){
+    const shot = currentShot;
+    if(!shot) return null;
+    const cr = shot.connectorResult;
+    if(cr && cr.arrivalPoint && Number.isFinite(cr.arrivalValue)){
+      return {point: cr.arrivalPoint, number: cr.arrivalValue};
+    }
+    return null;
+  }
+
+  // Marcas numéricas de las bandas para el video (Salida, Llegada y
+  // Ataque según las casillas del menú de referencias). Espeja las
+  // mismas posiciones de mundo que usa el tablero (los generadores
+  // lklDeparture*/lklArrival*/lklAttack* y plusCShortPointFromNumberFixed
+  // son funciones puras compartidas), y las proyecta con la homografía.
+  const VIDEO_NUM_OFF_U = 2.0; // unidades hacia afuera de la nariz de la banda.
+  function videoReplayNumberMarks(){
+    const marks = [];
+    const shot = currentShot;
+    if(!shot) return marks;
+    const showS = ids('showNumSalida') ? ids('showNumSalida').checked : false;
+    const showL = ids('showNumLlegada') ? ids('showNumLlegada').checked : false;
+    const showA = ids('showNumAtaque') ? ids('showNumAtaque').checked : false;
+    if(!showS && !showL && !showA) return marks;
+
+    const pushLong = (rail, x, value, kind, main) => {
+      if(rail !== 'top' && rail !== 'bottom') return;
+      marks.push({x, y: rail === 'top' ? -VIDEO_NUM_OFF_U : TABLE.H + VIDEO_NUM_OFF_U, text:String(value), kind, main});
+    };
+    const pushShort = (rail, y, value, kind, main) => {
+      if(rail !== 'left' && rail !== 'right') return;
+      marks.push({x: rail === 'left' ? -VIDEO_NUM_OFF_U : TABLE.W + VIDEO_NUM_OFF_U, y, text:String(value), kind, main});
+    };
+
+    const pc = shot.plusC;
+    if(pc){
+      // En Plus la casilla Salida no aplica, igual que en el tablero.
+      if(showA && pc.firstShort && pc.secondLong){
+        for(let v = 0; v <= 40; v += 5){
+          const p = plusCShortPointFromNumberFixed(pc.firstShort, pc.secondLong, v);
+          if(p) pushShort(pc.firstShort, p.y, v, 'ataque', v % 10 === 0);
+        }
+      }
+      if(showL){
+        const zero = pc.actualZeroPoint || pc.zeroPoint;
+        if(zero && pc.zeroLong){
+          const direction = pc.referencePoint && pc.referencePoint.x < zero.x ? -1 : 1;
+          for(let v = 0; v <= 40; v += 5){
+            const x = zero.x + direction * 2 * v;
+            if(x < -0.05 || x > TABLE.W + 0.05) continue;
+            pushLong(pc.zeroLong, clamp(x, 0, TABLE.W), v, 'llegada', v % 10 === 0);
+          }
+        }
+      }
+      return marks;
+    }
+
+    if(!shot.canNumberArrival) return marks;
+    const rail = shot.arrivalRail;
+    const zeroSide = shot.zeroSide;
+
+    if(showS && (rail === 'top' || rail === 'bottom')){
+      for(const it of lklDepartureLongPositions(zeroSide)) pushLong(rail, it.x, it.value, 'salida', true);
+      for(const it of lklDepartureShortPositions(shot)) pushShort(it.rail, it.y, it.value, 'salida', true);
+    }
+    if(showL){
+      const pushArr = (item, main) => {
+        if(rail === 'top' || rail === 'bottom') pushLong(rail, item.x, item.value, 'llegada', main);
+        else pushShort(rail, item.x, item.value, 'llegada', main);
+      };
+      for(const it of lklArrivalIntermediatePositions(zeroSide)) pushArr(it, false);
+      for(const it of lklArrivalValuePositions(zeroSide)) pushArr(it, true);
+    }
+    if(showA && shot.c && (shot.c.rail1 === 'top' || shot.c.rail1 === 'bottom')){
+      for(const it of lklAttackPositions(zeroSide)) pushLong(shot.c.rail1, it.x, it.value, 'ataque', true);
+    }
+    return marks;
+  }
+
   // Homografía mundo (80 × 40) -> píxeles del lienzo de video,
   // reutilizando homographyFromFourPoints del localizador fotográfico.
   function videoReplayHomography(cw, ch){
@@ -12640,6 +12724,7 @@ function drawStartMarks(){
 
     // Anillos en las posiciones registradas de las bolas: si coinciden
     // con las bolas reales del video, la calibración es correcta.
+    if((opts && opts.handles) || noPlanSequence){
     for(const key of ['white','yellow','red']){
       const centre = balls[key]; if(!centre) continue;
       const q = W2V(centre); if(!q) continue;
@@ -12649,20 +12734,9 @@ function drawStartMarks(){
       g.strokeStyle = 'rgba(0,0,0,.75)'; g.lineWidth = 3.4; g.stroke();
       g.strokeStyle = colors[key]; g.lineWidth = 1.7; g.stroke();
     }
+    }
 
-    // Trayectoria teórica calculada por la app.
     if(opts.route){
-      const polys = videoReplayRouteWorld();
-      for(const poly of polys){
-        const pts = poly.pts.map(W2V);
-        if(pts.length < 2 || pts.some(p => !p)) continue;
-        g.beginPath();
-        pts.forEach((p,i) => i ? g.lineTo(p.x,p.y) : g.moveTo(p.x,p.y));
-        g.setLineDash(poly.dashed ? [10,8] : []);
-        g.strokeStyle = 'rgba(0,0,0,.78)'; g.lineWidth = 6.4; g.stroke();
-        g.strokeStyle = '#62d7ff'; g.lineWidth = 3.1; g.stroke();
-        g.setLineDash([]);
-      }
       const attackInfo = videoReplayAttackInfo();
       if(attackInfo){
         // 빨간 공격 선(출발 -> 조준점), 테이블과 동일.
@@ -12696,6 +12770,51 @@ function drawStartMarks(){
           g.strokeText(label, q.x + dotR + 7, q.y - dotR - 4);
           g.fillText(label, q.x + dotR + 7, q.y - dotR - 4);
         }
+      }
+
+      const arrivalInfo = videoReplayArrivalInfo();
+      if(arrivalInfo){
+        const q = W2V(arrivalInfo.point);
+        if(q){
+          const dotR = Math.max(5.5, ch * .011);
+          g.beginPath(); g.arc(q.x, q.y, dotR, 0, Math.PI*2);
+          g.fillStyle = '#39ff14'; g.fill();
+          g.strokeStyle = 'rgba(0,0,0,.95)'; g.lineWidth = Math.max(2, ch * .004); g.stroke();
+          const label = arrivalInfo.number !== null ? ('도착 ' + fmt(arrivalInfo.number, 1)) : '도착';
+          const fs = Math.max(15, Math.round(ch * .032));
+          g.font = '900 ' + fs + 'px ui-sans-serif, system-ui';
+          g.lineWidth = Math.max(3.6, fs * .24);
+          g.strokeStyle = 'rgba(0,0,0,.92)';
+          g.fillStyle = '#39ff14';
+          const ly = arrivalInfo.point.y > TABLE.H / 2 ? (q.y - dotR - 6) : (q.y + dotR + fs * .8);
+          g.strokeText(label, q.x + dotR + 7, ly);
+          g.fillText(label, q.x + dotR + 7, ly);
+        }
+      }
+
+      const numberMarks = videoReplayNumberMarks();
+      if(numberMarks.length){
+        g.textAlign = 'center';
+        g.textBaseline = 'middle';
+        for(const mk of numberMarks){
+          const q = W2V({x:mk.x, y:mk.y});
+          if(!q) continue;
+          const fs = Math.max(mk.main ? 13 : 11, Math.round(ch * (mk.main ? .026 : .021)));
+          g.font = '900 ' + fs + 'px ui-sans-serif, system-ui';
+          if(mk.kind === 'salida'){
+            g.lineWidth = Math.max(2, fs * .16);
+            g.strokeStyle = 'rgba(255,255,255,.75)';
+            g.fillStyle = '#000000';
+          } else {
+            g.lineWidth = Math.max(2, fs * .15);
+            g.strokeStyle = 'rgba(0,0,0,.96)';
+            g.fillStyle = mk.kind === 'llegada' ? '#39ff14' : '#fc020e';
+          }
+          g.strokeText(mk.text, q.x, q.y);
+          g.fillText(mk.text, q.x, q.y);
+        }
+        g.textAlign = 'start';
+        g.textBaseline = 'alphabetic';
       }
     }
 
@@ -13087,7 +13206,7 @@ function drawStartMarks(){
       }
     };
     setVideoReplayMode('replay');
-    setVideoReplayStatus('녹화 완료. 재생하거나 프레임 단위·슬로모션으로 실제 샷과 파란 계산 궤적을 비교하십시오.', 'good');
+    setVideoReplayStatus('녹화가 준비되었습니다. 재생하거나 프레임 단위로 이동하거나 슬로모션을 사용해, 계획한 공격·도착 지점과 실제 샷을 비교하십시오.', 'good');
   }
 
   function videoReplayCanvasPointFromEvent(e){
@@ -13143,7 +13262,7 @@ function drawStartMarks(){
     const downloadBtn = ids('videoReplayDownloadBtn');
     if(exportBtn){
       exportBtn.disabled = busy;
-      exportBtn.textContent = busy ? '내보내는 중…' : '궤적 포함 다운로드';
+      exportBtn.textContent = busy ? '내보내는 중…' : '데이터 포함 다운로드';
     }
     if(againBtn) againBtn.disabled = busy;
     if(downloadBtn) downloadBtn.disabled = busy;
@@ -13161,7 +13280,7 @@ function drawStartMarks(){
       return;
     }
     if(!(videoReplay.calib && videoReplay.calib.corners)){
-      setVideoReplayStatus('저장된 보정이 없어 궤적을 넣을 수 없습니다.', 'bad');
+      setVideoReplayStatus('저장된 캘리브레이션이 없습니다: 데이터를 영상에 넣을 수 없습니다.', 'bad');
       return;
     }
     if(!window.MediaRecorder){
@@ -13294,7 +13413,7 @@ function drawStartMarks(){
       const a = document.createElement('a');
       const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
       a.href = url;
-      a.download = 'shot-with-route-' + stamp + (isMp4 ? '.mp4' : '.webm');
+      a.download = 'shot-with-data-' + stamp + (isMp4 ? '.mp4' : '.webm');
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -13317,7 +13436,7 @@ function drawStartMarks(){
       drawVideoReplayOverlay(g, vw, vh, {route:true, handles:false});
       if(total){
         const pct = Math.min(100, Math.round((srcVideo.currentTime/total)*100));
-        setVideoReplayStatus('궤적 포함 내보내는 중… ' + pct + ' %. 끝날 때까지 탭을 전환하지 마십시오.');
+        setVideoReplayStatus('데이터를 포함해 내보내는 중… ' + pct + ' %. 끝날 때까지 탭을 전환하지 마십시오.');
       }
     };
 
@@ -13511,7 +13630,7 @@ function drawStartMarks(){
       document.body.appendChild(a);
       a.click();
       a.remove();
-      setVideoReplayStatus('원본 영상을 소리와 함께 다운로드했습니다. 카메라 원래 방향(180° 회전)이 유지되며 파란 선은 포함되지 않습니다. 방향이 보정되고 궤적이 포함된 파일은 궤적 포함 다운로드를 사용하십시오.', 'good');
+      setVideoReplayStatus('원본 영상이 오디오와 함께 다운로드되었습니다. 카메라 방향(180° 회전)을 유지하며 아무 오버레이도 포함하지 않습니다. 방향이 보정되고 데이터가 포함된 파일이 필요하면 데이터 포함 다운로드를 사용하십시오.', 'good');
     });
   }
 
