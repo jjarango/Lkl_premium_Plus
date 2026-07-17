@@ -12726,7 +12726,7 @@ function drawStartMarks(){
 
     // Anillos en las posiciones registradas de las bolas: si coinciden
     // con las bolas reales del video, la calibración es correcta.
-    if((opts && opts.handles) || noPlanSequence){
+    if(opts && opts.handles){
     for(const key of ['white','yellow','red']){
       const centre = balls[key]; if(!centre) continue;
       const q = W2V(centre); if(!q) continue;
