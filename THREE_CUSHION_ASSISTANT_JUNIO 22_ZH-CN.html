@@ -1595,7 +1595,7 @@
 
 
 html,body,button,input,select,textarea{font-family:"PingFang SC","Microsoft YaHei","Noto Sans CJK SC","Source Han Sans SC",Arial,sans-serif;}
-    /* ===== 叠加计算线路的击球视频 ===== */
+    /* ===== 含数据叠加的击球视频 ===== */
     .videoReplayModal{
       position:fixed;
       inset:0;
@@ -1993,7 +1993,7 @@ html,body,button,input,select,textarea{font-family:"PingFang SC","Microsoft YaHe
 <option value="bottom">下方长库</option>
 <option value="left">左侧短库</option>
 </select>
-</div><p class="small" id="sequenceHelp">请选择先碰球还是先走库，然后设置走库顺序。</p></div></details><details class="menuModule" id="moduleVideoReplay"><summary><span class="moduleTitle" style="color:#ff5a5a">叠加计算线路的击球视频</span><span class="moduleState" id="moduleVideoReplayState">顶置摄像头 · 尚未校准</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><p class="small" style="margin:0 0 10px;">用顶置摄像头录下真实击球，并在视频上叠加应用计算出的线路，支持慢动作和逐帧查看。录制包含摄像头麦克风的声音。只要摄像头不移动，球台四角只需校准一次。<b>如果您通过自动检测器的顶置拍摄应用球位，该校准会自动复用。</b></p><button class="cameraCaptureBtn" id="videoReplayRecordBtn" type="button">录制击球</button><button id="videoReplayCalibBtn" type="button">校准叠加</button><div aria-live="polite" class="cameraCaptureStatus" id="videoReplayModuleStatus" role="status">叠加的线路即当时计算出的线路（例如所选主球与库边顺序的 LKL / Base 50）。</div></div></details><details class="menuModule" id="moduleEffect"><summary><span class="moduleTitle">侧旋与杆法</span><span class="moduleState" id="moduleEffectState">正向侧旋 · 3级侧旋 · 长送杆</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><div aria-controls="contiTooltip" aria-expanded="false" class="contiHelpAnchor" id="contiHelpAnchor" tabindex="0"><label for="english">侧旋方向</label><span aria-hidden="true" class="contiHelpIcon">i</span></div><select id="english">
+</div><p class="small" id="sequenceHelp">请选择先碰球还是先走库，然后设置走库顺序。</p></div></details><details class="menuModule" id="moduleVideoReplay"><summary><span class="moduleTitle" style="color:#ff5a5a">含数据叠加的击球视频</span><span class="moduleState" id="moduleVideoReplayState">顶置摄像头 · 尚未校准</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><p class="small" style="margin:0 0 10px;">用顶置摄像头录制真实击球，并在视频上叠加击球数据（进攻点与进攻线、到达点）进行回看，支持慢动作与逐帧前进。录像包含摄像头麦克风的音频。只要摄像头不移动，四角校准只需进行一次。<b>若从自动检测器的顶置拍摄应用位置，该校准会自动复用。</b></p><button class="cameraCaptureBtn" id="videoReplayRecordBtn" type="button">录制击球</button><button id="videoReplayCalibBtn" type="button">校准叠加</button><div aria-live="polite" class="cameraCaptureStatus" id="videoReplayModuleStatus" role="status">叠加的数据（进攻与到达）为当时已计算的内容（例如所选主球与库边线路的 LKL / Base 50）。</div></div></details><details class="menuModule" id="moduleEffect"><summary><span class="moduleTitle">侧旋与杆法</span><span class="moduleState" id="moduleEffectState">正向侧旋 · 3级侧旋 · 长送杆</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><div aria-controls="contiTooltip" aria-expanded="false" class="contiHelpAnchor" id="contiHelpAnchor" tabindex="0"><label for="english">侧旋方向</label><span aria-hidden="true" class="contiHelpIcon">i</span></div><select id="english">
 <option value="positive">正向侧旋：打开／拉长线路</option>
 <option value="neutral">无侧旋</option>
 <option value="negative">反向侧旋：收紧／缩短线路</option>
@@ -2009,7 +2009,7 @@ html,body,button,input,select,textarea{font-family:"PingFang SC","Microsoft YaHe
 <div aria-labelledby="videoReplayTitle" aria-modal="true" class="videoReplayShell" role="dialog">
 <div class="videoReplayHead">
 <div>
-<h2 class="videoReplayTitle" id="videoReplayTitle">叠加计算线路的击球视频</h2>
+<h2 class="videoReplayTitle" id="videoReplayTitle">含数据叠加的击球视频</h2>
 <div class="videoReplayStep" id="videoReplayStep">准备中…</div>
 </div>
 <button class="videoReplayClose" id="videoReplayClose" type="button">关闭</button>
@@ -2047,7 +2047,7 @@ html,body,button,input,select,textarea{font-family:"PingFang SC","Microsoft YaHe
 <div class="videoReplayRow">
 <button disabled="" id="videoReplayStopBtn" type="button">停止并回看</button>
 </div>
-<label style="display:flex; gap:8px; align-items:center; cursor:pointer;"><input checked="" id="videoReplayShowGuideRec" style="width:auto" type="checkbox"/> <span class="small">录制时显示线路</span></label>
+<label style="display:flex; gap:8px; align-items:center; cursor:pointer;"><input checked="" id="videoReplayShowGuideRec" style="width:auto" type="checkbox"/> <span class="small">录制时显示数据</span></label>
 </div>
 <div class="videoReplayGroup" id="videoReplayPlaybackPanel" style="display:none">
 <h3>击球回看</h3>
@@ -2060,13 +2060,13 @@ html,body,button,input,select,textarea{font-family:"PingFang SC","Microsoft YaHe
 <div class="videoReplayRow">
 <label style="display:flex; gap:8px; align-items:center;"><span class="small">速度</span><select id="videoReplaySpeed" style="flex:1"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option selected="" value="1">1×</option></select></label>
 </div>
-<label style="display:flex; gap:8px; align-items:center; cursor:pointer;"><input checked="" id="videoReplayShowGuide" style="width:auto" type="checkbox"/> <span class="small">叠加计算线路</span></label>
+<label style="display:flex; gap:8px; align-items:center; cursor:pointer;"><input checked="" id="videoReplayShowGuide" style="width:auto" type="checkbox"/> <span class="small">叠加击球数据</span></label>
 <div class="videoReplayRow">
 <button id="videoReplayAgainBtn" type="button">再录一杆</button>
 <button id="videoReplayDownloadBtn" type="button">下载原始视频</button>
 </div>
 <div class="videoReplayRow">
-<button class="cameraCaptureBtn" id="videoReplayExportBtn" style="margin:0" type="button">下载含线路视频</button>
+<button class="cameraCaptureBtn" id="videoReplayExportBtn" style="margin:0" type="button">下载含数据视频</button>
 </div>
 </div>
 <div class="videoReplayGroup">
@@ -12423,7 +12423,7 @@ function drawStartMarks(){
     if(!corners) return;
     saveVideoCalibration(corners, 'detector-cenital');
     const st = ids('videoReplayModuleStatus');
-    if(st) st.textContent = '视频校准已根据顶置检测器确认的四角自动更新。现在可以录制叠加线路的击球视频了。';
+    if(st) st.textContent = '视频校准已根据顶置检测器确认的四个角自动更新。现在可以录制带数据叠加的击球了。';
   }
 
   async function findVideoReplayMicId(){
@@ -12622,6 +12622,90 @@ function drawStartMarks(){
     return null;
   }
 
+  // Punto de Llegada para el video: es un dato fijo del plan, no una
+  // proyección. En LKL / vueltas sale del connectorResult; en Plus el
+  // tablero no dibuja un punto de Llegada (su llegada es la escala verde
+  // de la banda del cero, que aparece con la casilla del menú), así que
+  // aquí se respeta lo mismo y no se inventa uno.
+  function videoReplayArrivalInfo(){
+    const shot = currentShot;
+    if(!shot) return null;
+    const cr = shot.connectorResult;
+    if(cr && cr.arrivalPoint && Number.isFinite(cr.arrivalValue)){
+      return {point: cr.arrivalPoint, number: cr.arrivalValue};
+    }
+    return null;
+  }
+
+  // Marcas numéricas de las bandas para el video (Salida, Llegada y
+  // Ataque según las casillas del menú de referencias). Espeja las
+  // mismas posiciones de mundo que usa el tablero (los generadores
+  // lklDeparture*/lklArrival*/lklAttack* y plusCShortPointFromNumberFixed
+  // son funciones puras compartidas), y las proyecta con la homografía.
+  const VIDEO_NUM_OFF_U = 2.0; // unidades hacia afuera de la nariz de la banda.
+  function videoReplayNumberMarks(){
+    const marks = [];
+    const shot = currentShot;
+    if(!shot) return marks;
+    const showS = ids('showNumSalida') ? ids('showNumSalida').checked : false;
+    const showL = ids('showNumLlegada') ? ids('showNumLlegada').checked : false;
+    const showA = ids('showNumAtaque') ? ids('showNumAtaque').checked : false;
+    if(!showS && !showL && !showA) return marks;
+
+    const pushLong = (rail, x, value, kind, main) => {
+      if(rail !== 'top' && rail !== 'bottom') return;
+      marks.push({x, y: rail === 'top' ? -VIDEO_NUM_OFF_U : TABLE.H + VIDEO_NUM_OFF_U, text:String(value), kind, main});
+    };
+    const pushShort = (rail, y, value, kind, main) => {
+      if(rail !== 'left' && rail !== 'right') return;
+      marks.push({x: rail === 'left' ? -VIDEO_NUM_OFF_U : TABLE.W + VIDEO_NUM_OFF_U, y, text:String(value), kind, main});
+    };
+
+    const pc = shot.plusC;
+    if(pc){
+      // En Plus la casilla Salida no aplica, igual que en el tablero.
+      if(showA && pc.firstShort && pc.secondLong){
+        for(let v = 0; v <= 40; v += 5){
+          const p = plusCShortPointFromNumberFixed(pc.firstShort, pc.secondLong, v);
+          if(p) pushShort(pc.firstShort, p.y, v, 'ataque', v % 10 === 0);
+        }
+      }
+      if(showL){
+        const zero = pc.actualZeroPoint || pc.zeroPoint;
+        if(zero && pc.zeroLong){
+          const direction = pc.referencePoint && pc.referencePoint.x < zero.x ? -1 : 1;
+          for(let v = 0; v <= 40; v += 5){
+            const x = zero.x + direction * 2 * v;
+            if(x < -0.05 || x > TABLE.W + 0.05) continue;
+            pushLong(pc.zeroLong, clamp(x, 0, TABLE.W), v, 'llegada', v % 10 === 0);
+          }
+        }
+      }
+      return marks;
+    }
+
+    if(!shot.canNumberArrival) return marks;
+    const rail = shot.arrivalRail;
+    const zeroSide = shot.zeroSide;
+
+    if(showS && (rail === 'top' || rail === 'bottom')){
+      for(const it of lklDepartureLongPositions(zeroSide)) pushLong(rail, it.x, it.value, 'salida', true);
+      for(const it of lklDepartureShortPositions(shot)) pushShort(it.rail, it.y, it.value, 'salida', true);
+    }
+    if(showL){
+      const pushArr = (item, main) => {
+        if(rail === 'top' || rail === 'bottom') pushLong(rail, item.x, item.value, 'llegada', main);
+        else pushShort(rail, item.x, item.value, 'llegada', main);
+      };
+      for(const it of lklArrivalIntermediatePositions(zeroSide)) pushArr(it, false);
+      for(const it of lklArrivalValuePositions(zeroSide)) pushArr(it, true);
+    }
+    if(showA && shot.c && (shot.c.rail1 === 'top' || shot.c.rail1 === 'bottom')){
+      for(const it of lklAttackPositions(zeroSide)) pushLong(shot.c.rail1, it.x, it.value, 'ataque', true);
+    }
+    return marks;
+  }
+
   // Homografía mundo (80 × 40) -> píxeles del lienzo de video,
   // reutilizando homographyFromFourPoints del localizador fotográfico.
   function videoReplayHomography(cw, ch){
@@ -12670,6 +12754,7 @@ function drawStartMarks(){
 
     // Anillos en las posiciones registradas de las bolas: si coinciden
     // con las bolas reales del video, la calibración es correcta.
+    if((opts && opts.handles) || noPlanSequence){
     for(const key of ['white','yellow','red']){
       const centre = balls[key]; if(!centre) continue;
       const q = W2V(centre); if(!q) continue;
@@ -12679,20 +12764,9 @@ function drawStartMarks(){
       g.strokeStyle = 'rgba(0,0,0,.75)'; g.lineWidth = 3.4; g.stroke();
       g.strokeStyle = colors[key]; g.lineWidth = 1.7; g.stroke();
     }
+    }
 
-    // Trayectoria teórica calculada por la app.
     if(opts.route){
-      const polys = videoReplayRouteWorld();
-      for(const poly of polys){
-        const pts = poly.pts.map(W2V);
-        if(pts.length < 2 || pts.some(p => !p)) continue;
-        g.beginPath();
-        pts.forEach((p,i) => i ? g.lineTo(p.x,p.y) : g.moveTo(p.x,p.y));
-        g.setLineDash(poly.dashed ? [10,8] : []);
-        g.strokeStyle = 'rgba(0,0,0,.78)'; g.lineWidth = 6.4; g.stroke();
-        g.strokeStyle = '#62d7ff'; g.lineWidth = 3.1; g.stroke();
-        g.setLineDash([]);
-      }
       const attackInfo = videoReplayAttackInfo();
       if(attackInfo){
         // 红色瞄准点线（出发 -> 瞄准点），与球台一致。
@@ -12726,6 +12800,51 @@ function drawStartMarks(){
           g.strokeText(label, q.x + dotR + 7, q.y - dotR - 4);
           g.fillText(label, q.x + dotR + 7, q.y - dotR - 4);
         }
+      }
+
+      const arrivalInfo = videoReplayArrivalInfo();
+      if(arrivalInfo){
+        const q = W2V(arrivalInfo.point);
+        if(q){
+          const dotR = Math.max(5.5, ch * .011);
+          g.beginPath(); g.arc(q.x, q.y, dotR, 0, Math.PI*2);
+          g.fillStyle = '#39ff14'; g.fill();
+          g.strokeStyle = 'rgba(0,0,0,.95)'; g.lineWidth = Math.max(2, ch * .004); g.stroke();
+          const label = arrivalInfo.number !== null ? ('Arrival ' + fmt(arrivalInfo.number, 1)) : 'Arrival';
+          const fs = Math.max(15, Math.round(ch * .032));
+          g.font = '900 ' + fs + 'px ui-sans-serif, system-ui';
+          g.lineWidth = Math.max(3.6, fs * .24);
+          g.strokeStyle = 'rgba(0,0,0,.92)';
+          g.fillStyle = '#39ff14';
+          const ly = arrivalInfo.point.y > TABLE.H / 2 ? (q.y - dotR - 6) : (q.y + dotR + fs * .8);
+          g.strokeText(label, q.x + dotR + 7, ly);
+          g.fillText(label, q.x + dotR + 7, ly);
+        }
+      }
+
+      const numberMarks = videoReplayNumberMarks();
+      if(numberMarks.length){
+        g.textAlign = 'center';
+        g.textBaseline = 'middle';
+        for(const mk of numberMarks){
+          const q = W2V({x:mk.x, y:mk.y});
+          if(!q) continue;
+          const fs = Math.max(mk.main ? 13 : 11, Math.round(ch * (mk.main ? .026 : .021)));
+          g.font = '900 ' + fs + 'px ui-sans-serif, system-ui';
+          if(mk.kind === 'salida'){
+            g.lineWidth = Math.max(2, fs * .16);
+            g.strokeStyle = 'rgba(255,255,255,.75)';
+            g.fillStyle = '#000000';
+          } else {
+            g.lineWidth = Math.max(2, fs * .15);
+            g.strokeStyle = 'rgba(0,0,0,.96)';
+            g.fillStyle = mk.kind === 'llegada' ? '#39ff14' : '#fc020e';
+          }
+          g.strokeText(mk.text, q.x, q.y);
+          g.fillText(mk.text, q.x, q.y);
+        }
+        g.textAlign = 'start';
+        g.textBaseline = 'alphabetic';
       }
     }
 
@@ -13117,7 +13236,7 @@ function drawStartMarks(){
       }
     };
     setVideoReplayMode('replay');
-    setVideoReplayStatus('录制完成。可播放、逐帧查看或用慢动作，将真实击球与蓝色计算线路进行对比。', 'good');
+    setVideoReplayStatus('录像已就绪。可播放、逐帧前进或使用慢动作，将实际击球与计划的进攻点、到达点进行对比。', 'good');
   }
 
   function videoReplayCanvasPointFromEvent(e){
@@ -13173,7 +13292,7 @@ function drawStartMarks(){
     const downloadBtn = ids('videoReplayDownloadBtn');
     if(exportBtn){
       exportBtn.disabled = busy;
-      exportBtn.textContent = busy ? '导出中…' : '下载含线路视频';
+      exportBtn.textContent = busy ? '导出中…' : '下载含数据视频';
     }
     if(againBtn) againBtn.disabled = busy;
     if(downloadBtn) downloadBtn.disabled = busy;
@@ -13191,7 +13310,7 @@ function drawStartMarks(){
       return;
     }
     if(!(videoReplay.calib && videoReplay.calib.corners)){
-      setVideoReplayStatus('没有已保存的校准：无法内嵌线路。', 'bad');
+      setVideoReplayStatus('没有已保存的校准：无法嵌入数据。', 'bad');
       return;
     }
     if(!window.MediaRecorder){
@@ -13324,7 +13443,7 @@ function drawStartMarks(){
       const a = document.createElement('a');
       const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
       a.href = url;
-      a.download = 'shot-with-route-' + stamp + (isMp4 ? '.mp4' : '.webm');
+      a.download = 'shot-with-data-' + stamp + (isMp4 ? '.mp4' : '.webm');
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -13347,7 +13466,7 @@ function drawStartMarks(){
       drawVideoReplayOverlay(g, vw, vh, {route:true, handles:false});
       if(total){
         const pct = Math.min(100, Math.round((srcVideo.currentTime/total)*100));
-        setVideoReplayStatus('正在导出含线路视频… ' + pct + ' %。完成前请勿切换标签页。');
+        setVideoReplayStatus('正在导出含数据视频… ' + pct + ' %。完成前请勿切换标签页。');
       }
     };
 
@@ -13541,7 +13660,7 @@ function drawStartMarks(){
       document.body.appendChild(a);
       a.click();
       a.remove();
-      setVideoReplayStatus('原始视频已下载，含声音。它保留摄像头原始方向（旋转 180°），不包含蓝线。若需方向已纠正且内嵌线路的文件，请使用下载含线路视频。', 'good');
+      setVideoReplayStatus('原始视频已下载（含音频）。保留摄像头方向（旋转 180°），不包含任何叠加。如需方向已校正且嵌入数据的文件，请使用下载含数据视频。', 'good');
     });
   }
 
