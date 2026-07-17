@@ -12775,10 +12775,11 @@ function drawStartMarks(){
     }
     }
 
-    // Anillos de las bolas: en la calibración sirven para verificarla a
-    // ojo; en el modo "No planear" son el único dato del video. En una
-    // jugada planeada NO se dibujan (estorban frente a la bola real).
-    if((opts && opts.handles) || noPlanSequence){
+    // Anillos de las bolas: viven únicamente en la pantalla de
+    // calibración, donde sirven para verificarla a ojo. En el video
+    // (grabación, revisión y MP4) no aparecen jamás: ni en jugada
+    // planeada ni en modo "No planear" (decisión del 17/07/2026).
+    if(opts && opts.handles){
     for(const key of ['white','yellow','red']){
       const centre = balls[key]; if(!centre) continue;
       const q = W2V(centre); if(!q) continue;
