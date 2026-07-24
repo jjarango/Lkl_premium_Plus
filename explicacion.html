@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Espejo (mitades) · La física detrás del sistema</title>
+<style>
+  :root{
+    --fondo:#0e1520;
+    --panel:#141d2b;
+    --borde:rgba(255,255,255,.10);
+    --texto:#e8eef6;
+    --tenue:#a8b6c8;
+    --ambar:#ffd189;
+    --cian:#8fdcff;
+    --cian-vivo:#62d7ff;
+    --rojo:#ff5a52;
+    --verde:#39ff14;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    background:var(--fondo);
+    color:var(--texto);
+    font-family:ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+    line-height:1.65;
+  }
+  .lienzo{max-width:980px; margin:0 auto; padding:28px 20px 60px}
+  header{border-bottom:1px solid var(--borde); padding-bottom:18px; margin-bottom:26px}
+  h1{font-size:clamp(24px, 4vw, 34px); margin:0 0 6px; letter-spacing:.3px}
+  .subtitulo{color:var(--tenue); margin:0; font-size:15px}
+  .credito{color:var(--tenue); font-size:13px; margin-top:10px}
+  .credito b{color:var(--ambar); font-weight:700}
+  h2{
+    font-size:clamp(19px, 3vw, 24px);
+    margin:38px 0 12px;
+    color:var(--ambar);
+    border-left:4px solid var(--ambar);
+    padding-left:12px;
+  }
+  h3{font-size:17px; margin:24px 0 8px; color:var(--cian)}
+  p{margin:0 0 14px}
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--borde);
+    border-radius:14px;
+    padding:18px 20px;
+    margin:16px 0;
+  }
+  .formula{
+    font-family:ui-monospace, "Cascadia Code", Consolas, monospace;
+    background:rgba(98,215,255,.08);
+    border:1px solid rgba(98,215,255,.25);
+    border-radius:10px;
+    padding:12px 16px;
+    text-align:center;
+    font-size:15.5px;
+    color:var(--cian);
+    margin:14px 0;
+  }
+  .figura{margin:22px 0; text-align:center}
+  .figura svg{width:100%; height:auto; border-radius:12px; border:1px solid var(--borde)}
+  .pie-figura{color:var(--tenue); font-size:13.5px; margin-top:8px; text-align:center}
+  table{width:100%; border-collapse:collapse; margin:14px 0; font-size:15px}
+  th, td{border:1px solid var(--borde); padding:8px 12px; text-align:center}
+  th{background:rgba(255,209,137,.08); color:var(--ambar); font-weight:700}
+  .diag{
+    border-left:4px solid var(--rojo);
+    background:rgba(255,90,82,.07);
+    border-radius:0 10px 10px 0;
+    padding:10px 14px;
+    margin:12px 0;
+  }
+  .diag b{color:#ff8a84}
+  .diag.aviso{border-left-color:var(--ambar); background:rgba(255,209,137,.06)}
+  .diag.aviso b{color:var(--ambar)}
+  .destacado{color:var(--ambar); font-weight:700}
+  .cian{color:var(--cian); font-weight:700}
+  footer{
+    margin-top:48px;
+    padding-top:16px;
+    border-top:1px solid var(--borde);
+    color:var(--tenue);
+    font-size:13px;
+    text-align:center;
+  }
+  ul{margin:0 0 14px; padding-left:22px}
+  li{margin-bottom:6px}
+</style>
+</head>
+<body>
+<div class="lienzo">
+
+<header>
+  <h1>Espejo (mitades): la física detrás del sistema</h1>
+  <p class="subtitulo">Por qué la app dibuja lo que dibuja, y por qué a veces, con toda honestidad, se niega a dibujar.</p>
+  <p class="credito">Asistente digital para billar a tres bandas · <b>© Juan José Arango E.</b></p>
+</header>
+
+<h2>1. Qué es el sistema Espejo (mitades)</h2>
+<p>El clásico <span class="destacado">sistema de mitades</span> es probablemente el primer sistema que todo jugador aprende: para llevar la bola a un punto por una banda, se apunta a la <i>mitad</i> del camino. Funciona porque, si la banda fuera un espejo perfecto, el ángulo de entrada sería igual al de salida, y el punto medio es exactamente donde el espejo pone el rebote.</p>
+<p>El módulo Espejo de esta app es la <span class="destacado">versión de precisión</span> de esa misma idea. En lugar de aproximar con mitades mentales, calcula el <span class="cian">desdoblamiento exacto de la mesa</span>: refleja la mesa a través de cada banda de la secuencia, traza una línea recta en ese mundo desplegado, y la repliega. El zigzag resultante es la solución geométrica exacta, para cualquier combinación de bandas: pasones larga-larga-larga, corta-corta-corta, o secuencias mixtas.</p>
+<p>Y como las mesas reales no son espejos perfectos, el módulo incluye el <span class="cian">coeficiente de la mesa</span>: un solo número que fija cuánto alarga su goma el rebote. El motor lo aplica con inteligencia angular, según una curva medida en mesa real: pleno en los rebotes sesgados (hasta ~52° contra la banda), desvaneciéndose en la transición, y espejo puro desde ~70°, donde la rodadura sobreviviente de la bola endereza exactamente lo que la goma alarga.</p>
+
+<h2>2. El contrato de la bola rodada</h2>
+<p>Todo sistema de billar firma un contrato con el jugador, aunque casi ninguno lo imprima: sus números valen para <i>una manera</i> de golpear. Las tablas del Base 50 asumen un golpe estándar; nuestro Espejo lo declara explícito:</p>
+<div class="panel">
+  <b>Contrato base:</b> bola rodada (golpe al centro o media bola arriba), efecto lateral cero, velocidad de pasón natural.
+</div>
+<p>Con ese contrato, todo lo que ocurre después de las bandas es geometría de espejo corregida por el coeficiente. Pero cuando la jugada empieza <span class="destacado">con bola primero</span>, hay un instante que la geometría sola no gobierna: el choque con la primera bola. Ahí manda la física, y la física de la bola rodada tiene un límite preciso que conviene conocer, porque es la razón de la mayoría de los rechazos del módulo.</p>
+
+<h3>Acto primero: qué pasa en el instante del choque</h3>
+<p>Cuando la tacadora toca la primera bola, su velocidad se reparte entre dos líneas perpendiculares: la <span class="cian">línea de centros</span> (del centro de la tacadora al centro de la bola objeto), por donde se va la energía que empuja a la otra bola; y la <span class="cian">línea tangente</span>, perpendicular a la anterior, donde queda lo que la tacadora conserva. Una bola que llegara <i>sin rotación</i> saldría exactamente por la tangente: hasta 90 grados de desviación disponibles.</p>
+
+<h3>Acto segundo: pero la bola rodada es terca</h3>
+<p>La tacadora del contrato llega <i>rodando</i>: girando hacia adelante alrededor de su dirección de viaje. Ese giro sobrevive al choque, y en cuanto la bola sale por la tangente, el giro muerde el paño y la vuelve a acelerar hacia su dirección original. La dirección final es una mezcla precisa de ambas:</p>
+<div class="formula">v<sub>final</sub> ∝ (2·cos&nbsp;θ&nbsp;/&nbsp;7) · línea de centros&nbsp;&nbsp;+&nbsp;&nbsp;sen&nbsp;θ · tangente</div>
+<p>donde θ es el ángulo de corte (0° = contacto lleno, 90° = finísimo). Ese 2/7 no es un ajuste de la app: sale de la distribución de masas de cualquier esfera maciza (momento de inercia 2/5&nbsp;mR²), la misma para toda bola de billar del planeta.</p>
+
+<h3>Acto tercero: el cono de los 34 grados y su joroba</h3>
+<p>De esa fórmula se deduce el resultado central: <span class="destacado">una bola rodada no puede terminar viajando a más de ≈34° de su línea de puntería original, taque el grueso que taque.</span> La desviación depende del corte de forma no obvia:</p>
+<table>
+  <tr><th>Ángulo de corte θ</th><th>Contacto</th><th>Desviación de la tacadora</th></tr>
+  <tr><td>≈ 0°</td><td>Lleno</td><td>≈ 0° (sigue de frente)</td></tr>
+  <tr><td>15°</td><td>Tres cuartos</td><td>≈ 28°</td></tr>
+  <tr><td><b>≈ 28°</b></td><td><b>Cerca de media bola</b></td><td><b>33.7° (el máximo)</b></td></tr>
+  <tr><td>45°</td><td>Un cuarto</td><td>≈ 29°</td></tr>
+  <tr><td>→ 90°</td><td>Finísimo</td><td>→ 0° (apenas la rozó)</td></tr>
+</table>
+<p>Es una <span class="cian">joroba</span>, no una rampa: para una desviación dada dentro del cono existen <i>dos</i> gruesos que la logran (uno fino y uno lleno, a cada lado del máximo), y el módulo prefiere el fino, que conserva la marcha. Para una desviación fuera del cono, no hay grueso que valga. Y cerca del máximo, las dos soluciones se funden en una: por eso, al borde del límite, la app añade el aviso de <i>margen de ejecución mínimo</i>: la jugada existe, pero cuelga de las uñas.</p>
+
+<h3>El diagrama: una jugada real fuera del cono</h3>
+<div class="figura">
+<svg viewBox="0 0 1500 800" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagrama del cono físico de la bola rodada">
+  <rect x="0" y="0" width="1500" height="800" fill="#0e1520"/>
+  <rect x="76" y="62" width="1348" height="708" rx="14" fill="#7a4a22"/>
+  <rect x="98" y="84" width="1304" height="664" rx="8" fill="#1e3f78"/>
+  <rect x="110" y="96" width="1280" height="640" fill="#2e6cb8"/>
+  <!-- cono de la bola rodada: ±34° alrededor de la puntería, desde A -->
+  <path d="M 641.2 414.4 L 920.8 228.3 A 336 336 0 0 1 918.7 603.6 Z"
+        fill="rgba(98,215,255,.16)" stroke="rgba(98,215,255,.75)" stroke-width="2" stroke-dasharray="6 6"/>
+  <!-- línea de puntería (B hacia A, prolongada) -->
+  <line x1="358" y1="412.8" x2="993" y2="416.4" stroke="rgba(255,255,255,.85)" stroke-width="2.6" stroke-dasharray="9 7"/>
+  <!-- línea tangente (perpendicular a la línea de centros) -->
+  <line x1="640.3" y1="262.4" x2="642.1" y2="566.4" stroke="rgba(255,255,255,.5)" stroke-width="2" stroke-dasharray="3 6"/>
+  <!-- salida requerida: fuera del cono -->
+  <line x1="641.2" y1="414.4" x2="742" y2="96" stroke="#ff5a52" stroke-width="5"/>
+  <!-- la M pretendida, fantasmal -->
+  <path d="M 742 96 L 950 736 L 1158 96 L 1361.2 702.4"
+        fill="none" stroke="rgba(255,255,255,.30)" stroke-width="2" stroke-dasharray="5 8"/>
+  <!-- bolas -->
+  <circle cx="358" cy="412.8" r="17.3" fill="#f4f4f4" stroke="rgba(0,0,0,.7)" stroke-width="2.4"/>
+  <text x="358" y="418" font-size="15" font-weight="700" fill="#333" text-anchor="middle">B</text>
+  <circle cx="641.2" cy="414.4" r="17.3" fill="#ffd23f" stroke="rgba(0,0,0,.7)" stroke-width="2.4"/>
+  <text x="641.2" y="419.6" font-size="15" font-weight="700" fill="#222" text-anchor="middle">A</text>
+  <circle cx="1361.2" cy="702.4" r="17.3" fill="#ff4d4d" stroke="rgba(0,0,0,.7)" stroke-width="2.4"/>
+  <text x="1361.2" y="707.6" font-size="15" font-weight="700" fill="#222" text-anchor="middle">R</text>
+  <!-- rótulos -->
+  <g font-family="ui-sans-serif, system-ui, sans-serif" font-weight="700" stroke="rgba(0,0,0,.8)" stroke-width="5" paint-order="stroke">
+    <text x="462" y="376" font-size="17" fill="#ffffff">línea de puntería</text>
+    <text x="550" y="216" font-size="15" fill="rgba(255,255,255,.9)">línea tangente (90°, solo con bola picada)</text>
+    <text x="878" y="488" font-size="17" fill="#8fdcff">cono de la bola rodada: ±34°</text>
+    <text x="878" y="532" font-size="14" fill="#8fdcff">(todo lo que el grueso puede lograr)</text>
+    <text x="672" y="152" font-size="17" fill="#ff8a84">salida requerida ≈72°: FUERA del cono</text>
+    <text x="710" y="680" font-size="14" fill="rgba(255,255,255,.65)">la M pretendida (inalcanzable con bola rodada desde aquí)</text>
+  </g>
+</svg>
+<p class="pie-figura">La blanca (B) casi directamente detrás de la amarilla (A): la salida que el pasón exige forma ≈72° con la línea de puntería, más del doble del techo del cono celeste. Con bola rodada, esa jugada no existe; con bola picada, sí (vea el segundo contrato).</p>
+</div>
+
+<h3>Acto cuarto: el pedigrí del número</h3>
+<p>Este resultado no es folclor de club. Lo fundó <span class="destacado">Gaspard-Gustave de Coriolis</span> (sí, el del efecto Coriolis) en su tratado de 1835 <i>Théorie mathématique des effets du jeu de billard</i>, el primer análisis matemático serio del juego. En la era moderna, el físico <span class="destacado">David Alciatore</span> lo midió y lo convirtió en herramienta de instrucción con el nombre de <i>regla de los 30 grados</i>: entre un cuarto y tres cuartos de bola, la tacadora rodada sale siempre a unos 30 grados de su línea original. Cuando esta app rechaza una jugada citando el límite físico, quien habla es Coriolis con paño y diamantes.</p>
+
+<h2>3. El segundo contrato: picada / tangente</h2>
+<p>La app ofrece un segundo contrato explícito para las jugadas con bola primero, seleccionable en <b>Golpe al contacto</b>:</p>
+<div class="panel">
+  <b>Contrato picada:</b> la tacadora llega <i>deslizando</i> al contacto (golpe abajo y firme, que mata la rodadura) y sale exactamente por la línea tangente, perpendicular a la línea de centros. Hasta 90 grados disponibles. Efecto lateral cero. Tras las bandas aplica el mismo espejo con su coeficiente.
+</div>
+<p>La picada abre las jugadas que el cono de la rodada prohíbe, como la del diagrama. Su letra menuda es la distancia: el deslizamiento es una criatura de vida corta, y el paño lo convierte en rodadura por el camino. Mantener la bola picada hasta un contacto lejano exige golpe firme y abajo; la app lo advierte cuando la tacadora está a más de un metro de la primera bola. Y el contacto muy lleno tiene su propio aviso: por la tangente, una tacadora llena sale casi sin marcha.</p>
+
+<h2>4. Los diagnósticos del módulo y qué hacer con cada uno</h2>
+<div class="diag"><b>Sin solución geométrica para esta secuencia.</b> El desdoblamiento no encuentra ningún camino que cumpla la secuencia declarada desde estas posiciones. Pruebe otra secuencia de bandas u otro orden; a menudo la misma carambola existe por otra puerta.</div>
+<div class="diag"><b>Contacto fuera del límite físico de la bola rodada.</b> La salida que la secuencia exige tras el contacto supera el cono de ≈34°. Tres caminos: cambiar la secuencia (la app suele encontrar rutas alternativas realizables), mover la posición de estudio, o cambiar al contrato picada, cuyo territorio llega hasta la tangente.</div>
+<div class="diag"><b>La tangente no alcanza la secuencia (picada).</b> Ni siquiera la salida perpendicular produce el camino declarado desde esta posición. La jugada pide otra secuencia u otra posición.</div>
+<div class="diag"><b>Dos bandas consecutivas iguales.</b> Físicamente imposible: la bola no puede tocar dos veces seguidas la misma banda sin tocar otra en medio.</div>
+<div class="diag aviso"><b>Aviso: margen de ejecución mínimo.</b> La jugada existe, pero está al borde del cono: las dos soluciones de grueso casi se han fundido en una. En la mesa, milímetros de error la vuelven imposible. Considere una secuencia con más margen.</div>
+<div class="diag aviso"><b>Aviso: incidencia muy rasante en una banda.</b> La trayectoria entra casi paralela a esa banda, y las bandas reales se portan peor en ángulos rasantes: el rebote será poco confiable.</div>
+<div class="diag aviso"><b>Aviso: posible beso.</b> Una bola ajena a la secuencia está cerca de la línea calculada y puede interceptarla.</div>
+<div class="diag aviso"><b>Aviso: contacto muy fino / muy lleno.</b> La solución existe pero en un extremo del grueso: el fino exige puntería quirúrgica; el lleno resta marcha a la tacadora.</div>
+
+<h2>5. Para cerrar: la filosofía del módulo</h2>
+<p>El Espejo prefiere negarse a dibujar antes que dibujar una fantasía. Cada trayectoria que muestra es geometría exacta bajo un contrato declarado; cada rechazo viene con su motivo físico; y cada aviso le dice dónde el modelo pisa terreno resbaloso. La mesa siempre tiene la última palabra, y para eso está el video con datos superpuestos: para comparar el plan contra la rodadura real, contacto por contacto, en el idioma de los diamantes.</p>
+
+<footer>
+  Espejo (mitades) · Asistente digital para billar a tres bandas · © Juan José Arango E.<br/>
+  Física del contacto: Coriolis (1835) · Regla de los 30°: D. Alciatore.
+</footer>
+
+</div>
+</body>
+</html>
