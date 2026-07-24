@@ -750,6 +750,31 @@
       visibility:visible;
       transform:translateX(-50%) translateY(0);
     }
+    .boardNotice{
+      position:absolute;
+      top:26px;
+      left:50%;
+      transform:translateX(-50%);
+      max-width:min(92%, 980px);
+      background:rgba(10,16,24,.86);
+      border:1px solid rgba(255,189,89,.55);
+      border-radius:10px;
+      padding:9px 16px;
+      color:#ffd189;
+      font-weight:700;
+      font-size:15px;
+      text-align:center;
+      z-index:6;
+      box-shadow:0 6px 18px rgba(0,0,0,.35);
+    }
+    .boardNotice a{
+      color:#8fdcff;
+      font-weight:700;
+      text-decoration:underline;
+      text-underline-offset:3px;
+      white-space:nowrap;
+    }
+    .boardNotice a:hover{color:#bfe9ff}
     .noPlanBtn{
       display:block;
       width:100%;
@@ -1777,6 +1802,7 @@
 <section class="stage">
 <div class="canvasWrap" id="canvasWrap">
 <canvas id="table"></canvas>
+<div class="boardNotice" id="boardNotice" style="display:none"><span id="boardNoticeText"></span>&nbsp;·&nbsp;<a href="explicacion.html" id="boardNoticeLink" rel="noopener" target="_blank">Mayor explicación</a></div>
 <canvas aria-hidden="true" class="loupeCanvas" height="528" id="loupe" width="528"></canvas>
 <div aria-hidden="true" class="connectorMapAdvisory" id="connectorMapAdvisory"></div>
 <div aria-live="polite" class="lklFourthAdvisory" id="lklFourthAdvisory"></div>
@@ -1851,6 +1877,7 @@
 <option value="yellow">Amarilla</option>
 </select><p class="small" id="cueBallHelp">Por defecto la app asume que la bola tacadora es la blanca. Si selecciona amarilla, todos los cálculos usan la amarilla como bola de salida.</p><label for="systemMode">Sistema de cálculo</label><select id="systemMode">
 <option selected="" value="lkl">LKL / Base 50</option>
+<option value="mirror">Espejo (mitades)</option>
 <option value="plus">Plus</option>
 </select><p class="small" id="systemHelp">LKL / Base 50 queda reservado para recorridos de hasta tres bandas. El módulo Plus queda reservado para figuras corta → larga → larga con tercera banda larga como banda del cero.</p></div></details><details class="menuModule" id="modulePrecisePosition"><summary><span class="moduleTitle">Ubique las bolas midiendo las distancias a las bandas</span><span class="moduleState" id="modulePrecisePositionState">Entrada manual en centímetros</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><p class="small">Puede arrastrar las bolas o escribir directamente las distancias en centímetros. Use punto o coma decimal. La bola se mueve mientras escribe. Superficie jugable: 284 × 142 cm de banda a banda. Marco visual: banda azul interna de 5 cm y baranda café de 9 cm. Salida y ataque se leen proyectados al eje central de los diamantes; la llegada se marca sobre el borde interno de la banda.</p><div class="ballBox">
 <h3 id="whiteBallBoxTitle">Blanca tacadora</h3>
@@ -2009,7 +2036,7 @@
 <option value="bottom">Larga inferior</option>
 <option value="left">Corta izquierda</option>
 </select>
-</div><p class="small" id="sequenceHelp">Seleccione si la jugada empieza con bola primero o con banda previa, y luego indique la secuencia de bandas.</p></div></details><details class="menuModule" id="moduleVideoReplay"><summary><span class="moduleTitle" style="color:#ff5a5a">Video de la jugada con datos superpuestos</span><span class="moduleState" id="moduleVideoReplayState">Cámara cenital · sin calibrar</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><p class="small" style="margin:0 0 10px;">Grabe la ejecución real con la cámara cenital y revísela con los datos de la jugada (punto y línea de Ataque, y punto de Llegada) superpuestos sobre el video, con cámara lenta y avance cuadro a cuadro. La grabación incluye el audio del micrófono de la cámara. Requiere calibrar una sola vez las cuatro esquinas de la mesa, mientras la cámara no se mueva. <b>Si aplica posiciones desde una captura cenital del detector automático, esa calibración se reutiliza sola.</b></p><button class="cameraCaptureBtn" id="videoReplayRecordBtn" type="button">Grabar jugada</button><button id="videoReplayCalibBtn" type="button">Calibrar superposición</button><div aria-live="polite" class="cameraCaptureStatus" id="videoReplayModuleStatus" role="status">Los datos superpuestos (Ataque y Llegada) serán los que estén calculados en ese momento (por ejemplo, LKL / Base 50 con la tacadora y la secuencia de bandas elegidas).</div></div></details><details class="menuModule" id="moduleEffect"><summary><span class="moduleTitle">Efecto y golpe</span><span class="moduleState" id="moduleEffectState">Positivo · efecto 3 · Penetrado largo</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><div aria-controls="contiTooltip" aria-expanded="false" class="contiHelpAnchor" id="contiHelpAnchor" tabindex="0"><label for="english">Dirección del efecto</label><span aria-hidden="true" class="contiHelpIcon">i</span></div><select id="english">
+</div><div id="mirrorControls" style="display:none"><div id="mirrorStrikeBlock" style="display:none"><label for="mirrorStrike">Golpe al contacto</label><select id="mirrorStrike"><option selected="" value="rolling">Rodada (cono de ≈34°)</option><option value="stun">Picada / tangente (90°)</option></select></div><label for="mirrorCoef">Coeficiente de la mesa: <span id="mirrorCoefVal">1.00</span></label><input id="mirrorCoef" max="1.45" min="0.85" step="0.01" type="range" value="1.25"/><p class="small" style="margin:4px 0 10px;">El deslizador fija el alargamiento máximo de su mesa, que aplica pleno en los rebotes sesgados; en los empinados (más de ~52° contra la banda) el motor lo reduce solo, hasta el espejo puro cerca de los 70°, según la curva medida en mesa. Viene ajustado para una mesa típica (1.25); si sus bolas llegan sistemáticamente largas o cortas respecto de la línea, muévalo hasta que coincidan y quedará guardado.</p><label style="display:flex; gap:8px; align-items:center; cursor:pointer; margin:0 0 6px;"><input id="mirrorShowHalves" style="width:auto" type="checkbox"/> <span class="small">Mostrar construcción de mitades</span></label><p class="small" id="mirrorContract" style="margin:2px 0 10px;">Sistema de espejo geométrico. Base: bola rodada (centro o media bola arriba), efecto lateral cero, velocidad de pasón natural. El efecto lateral no participa del cálculo.</p></div><p class="small" id="sequenceHelp">Seleccione si la jugada empieza con bola primero o con banda previa, y luego indique la secuencia de bandas.</p></div></details><details class="menuModule" id="moduleVideoReplay"><summary><span class="moduleTitle" style="color:#ff5a5a">Video de la jugada con datos superpuestos</span><span class="moduleState" id="moduleVideoReplayState">Cámara cenital · sin calibrar</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><p class="small" style="margin:0 0 10px;">Grabe la ejecución real con la cámara cenital y revísela con los datos de la jugada (punto y línea de Ataque, y punto de Llegada) superpuestos sobre el video, con cámara lenta y avance cuadro a cuadro. La grabación incluye el audio del micrófono de la cámara. Requiere calibrar una sola vez las cuatro esquinas de la mesa, mientras la cámara no se mueva. <b>Si aplica posiciones desde una captura cenital del detector automático, esa calibración se reutiliza sola.</b></p><button class="cameraCaptureBtn" id="videoReplayRecordBtn" type="button">Grabar jugada</button><button id="videoReplayCalibBtn" type="button">Calibrar superposición</button><div aria-live="polite" class="cameraCaptureStatus" id="videoReplayModuleStatus" role="status">Los datos superpuestos (Ataque y Llegada) serán los que estén calculados en ese momento (por ejemplo, LKL / Base 50 con la tacadora y la secuencia de bandas elegidas).</div></div></details><details class="menuModule" id="moduleEffect"><summary><span class="moduleTitle">Efecto y golpe</span><span class="moduleState" id="moduleEffectState">Positivo · efecto 3 · Penetrado largo</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><div aria-controls="contiTooltip" aria-expanded="false" class="contiHelpAnchor" id="contiHelpAnchor" tabindex="0"><label for="english">Dirección del efecto</label><span aria-hidden="true" class="contiHelpIcon">i</span></div><select id="english">
 <option value="positive">Positivo: abre / alarga</option>
 <option value="neutral">Sin efecto lateral</option>
 <option value="negative">Negativo: cierra / acorta</option>
@@ -3957,6 +3984,26 @@
     const isLong = c.systemMode === 'long';
     const isLkl = c.systemMode === 'lkl';
     const isPlus = c.systemMode === 'plus';
+    const isMirror = c.systemMode === 'mirror';
+    const mirrorBlock = ids('mirrorControls');
+    if(mirrorBlock) mirrorBlock.style.display = isMirror ? 'block' : 'none';
+    // El golpe al contacto solo aplica con bola primero.
+    const strikeBlock = ids('mirrorStrikeBlock');
+    if(strikeBlock) strikeBlock.style.display = (isMirror && !isCushionFirstModeValue(c.mode)) ? 'block' : 'none';
+    const contractEl = ids('mirrorContract');
+    if(contractEl && isMirror){
+      const esPicada = !isCushionFirstModeValue(c.mode) && ids('mirrorStrike') && ids('mirrorStrike').value === 'stun';
+      contractEl.textContent = esPicada
+        ? 'Contrato picada: la tacadora llega deslizando al contacto (golpe abajo y firme) y sale por la línea tangente, perpendicular a la línea de centros. Efecto lateral cero. Tras las bandas aplica el mismo espejo con su coeficiente.'
+        : 'Sistema de espejo geométrico. Base: bola rodada (centro o media bola arriba), efecto lateral cero, velocidad de pasón natural. El efecto lateral no participa del cálculo.';
+    }
+    // Los conectores 4→5 / 5→6 y la cabaña son instrumentos del LKL:
+    // en Espejo (mitades) se ocultan para no confundir.
+    document.querySelectorAll('.connectorButtonFamily').forEach(el => {
+      el.style.display = isMirror ? 'none' : '';
+    });
+    const cabinBadge = ids('autoCabinBadge');
+    if(cabinBadge) cabinBadge.style.display = isMirror ? 'none' : '';
     const extra = ids('longRailsExtra');
     if(extra) extra.style.display = isLong ? 'block' : 'none';
 
@@ -3966,7 +4013,7 @@
     }
 
     if(ids('thirdRailLabel')){
-      ids('thirdRailLabel').textContent = isLkl
+      ids('thirdRailLabel').textContent = (isLkl || isMirror)
         ? 'Tercera banda'
         : (isPlus ? 'Tercera banda (cero)' : 'Tercera banda opcional');
     }
@@ -3975,8 +4022,8 @@
     if(thirdSelect){
       [...thirdSelect.options].forEach(opt => {
         if(opt.value === 'auto' || opt.value === 'none'){
-          opt.hidden = isLkl || isPlus;
-          opt.disabled = isLkl || isPlus;
+          opt.hidden = isLkl || isPlus || isMirror;
+          opt.disabled = isLkl || isPlus || isMirror;
         } else {
           opt.hidden = false;
           opt.disabled = false;
@@ -3992,10 +4039,15 @@
         thirdSelect.value = isLongRail(c.rail2) ? oppositeLong(c.rail2) : 'bottom';
         c.thirdRail = thirdSelect.value;
       }
+
+      if(isMirror && (thirdSelect.value === 'auto' || thirdSelect.value === 'none')){
+        thirdSelect.value = oppositeSameType(c.rail2);
+        c.thirdRail = thirdSelect.value;
+      }
     }
 
     const fourthBlock = ids('fourthRailBlock');
-    const showFourthRail = isLkl; // cuarta banda opcional solo en LKL / Base 50.
+    const showFourthRail = isLkl || isMirror; // cuarta banda: LKL / Base 50 y Espejo.
     if(fourthBlock) fourthBlock.style.display = showFourthRail ? 'block' : 'none';
     if(ids('fourthRail')){
       ids('fourthRail').disabled = !showFourthRail;
@@ -4034,7 +4086,7 @@
 
     const firstBallSelect = ids('firstBall');
     if(firstBallSelect){
-      const midpointAllowed = (c.systemMode === 'lkl' || c.systemMode === 'long') &&
+      const midpointAllowed = (c.systemMode === 'lkl' || c.systemMode === 'long' || c.systemMode === 'mirror') &&
         isCushionFirstModeValue(c.mode);
       [...firstBallSelect.options].forEach(opt => {
         if(opt.value === 'midpoint'){
@@ -5314,6 +5366,7 @@
     if(c.systemMode === 'clc') enforceClcControls(c);
     if(c.systemMode === 'long') enforceLongTourControls(c);
     if(c.systemMode === 'plus') enforcePlusControls(c);
+    if(c.systemMode === 'mirror') enforceMirrorControls(c);
     updateSystemModeUi(c);
     const neutralEnglish = c.english === 'neutral';
     const effectLevel = neutralEnglish ? 0 : c.tips;
@@ -5629,6 +5682,535 @@
   // Activa o desactiva el modo sin planear. El botón funciona como un
   // conmutador, y elegir cualquier opción de Secuencia de la jugada lo
   // apaga automáticamente (ver el cableado de los selectores al final).
+  // ============================================================
+  // MOTOR ESPEJO (MITADES)
+  // Tercer sistema de la app: geometría de reflexión exacta con
+  // coeficiente de mesa. Contrato: bola rodada (centro o media
+  // bola arriba), efecto lateral cero, velocidad de pasón natural.
+  // ============================================================
+  const MIRROR_COEF_KEY = 'tresBandasEspejoCoefV1';
+
+  function mirrorCoefficient(){
+    const el = ids('mirrorCoef');
+    const v = el ? parseFloat(el.value) : 1;
+    return clamp(Number.isFinite(v) ? v : 1, 0.85, 1.45);
+  }
+
+  function enforceMirrorControls(c){
+    if(c.systemMode !== 'mirror') return c;
+    if(!c.thirdRail || c.thirdRail === 'none' || c.thirdRail === 'auto'){
+      c.thirdRail = oppositeSameType(c.rail2);
+      if(ids('thirdRail')) ids('thirdRail').value = c.thirdRail;
+    }
+    if(!c.fourthRail) c.fourthRail = 'none';
+    c.fifthRail = 'none';
+    c.sixthRail = 'none';
+    if(ids('fifthRail')) ids('fifthRail').value = 'none';
+    if(ids('sixthRail')) ids('sixthRail').value = 'none';
+    return c;
+  }
+
+  const mirrorVec = {
+    sub:(a,b)=>({x:a.x-b.x, y:a.y-b.y}),
+    add:(a,b)=>({x:a.x+b.x, y:a.y+b.y}),
+    mul:(a,s)=>({x:a.x*s, y:a.y*s}),
+    dot:(a,b)=>a.x*b.x + a.y*b.y,
+    len:a=>Math.hypot(a.x, a.y),
+    norm(a){ const L = Math.hypot(a.x, a.y) || 1; return {x:a.x/L, y:a.y/L}; }
+  };
+
+  // Curva de alargamiento según el ángulo de incidencia (medida en la
+  // mesa, julio de 2026): el alargamiento es pleno en los rebotes
+  // sesgados (hasta ~52° contra la banda), se desvanece suavemente en
+  // la transición, y desde ~70° la banda se comporta como espejo (la
+  // rodadura sobreviviente endereza lo que la goma alarga). El
+  // deslizador fija el techo (kMax); esta función pone la forma.
+  const MIRROR_ANGLE_PLATEAU = 52;   // grados contra la banda
+  const MIRROR_ANGLE_MIRROR = 70;
+  function mirrorAngleFactor(thetaDeg){
+    if(thetaDeg <= MIRROR_ANGLE_PLATEAU) return 1;
+    if(thetaDeg >= MIRROR_ANGLE_MIRROR) return 0;
+    const u = (thetaDeg - MIRROR_ANGLE_PLATEAU) / (MIRROR_ANGLE_MIRROR - MIRROR_ANGLE_PLATEAU);
+    return 1 - (3*u*u - 2*u*u*u);
+  }
+
+  // Rebote con coeficiente consciente del ángulo: la componente normal
+  // se invierte y la tangencial se multiplica por el alargamiento
+  // efectivo de ese rebote.
+  function mirrorBounce(dir, rail, k){
+    const horiz = rail === 'top' || rail === 'bottom';
+    const tang = Math.abs(horiz ? dir.x : dir.y);
+    const norm = Math.abs(horiz ? dir.y : dir.x);
+    const theta = Math.atan2(norm, tang) * 180 / Math.PI;
+    const kEf = 1 + (k - 1) * mirrorAngleFactor(theta);
+    if(horiz) return mirrorVec.norm({x:dir.x*kEf, y:-dir.y});
+    return mirrorVec.norm({x:-dir.x, y:dir.y*kEf});
+  }
+
+  function mirrorRailPoint(rail, t){
+    if(rail === 'top') return {x:t, y:0};
+    if(rail === 'bottom') return {x:t, y:TABLE.H};
+    if(rail === 'left') return {x:0, y:t};
+    return {x:TABLE.W, y:t};
+  }
+
+  function mirrorRailSpan(rail){
+    return (rail === 'top' || rail === 'bottom') ? TABLE.W : TABLE.H;
+  }
+
+  // Primer borde que un rayo alcanza desde el interior de la mesa.
+  function mirrorRayExit(P, dir){
+    let best = null;
+    const cands = [
+      {rail:'top',    s: dir.y < -1e-9 ? (0 - P.y) / dir.y : Infinity},
+      {rail:'bottom', s: dir.y >  1e-9 ? (TABLE.H - P.y) / dir.y : Infinity},
+      {rail:'left',   s: dir.x < -1e-9 ? (0 - P.x) / dir.x : Infinity},
+      {rail:'right',  s: dir.x >  1e-9 ? (TABLE.W - P.x) / dir.x : Infinity}
+    ];
+    for(const cd of cands){
+      if(cd.s > 1e-7 && Number.isFinite(cd.s) && (!best || cd.s < best.s)) best = cd;
+    }
+    if(!best) return null;
+    return {rail:best.rail, s:best.s, point:{x:P.x + dir.x*best.s, y:P.y + dir.y*best.s}};
+  }
+
+  // Traza la cadena de rebotes fijando el punto de contacto en la
+  // primera banda; exige que cada tramo llegue a la banda declarada.
+  function mirrorTrace(S, rails, t, k){
+    const P1 = mirrorRailPoint(rails[0], t);
+    const d0 = mirrorVec.sub(P1, S);
+    if(mirrorVec.len(d0) < 1e-6) return null;
+    let dir = mirrorVec.norm(d0);
+    const exit0 = mirrorRayExit(S, dir);
+    if(!exit0 || exit0.rail !== rails[0]) return null;
+    if(Math.hypot(exit0.point.x - P1.x, exit0.point.y - P1.y) > 0.03) return null;
+    const contacts = [P1];
+    let P = P1;
+    for(let i = 1; i < rails.length; i++){
+      dir = mirrorBounce(dir, rails[i-1], k);
+      const exit = mirrorRayExit(P, dir);
+      if(!exit || exit.rail !== rails[i]) return null;
+      P = exit.point;
+      const enLarga = rails[i] === 'top' || rails[i] === 'bottom';
+      if(enLarga ? (P.x < 0.25 || P.x > TABLE.W - 0.25) : (P.y < 0.25 || P.y > TABLE.H - 0.25)) return null;
+      contacts.push(P);
+    }
+    dir = mirrorBounce(dir, rails[rails.length - 1], k);
+    return {contacts, outDir:dir, outFrom:P};
+  }
+
+  // Distancia perpendicular con signo del rayo de salida al objetivo,
+  // o null si el objetivo queda detrás o fuera de alcance.
+  function mirrorMiss(trace, T){
+    const rel = mirrorVec.sub(T, trace.outFrom);
+    const ahead = mirrorVec.dot(rel, trace.outDir);
+    if(ahead <= 0.1) return null;
+    const exit = mirrorRayExit(trace.outFrom, trace.outDir);
+    if(exit && exit.s < ahead - 1e-6) return null;
+    return trace.outDir.x * rel.y - trace.outDir.y * rel.x;
+  }
+
+  // Barrido + bisección sobre el punto de contacto en la primera
+  // banda. Si hay varias soluciones, gana la de camino más corto.
+  function solveMirrorPath(S, rails, T, k){
+    const span = mirrorRailSpan(rails[0]);
+    const N = 640;
+    let prev = null;
+    const roots = [];
+    for(let i = 0; i <= N; i++){
+      const t = 0.25 + (span - 0.5) * i / N;
+      const tr = mirrorTrace(S, rails, t, k);
+      const m = tr ? mirrorMiss(tr, T) : null;
+      if(prev && m !== null && prev.m !== null && (m > 0) !== (prev.m > 0)){
+        let a = prev.t, b = t, ma = prev.m;
+        for(let j = 0; j < 52; j++){
+          const mid = (a + b) / 2;
+          const trm = mirrorTrace(S, rails, mid, k);
+          const mm = trm ? mirrorMiss(trm, T) : null;
+          if(mm === null) break;
+          if((mm > 0) === (ma > 0)){ a = mid; ma = mm; } else { b = mid; }
+        }
+        const tSol = (a + b) / 2;
+        const trSol = mirrorTrace(S, rails, tSol, k);
+        const mSol = trSol ? mirrorMiss(trSol, T) : null;
+        if(trSol && mSol !== null && Math.abs(mSol) < 0.08){
+          const pts = [S].concat(trSol.contacts).concat([T]);
+          let L = 0;
+          for(let p = 1; p < pts.length; p++) L += Math.hypot(pts[p].x - pts[p-1].x, pts[p].y - pts[p-1].y);
+          roots.push({t:tSol, trace:trSol, length:L});
+        }
+      }
+      prev = (m === null) ? null : {t, m};
+    }
+    if(!roots.length) return null;
+    roots.sort((a, b) => a.length - b.length);
+    return roots[0];
+  }
+
+  // Contacto con bola primero, modelo de bola rodada sin efecto: tras
+  // el choque, la dirección final de la tacadora es
+  //   v_f ∝ (2·cosθ/7)·n̂ + sinθ·t̂
+  // (θ = ángulo de corte; n̂ hacia el centro de la bola objeto; t̂ la
+  // tangencial). Se busca el punto fantasma G sobre el círculo de
+  // radio 2R alrededor de la bola que produce la salida requerida.
+  // La desviación máxima físicamente alcanzable es ≈ 34°. De las dos
+  // soluciones (fina y llena) se prefiere la fina, que conserva la
+  // marcha, como se tacan los pasones.
+  function mirrorContactSolve(C, B, d1){
+    const R2 = BALL_R * 2;
+    const EVAL = phi => {
+      const G = {x:B.x + R2 * Math.cos(phi), y:B.y + R2 * Math.sin(phi)};
+      const d0 = mirrorVec.norm(mirrorVec.sub(G, C));
+      const n = mirrorVec.norm(mirrorVec.sub(B, G));
+      const c0 = mirrorVec.dot(d0, n);
+      if(c0 <= 0.02) return null;
+      const tRaw = mirrorVec.sub(d0, mirrorVec.mul(n, c0));
+      const tLen = mirrorVec.len(tRaw);
+      const tHat = tLen > 1e-9 ? mirrorVec.mul(tRaw, 1 / tLen) : {x:-n.y, y:n.x};
+      const vf = mirrorVec.norm(mirrorVec.add(mirrorVec.mul(n, 2 * c0 / 7), mirrorVec.mul(tHat, tLen)));
+      const err = Math.atan2(vf.x * d1.y - vf.y * d1.x, vf.x * d1.x + vf.y * d1.y);
+      return {G, cut:c0, err};
+    };
+    // Búsqueda de raíces del error con signo: se recorren los cruces
+    // por cero a lo largo del círculo de contacto y se bisecta cada
+    // uno. De las soluciones jugables se prefiere la más fina (que
+    // conserva la marcha, como se tacan los pasones).
+    const roots = [];
+    let prevEv = null, prevPhi = 0;
+    for(let i = 0; i <= 720; i++){
+      const phi = i * Math.PI * 2 / 720;
+      const ev = EVAL(phi);
+      if(ev && prevEv && ((ev.err > 0) !== (prevEv.err > 0)) &&
+         Math.abs(ev.err) < 0.6 && Math.abs(prevEv.err) < 0.6){
+        let a = prevPhi, b = phi, ea = prevEv.err;
+        for(let j = 0; j < 60; j++){
+          const mid = (a + b) / 2;
+          const em = EVAL(mid);
+          if(!em) break;
+          if((em.err > 0) === (ea > 0)){ a = mid; ea = em.err; } else { b = mid; }
+        }
+        const fin = EVAL((a + b) / 2);
+        if(fin && Math.abs(fin.err) < 0.012) roots.push(fin);
+      }
+      prevEv = ev;
+      prevPhi = phi;
+    }
+    if(!roots.length) return null;
+    roots.sort((x, y) => x.cut - y.cut);
+    const jugables = roots.filter(r => r.cut >= 0.05);
+    const pick = (jugables.length ? jugables : roots)[0];
+    // Cerca del límite físico, las dos soluciones (fina y llena) se
+    // funden en una: eso delata el borde del cono y el margen mínimo.
+    const spread = roots.length >= 2 ? (roots[roots.length - 1].cut - roots[0].cut) : 0;
+    return {G:pick.G, cut:pick.cut, nearLimit: roots.length < 2 || spread < 0.16};
+  }
+
+  // Contrato picada: la tacadora llega deslizando (sin rodadura) y
+  // sale exactamente por la línea tangente, perpendicular a la línea
+  // de centros. Geometría cerrada: dados C, B y la salida requerida,
+  // hay a lo sumo dos lados de la bola candidatos; se prefiere el que
+  // conserva más marcha por la tangente.
+  function mirrorContactSolveStun(C, B, d1){
+    const R2 = BALL_R * 2;
+    let best = null;
+    for(const s of [1, -1]){
+      const n = {x:-d1.y * s, y:d1.x * s};
+      const G = {x:B.x - n.x * R2, y:B.y - n.y * R2};
+      const d0 = mirrorVec.norm(mirrorVec.sub(G, C));
+      const c0 = mirrorVec.dot(d0, n);
+      const vel = mirrorVec.dot(d0, d1);
+      if(c0 <= 0.03 || vel <= 0.03) continue;
+      if(!best || vel > best.vel) best = {G, cut:c0, vel};
+    }
+    return best;
+  }
+
+  // Coordenada de diamantes: las largas van de 0 a 8 y las cortas de
+  // 0 a 4 (los diamantes caen cada 10 unidades de la mesa 80 × 40).
+  const MIRROR_RAIL_ABREV = {top:'LS', bottom:'LI', left:'CI', right:'CD'};
+  function mirrorContactInfo(p, i, rails){
+    const rail = rails[i];
+    const horiz = rail === 'top' || rail === 'bottom';
+    const dv = ((horiz ? p.x : p.y) / 10).toFixed(1);
+    return {x:p.x, y:p.y, n:i + 1, rail, dv, rotulo:MIRROR_RAIL_ABREV[rail] + ' ' + dv};
+  }
+
+  function mirrorBallName(key){
+    return key === 'white' ? 'blanca' : (key === 'yellow' ? 'amarilla' : 'roja');
+  }
+
+  function computeMirrorShot(c){
+    const cueKey = c.cueBall === 'yellow' ? 'yellow' : 'white';
+    const cue = balls[cueKey];
+    const rails = [c.rail1, c.rail2, c.thirdRail];
+    if(c.fourthRail && c.fourthRail !== 'none') rails.push(c.fourthRail);
+    for(let i = 1; i < rails.length; i++){
+      if(rails[i] === rails[i-1]){
+        return {error:'Espejo: dos bandas consecutivas no pueden ser la misma. Corrija la secuencia.', brief:'bandas consecutivas iguales'};
+      }
+    }
+    const k = mirrorCoefficient();
+    const objKeys = objectBallKeysForCueKey(cueKey);
+    const warnings = [];
+
+    const rasanteCheck = trace => {
+      let dir = mirrorVec.norm(mirrorVec.sub(trace.contacts[0], trace.S0));
+      for(let i = 0; i < trace.contacts.length; i++){
+        const rail = rails[i];
+        const horiz = rail === 'top' || rail === 'bottom';
+        const grados = Math.abs(Math.asin(clamp(horiz ? dir.y : dir.x, -1, 1))) * 180 / Math.PI;
+        if(grados < 12){
+          warnings.push('Incidencia muy rasante en la banda ' + (i + 1) + ': el rebote real será poco confiable.');
+        }
+        dir = mirrorBounce(dir, rail, k);
+      }
+    };
+
+    const besoCheck = (pts, ignorar) => {
+      for(const key of ['white', 'yellow', 'red']){
+        if(ignorar.includes(key)) continue;
+        const Bb = balls[key];
+        if(!Bb) continue;
+        for(let i = 1; i < pts.length; i++){
+          const A = pts[i-1], Bp = pts[i];
+          const ab = mirrorVec.sub(Bp, A);
+          const L2 = mirrorVec.dot(ab, ab);
+          if(L2 < 1e-9) continue;
+          const u = clamp(mirrorVec.dot(mirrorVec.sub(Bb, A), ab) / L2, 0, 1);
+          const q = {x:A.x + ab.x * u, y:A.y + ab.y * u};
+          if(Math.hypot(Bb.x - q.x, Bb.y - q.y) < BALL_R * 2 + 0.3){
+            warnings.push('La ' + mirrorBallName(key) + ' estorba la línea calculada (posible beso).');
+            return;
+          }
+        }
+      }
+    };
+
+    if(c.mode === 'cushionFirst'){
+      let T, targetDesc, targetKeys;
+      if(c.firstBall === 'midpoint'){
+        T = midpointBetweenObjectBalls(c);
+        targetDesc = 'entre la ' + mirrorBallName(objKeys[0]) + ' y la ' + mirrorBallName(objKeys[1]);
+        targetKeys = objKeys.slice();
+      } else {
+        const tk = objKeys.includes(c.firstBall) ? c.firstBall : objKeys[0];
+        T = balls[tk];
+        targetDesc = 'la ' + mirrorBallName(tk);
+        targetKeys = [tk];
+      }
+      const sol = solveMirrorPath(cue, rails, T, k);
+      if(!sol) return {error:'Espejo: sin solución geométrica para esta secuencia desde estas posiciones.', brief:'sin solución geométrica para esta secuencia'};
+      sol.trace.S0 = cue;
+      rasanteCheck(sol.trace);
+      const pts = [{x:cue.x, y:cue.y}].concat(sol.trace.contacts).concat([{x:T.x, y:T.y}]);
+      besoCheck(pts, [cueKey].concat(targetKeys));
+      const contactos = sol.trace.contacts.map((p, i) => mirrorContactInfo(p, i, rails));
+      return {
+        mirrorShot:true,
+        path:{points:pts},
+        mirror:{
+          contacts: contactos,
+          targetPoint: c.firstBall === 'midpoint' ? {x:T.x, y:T.y} : null
+        },
+        warnings,
+        receta: contactos.map(ct => ct.rotulo).join(' → '),
+        resumen:'Banda previa hacia ' + targetDesc + ' · k=' + k.toFixed(2)
+      };
+    }
+
+    // Bola primero.
+    let firstKey = (c.firstBall !== 'midpoint' && objKeys.includes(c.firstBall)) ? c.firstBall : defaultFirstBallForCue(cueKey);
+    if(!objKeys.includes(firstKey)) firstKey = objKeys[0];
+    const B = balls[firstKey];
+    const targetKey = objKeys.find(kk => kk !== firstKey) || objKeys[0];
+    const T = balls[targetKey];
+    const strike = (ids('mirrorStrike') && ids('mirrorStrike').value === 'stun') ? 'stun' : 'rolling';
+    let S = {x:B.x, y:B.y};
+    let sol = null, contact = null, nearLimitSeen = false;
+    for(let it = 0; it < 3; it++){
+      sol = solveMirrorPath(S, rails, T, k);
+      if(!sol) return {error:'Espejo: sin solución geométrica para esta secuencia desde estas posiciones.', brief:'sin solución geométrica para esta secuencia'};
+      const d1 = mirrorVec.norm(mirrorVec.sub(sol.trace.contacts[0], S));
+      contact = strike === 'stun' ? mirrorContactSolveStun(cue, B, d1) : mirrorContactSolve(cue, B, d1);
+      if(!contact){
+        if(strike === 'stun'){
+          return {error:'Espejo (picada): desde esta posición la línea tangente no alcanza la secuencia. La salida picada es perpendicular al contacto, y ningún lado de la ' + mirrorBallName(firstKey) + ' la produce hacia la primera banda.', brief:'la tangente no alcanza la secuencia'};
+        }
+        return {error:'Espejo: el contacto requerido con la ' + mirrorBallName(firstKey) + ' queda demasiado fino o demasiado grueso para ejecutarse con confianza (la desviación necesaria excede el límite físico de la bola rodada, ≈34°).', brief:'contacto fuera del límite físico de la bola rodada'};
+      }
+      if(strike === 'rolling' && contact.nearLimit) nearLimitSeen = true;
+      S = contact.G;
+    }
+    sol.trace.S0 = S;
+    rasanteCheck(sol.trace);
+    if(strike === 'rolling'){
+      if(nearLimitSeen) warnings.push('Contacto cerca del límite físico de la bola rodada: margen de ejecución mínimo.');
+      if(contact.cut < 0.12) warnings.push('Contacto muy fino con la ' + mirrorBallName(firstKey) + '.');
+      if(contact.cut > 0.92) warnings.push('Contacto muy lleno con la ' + mirrorBallName(firstKey) + ': la tacadora saldrá frenada y el primer tramo pierde fidelidad.');
+    } else {
+      if(contact.cut > 0.85) warnings.push('Contacto muy lleno: con picada la tacadora saldrá casi sin marcha por la tangente.');
+      if(contact.cut < 0.10) warnings.push('Contacto muy fino con la ' + mirrorBallName(firstKey) + '.');
+      if(Math.hypot(contact.G.x - cue.x, contact.G.y - cue.y) > 30) warnings.push('La tacadora está lejos de la bola: mantener la picada a esta distancia exige golpe firme y abajo.');
+    }
+    const pts = [{x:contact.G.x, y:contact.G.y}].concat(sol.trace.contacts).concat([{x:T.x, y:T.y}]);
+    besoCheck(pts, [cueKey, firstKey, targetKey]);
+    const contactos = sol.trace.contacts.map((p, i) => mirrorContactInfo(p, i, rails));
+    return {
+      mirrorShot:true,
+      path:{points:pts},
+      cueLine:{from:{x:cue.x, y:cue.y}, to:{x:contact.G.x, y:contact.G.y}},
+      mirror:{
+        contacts: contactos,
+        targetPoint:null,
+        ghost:{x:contact.G.x, y:contact.G.y}
+      },
+      warnings,
+      receta: contactos.map(ct => ct.rotulo).join(' → '),
+      resumen:'Bola primero ' + (strike === 'stun' ? 'picada ' : '') + '(' + mirrorBallName(firstKey) + ', grueso ~' + Math.round(contact.cut * 100) + '%) hacia la ' + mirrorBallName(targetKey) + ' · k=' + k.toFixed(2)
+    };
+  }
+
+  // Numeración de la escala de diamantes (solo en modo Espejo):
+  // largas 0-8 de izquierda a derecha, cortas 0-4 de arriba abajo,
+  // pintada junto a los diamantes sobre la baranda.
+  function drawMirrorDiamondNumbers(){
+    ctx.save();
+    const off = visualOuterNumberOffsetPx();
+    const fs = Math.max(9, Math.round(geom.scale * .62));
+    ctx.font = '700 ' + fs + 'px ui-sans-serif, system-ui';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineWidth = Math.max(2, fs * .22);
+    ctx.strokeStyle = 'rgba(0,0,0,.65)';
+    ctx.fillStyle = 'rgba(243,216,158,.95)';
+    for(let d = 0; d <= 8; d++){
+      const x = geom.ox + d * 10 * geom.scale;
+      ctx.strokeText(String(d), x, geom.oy - off);
+      ctx.fillText(String(d), x, geom.oy - off);
+      ctx.strokeText(String(d), x, geom.oy + TABLE.H * geom.scale + off);
+      ctx.fillText(String(d), x, geom.oy + TABLE.H * geom.scale + off);
+    }
+    for(let d = 0; d <= 4; d++){
+      const y = geom.oy + d * 10 * geom.scale;
+      ctx.strokeText(String(d), geom.ox - off, y);
+      ctx.fillText(String(d), geom.ox - off, y);
+      ctx.strokeText(String(d), geom.ox + TABLE.W * geom.scale + off, y);
+      ctx.fillText(String(d), geom.ox + TABLE.W * geom.scale + off, y);
+    }
+    ctx.restore();
+  }
+
+  // Letrero discreto sobre el paño para diagnósticos de rechazo,
+  // ahora como elemento HTML real: puede llevar el enlace de "Mayor
+  // explicación" hacia explicacion.html (misma carpeta de la app).
+  function drawBoardNotice(text){
+    const box = ids('boardNotice');
+    const span = ids('boardNoticeText');
+    if(!box || !span) return;
+    span.textContent = text;
+    box.style.display = 'block';
+  }
+
+  function hideBoardNotice(){
+    const box = ids('boardNotice');
+    if(box) box.style.display = 'none';
+  }
+
+  function drawMirrorOverlays(s){
+    if(!s || !s.mirror) return;
+    ctx.save();
+    if(s.mirror.ghost){
+      const q = worldToScreen(s.mirror.ghost);
+      ctx.setLineDash([5, 5]);
+      ctx.strokeStyle = 'rgba(255,255,255,.85)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(q.x, q.y, BALL_R * geom.scale, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    if(s.mirror.targetPoint){
+      const q = worldToScreen(s.mirror.targetPoint);
+      const r = Math.max(5, geom.scale * .3);
+      ctx.strokeStyle = '#39ff14';
+      ctx.lineWidth = 2.4;
+      ctx.beginPath();
+      ctx.moveTo(q.x - r, q.y - r); ctx.lineTo(q.x + r, q.y + r);
+      ctx.moveTo(q.x - r, q.y + r); ctx.lineTo(q.x + r, q.y - r);
+      ctx.stroke();
+    }
+    const dotR = Math.max(7, geom.scale * .42);
+    for(const p of s.mirror.contacts){
+      const q = worldToScreen(p);
+      ctx.beginPath();
+      ctx.arc(q.x, q.y, dotR, 0, Math.PI * 2);
+      ctx.fillStyle = '#62d7ff';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,.75)';
+      ctx.lineWidth = 2.2;
+      ctx.stroke();
+      ctx.fillStyle = '#06222e';
+      ctx.font = '900 ' + Math.round(dotR * 1.25) + 'px ui-sans-serif, system-ui';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(String(p.n), q.x, q.y + 0.5);
+      if(p.dv){
+        const fsv = Math.max(26, Math.round(dotR * 2.4));
+        ctx.font = '800 ' + fsv + 'px ui-sans-serif, system-ui';
+        ctx.lineWidth = Math.max(4, fsv * .18);
+        ctx.strokeStyle = 'rgba(0,0,0,.85)';
+        ctx.fillStyle = '#bfe9ff';
+        const dxv = p.rail === 'left' ? dotR + fsv * 1.05 : (p.rail === 'right' ? -(dotR + fsv * 1.05) : 0);
+        const dyv = p.rail === 'top' ? dotR + fsv * .78 : (p.rail === 'bottom' ? -(dotR + fsv * .78) : 0);
+        ctx.strokeText(p.dv, q.x + dxv, q.y + dyv);
+        ctx.fillText(p.dv, q.x + dxv, q.y + dyv);
+      }
+    }
+    ctx.textAlign = 'start';
+    ctx.textBaseline = 'alphabetic';
+    const chk = ids('mirrorShowHalves');
+    if(chk && chk.checked && s.path && s.path.points.length >= 3){
+      const pts = s.path.points;
+      ctx.setLineDash([6, 7]);
+      ctx.strokeStyle = 'rgba(255,255,255,.8)';
+      ctx.lineWidth = 2.2;
+      // Prolongación punteada de cada tramo más allá de su contacto:
+      // el camino que la bola seguiría recto dentro del "mundo espejo".
+      for(let i = 1; i < pts.length - 1; i++){
+        const A = worldToScreen(pts[i-1]);
+        const Bq = worldToScreen(pts[i]);
+        const dx = Bq.x - A.x, dy = Bq.y - A.y;
+        const Lp = Math.hypot(dx, dy) || 1;
+        ctx.beginPath();
+        ctx.moveTo(Bq.x, Bq.y);
+        ctx.lineTo(Bq.x + dx / Lp * 64, Bq.y + dy / Lp * 64);
+        ctx.stroke();
+      }
+      // En cada contacto: la normal y los arcos de ángulos iguales
+      // (entrada y salida), la firma visual del espejo.
+      ctx.strokeStyle = 'rgba(98,215,255,.9)';
+      ctx.lineWidth = 2;
+      for(let i = 1; i < pts.length - 1; i++){
+        const q = worldToScreen(pts[i]);
+        const inD = mirrorVec.norm(mirrorVec.sub(pts[i], pts[i-1]));
+        const outD = mirrorVec.norm(mirrorVec.sub(pts[i+1], pts[i]));
+        const horiz = Math.abs(pts[i].y) < 0.05 || Math.abs(pts[i].y - TABLE.H) < 0.05;
+        const nrm = horiz ? {x:0, y:(pts[i].y < 1 ? 1 : -1)} : {x:(pts[i].x < 1 ? 1 : -1), y:0};
+        ctx.beginPath();
+        ctx.moveTo(q.x, q.y);
+        ctx.lineTo(q.x + nrm.x * 46, q.y + nrm.y * 46);
+        ctx.stroke();
+        const a1 = Math.atan2(-inD.y, -inD.x);
+        const a2 = Math.atan2(nrm.y, nrm.x);
+        const a3 = Math.atan2(outD.y, outD.x);
+        ctx.beginPath(); ctx.arc(q.x, q.y, 24, Math.min(a1, a2), Math.max(a1, a2)); ctx.stroke();
+        ctx.beginPath(); ctx.arc(q.x, q.y, 30, Math.min(a2, a3), Math.max(a2, a3)); ctx.stroke();
+      }
+      ctx.setLineDash([]);
+    }
+    ctx.restore();
+  }
+
   function setNoPlanSequence(on){
     noPlanSequence = !!on;
     const btn = ids('noPlanSequenceBtn');
@@ -9899,6 +10481,7 @@
 
     const c = controls();
     if(c.systemMode !== 'plus') lastSystemMode = c.systemMode;
+    hideBoardNotice();
 
     // Modo "No planear secuencia de la jugada": sin trayectorias, sin
     // puntos de ataque ni rótulos de LKL / Base 50 o Plus. Solo mesa y
@@ -9918,6 +10501,40 @@
       drawBalls();
       const diag = ids('diagnostic');
       if(diag) diag.textContent = 'Sin planear: grabación libre, solo círculos de bolas.';
+      return;
+    }
+
+    if(c.systemMode === 'mirror'){
+      enforceMirrorControls(c);
+      updateSystemModeUi(c);
+      const shot = computeMirrorShot(c);
+      calculationState = {
+        version: (calculationState?.version || 0) + 1,
+        reason,
+        shot: shot.error ? null : shot,
+        error: shot.error || null
+      };
+      const diagEl = ids('diagnostic');
+      if(shot.error){
+        currentShot = null;
+        drawTable();
+        drawMirrorDiamondNumbers();
+        drawBalls();
+        drawBoardNotice('Espejo: ' + (shot.brief || 'jugada rechazada') + ' · vea el diagnóstico');
+        if(diagEl) diagEl.textContent = shot.error;
+        return;
+      }
+      currentShot = shot;
+      drawTable();
+      drawMirrorDiamondNumbers();
+      drawPath(shot);
+      drawMirrorOverlays(shot);
+      drawBalls();
+      if(diagEl){
+        diagEl.textContent = 'Espejo (mitades): ' + shot.resumen +
+          (shot.receta ? ' · Contactos: ' + shot.receta : '') +
+          (shot.warnings.length ? ' · Atención: ' + shot.warnings.join(' ') : '');
+      }
       return;
     }
 
@@ -12879,6 +13496,47 @@ function drawStartMarks(){
         g.textAlign = 'start';
         g.textBaseline = 'alphabetic';
       }
+
+      // Datos del sistema Espejo (mitades): contactos numerados en las
+      // bandas y, en banda previa al punto medio, la marca del objetivo.
+      const mirrorInfo = (currentShot && currentShot.mirror) ? currentShot.mirror : null;
+      if(mirrorInfo){
+        const dotR = Math.max(7, ch * .014);
+        for(const p of mirrorInfo.contacts){
+          const q = W2V({x:p.x, y:p.y});
+          if(!q) continue;
+          g.beginPath(); g.arc(q.x, q.y, dotR, 0, Math.PI * 2);
+          g.fillStyle = '#62d7ff'; g.fill();
+          g.strokeStyle = 'rgba(0,0,0,.9)'; g.lineWidth = Math.max(2, ch * .004); g.stroke();
+          g.font = '900 ' + Math.round(dotR * 1.2) + 'px ui-sans-serif, system-ui';
+          g.fillStyle = '#06222e';
+          g.textAlign = 'center'; g.textBaseline = 'middle';
+          g.fillText(String(p.n), q.x, q.y + 0.5);
+          if(p.dv){
+            const fsv = Math.max(28, Math.round(dotR * 2.4));
+            g.font = '800 ' + fsv + 'px ui-sans-serif, system-ui';
+            g.lineWidth = Math.max(4, fsv * .18);
+            g.strokeStyle = 'rgba(0,0,0,.85)';
+            g.fillStyle = '#bfe9ff';
+            const dxv = p.rail === 'left' ? dotR + fsv * 1.05 : (p.rail === 'right' ? -(dotR + fsv * 1.05) : 0);
+            const dyv = p.rail === 'top' ? dotR + fsv * .78 : (p.rail === 'bottom' ? -(dotR + fsv * .78) : 0);
+            g.strokeText(p.dv, q.x + dxv, q.y + dyv);
+            g.fillText(p.dv, q.x + dxv, q.y + dyv);
+          }
+        }
+        if(mirrorInfo.targetPoint){
+          const q = W2V(mirrorInfo.targetPoint);
+          if(q){
+            const r = Math.max(6, ch * .012);
+            g.strokeStyle = '#39ff14'; g.lineWidth = Math.max(2.4, ch * .005);
+            g.beginPath();
+            g.moveTo(q.x - r, q.y - r); g.lineTo(q.x + r, q.y + r);
+            g.moveTo(q.x - r, q.y + r); g.lineTo(q.x + r, q.y - r);
+            g.stroke();
+          }
+        }
+        g.textAlign = 'start'; g.textBaseline = 'alphabetic';
+      }
     }
 
     // Manijas de calibración (solo en el paso de calibración).
@@ -13716,6 +14374,7 @@ function drawStartMarks(){
     if(c.systemMode === 'clc') enforceClcControls(c);
     if(c.systemMode === 'long') enforceLongTourControls(c);
     if(c.systemMode === 'plus') enforcePlusControls(c);
+    if(c.systemMode === 'mirror') enforceMirrorControls(c);
     updateSystemModeUi(c);
     recalculateAll('system-change');
   });
@@ -13749,6 +14408,17 @@ function drawStartMarks(){
 
     if(noPlanSequence){
       setModuleState('moduleSequenceState', 'Sin planear · solo círculos de bolas');
+    } else if(ids('systemMode') && ids('systemMode').value === 'mirror'){
+      const seq = [ids('rail1'), ids('rail2'), ids('thirdRail'), ids('fourthRail')]
+        .map(el => el ? el.value : 'none')
+        .filter(v => v && v !== 'none' && v !== 'auto')
+        .map(shortRailName);
+      const esBolaPrimero = !(ids('mode') && ids('mode').value === 'cushionFirst');
+      const esPicadaTxt = esBolaPrimero && ids('mirrorStrike') && ids('mirrorStrike').value === 'stun' ? ' picada' : '';
+      const modoTxt = (esBolaPrimero ? 'Bola primero' : 'Banda previa') + esPicadaTxt;
+      const kEl = ids('mirrorCoef');
+      const kTxt = kEl ? Number(kEl.value).toFixed(2) : '1.00';
+      setModuleState('moduleSequenceState', 'Espejo · ' + modoTxt + ' · ' + seq.join(' → ') + ' · k=' + kTxt);
     } else {
       const start=ids('mode')?.value==='cushionFirst' ? 'Banda previa' : 'Bola primero';
       const rails=[ids('rail1')?.value,ids('rail2')?.value,ids('thirdRail')?.value]
@@ -13791,6 +14461,53 @@ function drawStartMarks(){
     const el = ids(id);
     if(el) el.addEventListener('change', () => { if(noPlanSequence) setNoPlanSequence(false); });
   });
+
+  const mirrorCoefEl = ids('mirrorCoef');
+  if(mirrorCoefEl){
+    try{
+      const saved = parseFloat(localStorage.getItem(MIRROR_COEF_KEY));
+      if(Number.isFinite(saved)) mirrorCoefEl.value = String(clamp(saved, 0.85, 1.45));
+    }catch{}
+    const syncCoefLabel = () => {
+      const lbl = ids('mirrorCoefVal');
+      if(lbl) lbl.textContent = Number(mirrorCoefEl.value).toFixed(2);
+    };
+    syncCoefLabel();
+    mirrorCoefEl.addEventListener('input', () => {
+      syncCoefLabel();
+      try{ localStorage.setItem(MIRROR_COEF_KEY, mirrorCoefEl.value); }catch{}
+    });
+  }
+
+  // En espejo, dos bandas consecutivas no pueden ser la misma: el
+  // selector siguiente inhabilita en vivo la opción repetida.
+  function syncMirrorRailAvailability(){
+    const esMirror = ids('systemMode') && ids('systemMode').value === 'mirror';
+    let corrigio = false;
+    for(const [aId, bId] of [['rail1','rail2'], ['rail2','thirdRail'], ['thirdRail','fourthRail']]){
+      const a = ids(aId), b = ids(bId);
+      if(!a || !b) continue;
+      [...b.options].forEach(opt => {
+        if(opt.value === 'none' || opt.value === 'auto') return;
+        const bloquear = esMirror && opt.value === a.value;
+        opt.disabled = bloquear;
+        if(bloquear && b.value === opt.value){
+          const alt = [...b.options].find(o => !o.disabled && !o.hidden && o.value !== 'none' && o.value !== 'auto');
+          if(alt){ b.value = alt.value; corrigio = true; }
+        }
+      });
+    }
+    if(corrigio){
+      recalculateAll('mirror-rail-sync');
+      updateModuleSummaries();
+    }
+  }
+  ['systemMode','rail1','rail2','thirdRail'].forEach(id => {
+    const el = ids(id);
+    if(el) el.addEventListener('change', syncMirrorRailAvailability);
+  });
+  syncMirrorRailAvailability();
+  updateSystemModeUi(controls());
 
   setupCollapsibleMenu();
   ids('reset').addEventListener('click',()=>window.location.reload());
