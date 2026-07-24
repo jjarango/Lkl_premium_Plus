@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Mirror (halves) · The physics behind the system</title>
+<style>
+  :root{
+    --fondo:#0e1520;
+    --panel:#141d2b;
+    --borde:rgba(255,255,255,.10);
+    --texto:#e8eef6;
+    --tenue:#a8b6c8;
+    --ambar:#ffd189;
+    --cian:#8fdcff;
+    --cian-vivo:#62d7ff;
+    --rojo:#ff5a52;
+    --verde:#39ff14;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    background:var(--fondo);
+    color:var(--texto);
+    font-family:ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+    line-height:1.65;
+  }
+  .lienzo{max-width:980px; margin:0 auto; padding:28px 20px 60px}
+  header{border-bottom:1px solid var(--borde); padding-bottom:18px; margin-bottom:26px}
+  h1{font-size:clamp(24px, 4vw, 34px); margin:0 0 6px; letter-spacing:.3px}
+  .subtitulo{color:var(--tenue); margin:0; font-size:15px}
+  .credito{color:var(--tenue); font-size:13px; margin-top:10px}
+  .credito b{color:var(--ambar); font-weight:700}
+  h2{
+    font-size:clamp(19px, 3vw, 24px);
+    margin:38px 0 12px;
+    color:var(--ambar);
+    border-left:4px solid var(--ambar);
+    padding-left:12px;
+  }
+  h3{font-size:17px; margin:24px 0 8px; color:var(--cian)}
+  p{margin:0 0 14px}
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--borde);
+    border-radius:14px;
+    padding:18px 20px;
+    margin:16px 0;
+  }
+  .formula{
+    font-family:ui-monospace, "Cascadia Code", Consolas, monospace;
+    background:rgba(98,215,255,.08);
+    border:1px solid rgba(98,215,255,.25);
+    border-radius:10px;
+    padding:12px 16px;
+    text-align:center;
+    font-size:15.5px;
+    color:var(--cian);
+    margin:14px 0;
+  }
+  .figura{margin:22px 0; text-align:center}
+  .figura svg{width:100%; height:auto; border-radius:12px; border:1px solid var(--borde)}
+  .pie-figura{color:var(--tenue); font-size:13.5px; margin-top:8px; text-align:center}
+  table{width:100%; border-collapse:collapse; margin:14px 0; font-size:15px}
+  th, td{border:1px solid var(--borde); padding:8px 12px; text-align:center}
+  th{background:rgba(255,209,137,.08); color:var(--ambar); font-weight:700}
+  .diag{
+    border-left:4px solid var(--rojo);
+    background:rgba(255,90,82,.07);
+    border-radius:0 10px 10px 0;
+    padding:10px 14px;
+    margin:12px 0;
+  }
+  .diag b{color:#ff8a84}
+  .diag.aviso{border-left-color:var(--ambar); background:rgba(255,209,137,.06)}
+  .diag.aviso b{color:var(--ambar)}
+  .destacado{color:var(--ambar); font-weight:700}
+  .cian{color:var(--cian); font-weight:700}
+  footer{
+    margin-top:48px;
+    padding-top:16px;
+    border-top:1px solid var(--borde);
+    color:var(--tenue);
+    font-size:13px;
+    text-align:center;
+  }
+  ul{margin:0 0 14px; padding-left:22px}
+  li{margin-bottom:6px}
+</style>
+</head>
+<body>
+<div class="lienzo">
+
+<header>
+  <h1>Mirror (halves): the physics behind the system</h1>
+  <p class="subtitulo">Why the app draws what it draws, and why, in all honesty, it sometimes refuses to draw.</p>
+  <p class="credito">Digital assistant for three-cushion billiards · <b>© Juan José Arango E.</b></p>
+</header>
+
+<h2>1. What the Mirror (halves) system is</h2>
+<p>The classic <span class="destacado">halves system</span> is probably the first system every player learns: to send the ball to a point off one cushion, you aim at the <i>midpoint</i> of the way. It works because, if the cushion were a perfect mirror, the incoming angle would equal the outgoing one, and the midpoint is exactly where the mirror puts the rebound.</p>
+<p>This app's Mirror module is the <span class="destacado">precision version</span> of that same idea. Instead of approximating with mental halves, it computes the <span class="cian">exact unfolding of the table</span>: it reflects the table through each cushion of the sequence, draws a straight line in that unfolded world, and folds it back. The resulting zigzag is the exact geometric solution, for any cushion combination: long-long-long runs, short-short-short runs, or mixed sequences.</p>
+<p>And since real tables are not perfect mirrors, the module includes the <span class="cian">table coefficient</span>: a single number setting how much your rubber lengthens the rebound. The engine applies it with angular intelligence, following a curve measured on a real table: in full on oblique rebounds (up to ~52° against the cushion), fading through the transition, and pure mirror from ~70°, where the ball's surviving roll straightens exactly what the rubber lengthens.</p>
+
+<h2>2. The rolling-ball contract</h2>
+<p>Every billiard system signs a contract with the player, though hardly any prints it: its numbers hold for <i>one way</i> of striking. The Base 50 tables assume a standard stroke; our Mirror declares it explicitly:</p>
+<div class="panel">
+  <b>Base contract:</b> rolling ball (struck at center or half a tip above), zero side spin, natural lag speed.
+</div>
+<p>Under that contract, everything after the cushions is mirror geometry corrected by the coefficient. But when the shot starts <span class="destacado">ball first</span>, there is one instant geometry alone does not govern: the collision with the first ball. Physics rules there, and rolling-ball physics has a precise limit worth knowing, because it is the reason behind most of the module's rejections.</p>
+
+<h3>Act one: what happens at the instant of impact</h3>
+<p>When the cue ball touches the first ball, its velocity splits between two perpendicular lines: the <span class="cian">line of centers</span> (from the cue ball's center to the object ball's center), which carries the energy that pushes the other ball; and the <span class="cian">tangent line</span>, perpendicular to it, which keeps what the cue ball retains. A ball arriving <i>without rotation</i> would leave exactly along the tangent: up to 90 degrees of deflection available.</p>
+
+<h3>Act two: but the rolling ball is stubborn</h3>
+<p>The contract's cue ball arrives <i>rolling</i>: spinning forward around its direction of travel. That spin survives the impact, and as soon as the ball departs along the tangent, the spin bites the cloth and re-accelerates it toward its original direction. The final direction is a precise blend of both:</p>
+<div class="formula">v<sub>final</sub> ∝ (2·cos&nbsp;θ&nbsp;/&nbsp;7) · line of centers&nbsp;&nbsp;+&nbsp;&nbsp;sin&nbsp;θ · tangent</div>
+<p>where θ is the cut angle (0° = full contact, 90° = razor thin). That 2/7 is not an app tweak: it follows from the mass distribution of any solid sphere (moment of inertia 2/5&nbsp;mR²), the same for every billiard ball on the planet.</p>
+
+<h3>Act three: the 34-degree cone and its hump</h3>
+<p>From that formula follows the central result: <span class="destacado">a rolling ball cannot end up traveling more than ≈34° from its original aiming line, whatever fullness you play.</span> The deflection depends on the cut in a non-obvious way:</p>
+<table>
+  <tr><th>Cut angle θ</th><th>Contact</th><th>Cue-ball deflection</th></tr>
+  <tr><td>≈ 0°</td><td>Full</td><td>≈ 0° (follows through)</td></tr>
+  <tr><td>15°</td><td>Three quarters</td><td>≈ 28°</td></tr>
+  <tr><td><b>≈ 28°</b></td><td><b>Near half ball</b></td><td><b>33.7° (the maximum)</b></td></tr>
+  <tr><td>45°</td><td>One quarter</td><td>≈ 29°</td></tr>
+  <tr><td>→ 90°</td><td>Razor thin</td><td>→ 0° (barely grazed it)</td></tr>
+</table>
+<p>It is a <span class="cian">hump</span>, not a ramp: for a given deflection inside the cone there are <i>two</i> fullnesses that achieve it (one thin, one full, on each side of the maximum), and the module prefers the thin one, which keeps speed. For a deflection outside the cone, no fullness will do. And near the maximum, the two solutions merge into one: that is why, at the edge of the limit, the app adds the <i>minimal execution margin</i> warning: the shot exists, but hangs by its fingernails.</p>
+
+<h3>The diagram: a real shot outside the cone</h3>
+<div class="figura">
+<svg viewBox="0 0 1500 800" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagram of the rolling ball physical cone">
+  <rect x="0" y="0" width="1500" height="800" fill="#0e1520"/>
+  <rect x="76" y="62" width="1348" height="708" rx="14" fill="#7a4a22"/>
+  <rect x="98" y="84" width="1304" height="664" rx="8" fill="#1e3f78"/>
+  <rect x="110" y="96" width="1280" height="640" fill="#2e6cb8"/>
+  <!-- cono de la bola rodada: ±34° alrededor de la puntería, desde A -->
+  <path d="M 641.2 414.4 L 920.8 228.3 A 336 336 0 0 1 918.7 603.6 Z"
+        fill="rgba(98,215,255,.16)" stroke="rgba(98,215,255,.75)" stroke-width="2" stroke-dasharray="6 6"/>
+  <!-- línea de puntería (B hacia A, prolongada) -->
+  <line x1="358" y1="412.8" x2="993" y2="416.4" stroke="rgba(255,255,255,.85)" stroke-width="2.6" stroke-dasharray="9 7"/>
+  <!-- línea tangente (perpendicular a la línea de centros) -->
+  <line x1="640.3" y1="262.4" x2="642.1" y2="566.4" stroke="rgba(255,255,255,.5)" stroke-width="2" stroke-dasharray="3 6"/>
+  <!-- salida requerida: fuera del cono -->
+  <line x1="641.2" y1="414.4" x2="742" y2="96" stroke="#ff5a52" stroke-width="5"/>
+  <!-- la M pretendida, fantasmal -->
+  <path d="M 742 96 L 950 736 L 1158 96 L 1361.2 702.4"
+        fill="none" stroke="rgba(255,255,255,.30)" stroke-width="2" stroke-dasharray="5 8"/>
+  <!-- bolas -->
+  <circle cx="358" cy="412.8" r="17.3" fill="#f4f4f4" stroke="rgba(0,0,0,.7)" stroke-width="2.4"/>
+  <text x="358" y="418" font-size="15" font-weight="700" fill="#333" text-anchor="middle">B</text>
+  <circle cx="641.2" cy="414.4" r="17.3" fill="#ffd23f" stroke="rgba(0,0,0,.7)" stroke-width="2.4"/>
+  <text x="641.2" y="419.6" font-size="15" font-weight="700" fill="#222" text-anchor="middle">A</text>
+  <circle cx="1361.2" cy="702.4" r="17.3" fill="#ff4d4d" stroke="rgba(0,0,0,.7)" stroke-width="2.4"/>
+  <text x="1361.2" y="707.6" font-size="15" font-weight="700" fill="#222" text-anchor="middle">R</text>
+  <!-- rótulos -->
+  <g font-family="ui-sans-serif, system-ui, sans-serif" font-weight="700" stroke="rgba(0,0,0,.8)" stroke-width="5" paint-order="stroke">
+    <text x="462" y="376" font-size="17" fill="#ffffff">aiming line</text>
+    <text x="550" y="216" font-size="15" fill="rgba(255,255,255,.9)">tangent line (90°, stun only)</text>
+    <text x="878" y="488" font-size="17" fill="#8fdcff">rolling-ball cone: ±34°</text>
+    <text x="878" y="532" font-size="14" fill="#8fdcff">(all that fullness can achieve)</text>
+    <text x="672" y="152" font-size="17" fill="#ff8a84">required departure ≈72°: OUTSIDE the cone</text>
+    <text x="710" y="680" font-size="14" fill="rgba(255,255,255,.65)">the intended M (unreachable with a rolling ball from here)</text>
+  </g>
+</svg>
+<p class="pie-figura">The white (B) almost directly behind the yellow (A): the departure the run demands forms ≈72° with the aiming line, more than double the ceiling of the cyan cone. With a rolling ball, that shot does not exist; with stun, it does (see the second contract).</p>
+</div>
+
+<h3>Act four: the number's pedigree</h3>
+<p>This result is not clubhouse folklore. It was founded by <span class="destacado">Gaspard-Gustave de Coriolis</span> (yes, of the Coriolis effect) in his 1835 treatise <i>Théorie mathématique des effets du jeu de billard</i>, the first serious mathematical analysis of the game. In the modern era, physicist <span class="destacado">David Alciatore</span> measured it and turned it into a teaching tool under the name of the <i>30-degree rule</i>: between a quarter and three quarters of a ball, the rolling cue ball always departs at about 30 degrees from its original line. When this app rejects a shot citing the physical limit, the one speaking is Coriolis with cloth and diamonds.</p>
+
+<h2>3. The second contract: stun / tangent</h2>
+<p>The app offers a second explicit contract for ball-first shots, selectable under <b>Stroke at contact</b>:</p>
+<div class="panel">
+  <b>Stun contract:</b> the cue ball arrives <i>sliding</i> at the contact (a low, firm stroke that kills the roll) and departs exactly along the tangent line, perpendicular to the line of centers. Up to 90 degrees available. Zero side spin. After the cushions the same mirror applies with its coefficient.
+</div>
+<p>Stun opens the shots the rolling cone forbids, like the one in the diagram. Its fine print is distance: sliding is a short-lived creature, and the cloth converts it into roll along the way. Keeping the ball sliding to a distant contact demands a firm, low stroke; the app warns when the cue ball is more than a meter from the first ball. And very full contact has its own warning: along the tangent, a full cue ball leaves almost without speed.</p>
+
+<h2>4. The module's diagnoses and what to do with each</h2>
+<div class="diag"><b>No geometric solution for this sequence.</b> The unfolding finds no path fulfilling the declared sequence from these positions. Try another cushion sequence or order; the same carom often exists through another door.</div>
+<div class="diag"><b>Contact beyond the rolling-ball physical limit.</b> The departure the sequence demands after contact exceeds the ≈34° cone. Three paths: change the sequence (the app usually finds feasible alternative routes), move the study position, or switch to the stun contract, whose territory reaches the tangent.</div>
+<div class="diag"><b>The tangent cannot reach the sequence (stun).</b> Not even the perpendicular departure produces the declared path from this position. The shot asks for another sequence or another position.</div>
+<div class="diag"><b>Two identical consecutive cushions.</b> Physically impossible: the ball cannot touch the same cushion twice in a row without touching another in between.</div>
+<div class="diag aviso"><b>Warning: minimal execution margin.</b> The shot exists, but sits at the edge of the cone: the two fullness solutions have almost merged into one. On the table, millimeters of error make it impossible. Consider a sequence with more margin.</div>
+<div class="diag aviso"><b>Warning: very grazing incidence on a cushion.</b> The path enters almost parallel to that cushion, and real cushions behave worse at grazing angles: the rebound will be unreliable.</div>
+<div class="diag aviso"><b>Warning: possible kiss.</b> A ball outside the sequence sits near the calculated line and may intercept it.</div>
+<div class="diag aviso"><b>Warning: very thin / very full contact.</b> The solution exists but at an extreme of fullness: thin demands surgical aim; full drains the cue ball's speed.</div>
+
+<h2>5. To close: the module's philosophy</h2>
+<p>The Mirror would rather refuse to draw than draw a fantasy. Every trajectory it shows is exact geometry under a declared contract; every rejection comes with its physical reason; and every warning tells you where the model steps on slippery ground. The table always has the last word, and that is what the video with overlaid data is for: comparing the plan against the real roll, contact by contact, in the language of the diamonds.</p>
+
+<footer>
+  Mirror (halves) · Digital assistant for three-cushion billiards · © Juan José Arango E.<br/>
+  Contact physics: Coriolis (1835) · 30° rule: D. Alciatore.
+</footer>
+
+</div>
+</body>
+</html>
