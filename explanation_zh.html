@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>镜像系统 · 背后的物理学</title>
+<style>
+  :root{
+    --fondo:#0e1520;
+    --panel:#141d2b;
+    --borde:rgba(255,255,255,.10);
+    --texto:#e8eef6;
+    --tenue:#a8b6c8;
+    --ambar:#ffd189;
+    --cian:#8fdcff;
+    --cian-vivo:#62d7ff;
+    --rojo:#ff5a52;
+    --verde:#39ff14;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    background:var(--fondo);
+    color:var(--texto);
+    font-family:ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+    line-height:1.65;
+  }
+  .lienzo{max-width:980px; margin:0 auto; padding:28px 20px 60px}
+  header{border-bottom:1px solid var(--borde); padding-bottom:18px; margin-bottom:26px}
+  h1{font-size:clamp(24px, 4vw, 34px); margin:0 0 6px; letter-spacing:.3px}
+  .subtitulo{color:var(--tenue); margin:0; font-size:15px}
+  .credito{color:var(--tenue); font-size:13px; margin-top:10px}
+  .credito b{color:var(--ambar); font-weight:700}
+  h2{
+    font-size:clamp(19px, 3vw, 24px);
+    margin:38px 0 12px;
+    color:var(--ambar);
+    border-left:4px solid var(--ambar);
+    padding-left:12px;
+  }
+  h3{font-size:17px; margin:24px 0 8px; color:var(--cian)}
+  p{margin:0 0 14px}
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--borde);
+    border-radius:14px;
+    padding:18px 20px;
+    margin:16px 0;
+  }
+  .formula{
+    font-family:ui-monospace, "Cascadia Code", Consolas, monospace;
+    background:rgba(98,215,255,.08);
+    border:1px solid rgba(98,215,255,.25);
+    border-radius:10px;
+    padding:12px 16px;
+    text-align:center;
+    font-size:15.5px;
+    color:var(--cian);
+    margin:14px 0;
+  }
+  .figura{margin:22px 0; text-align:center}
+  .figura svg{width:100%; height:auto; border-radius:12px; border:1px solid var(--borde)}
+  .pie-figura{color:var(--tenue); font-size:13.5px; margin-top:8px; text-align:center}
+  table{width:100%; border-collapse:collapse; margin:14px 0; font-size:15px}
+  th, td{border:1px solid var(--borde); padding:8px 12px; text-align:center}
+  th{background:rgba(255,209,137,.08); color:var(--ambar); font-weight:700}
+  .diag{
+    border-left:4px solid var(--rojo);
+    background:rgba(255,90,82,.07);
+    border-radius:0 10px 10px 0;
+    padding:10px 14px;
+    margin:12px 0;
+  }
+  .diag b{color:#ff8a84}
+  .diag.aviso{border-left-color:var(--ambar); background:rgba(255,209,137,.06)}
+  .diag.aviso b{color:var(--ambar)}
+  .destacado{color:var(--ambar); font-weight:700}
+  .cian{color:var(--cian); font-weight:700}
+  footer{
+    margin-top:48px;
+    padding-top:16px;
+    border-top:1px solid var(--borde);
+    color:var(--tenue);
+    font-size:13px;
+    text-align:center;
+  }
+  ul{margin:0 0 14px; padding-left:22px}
+  li{margin-bottom:6px}
+</style>
+</head>
+<body>
+<div class="lienzo">
+
+<header>
+  <h1>镜像系统：背后的物理学</h1>
+  <p class="subtitulo">这款应用为什么这样画线，以及为什么有时会诚实地拒绝画线。</p>
+  <p class="credito">三库开伦台球数字助手 · <b>© Juan José Arango E.</b></p>
+</header>
+
+<h2>1. 什么是镜像（对半）系统</h2>
+<p>经典的<span class="destacado">对半系统</span>大概是每位球手最先学到的系统：想让球经一库到达某点，就瞄准路程的<i>中点</i>。它之所以成立，是因为若库边是一面完美的镜子，入射角便等于反射角，而中点正是镜子安放反弹的位置。</p>
+<p>本应用的镜像模块是同一思想的<span class="destacado">精密版本</span>。它不用心算的对半来近似，而是计算<span class="cian">球台的精确展开</span>：把球台沿线路中的每条库边逐一反射，在展开的世界里画一条直线，再折叠回来。得到的折线就是精确的几何解，适用于任何库边组合：长-长-长、短-短-短或混合线路。</p>
+<p>由于真实球台并非完美镜面，模块提供了<span class="cian">球台系数</span>：一个数字，设定胶边把反弹拉长多少。引擎按在真实球台上测得的曲线进行角度智能应用：斜向反弹（与库边夹角约 52° 以内）全量生效，过渡区逐渐衰减，约 70° 起为纯镜像——因为球上残存的前旋恰好把胶边拉长的部分扶正。</p>
+
+<h2>2. 滚球约定</h2>
+<p>每个台球系统都与球手签有一份约定，只是几乎没有系统把它印出来：那些数字只对<i>一种打法</i>有效。Base 50 的表格假定标准出杆；我们的镜像把它明说出来：</p>
+<div class="panel">
+  <b>基础约定：</b>滚球（击打中心或中上半颗皮头）、零侧旋、自然长台速度。
+</div>
+<p>在此约定下，过库之后的一切都是经系数修正的镜像几何。但当击球以<span class="destacado">先球</span>开始时，有一个瞬间不由几何单独支配：与第一颗目标球的碰撞。那里由物理说了算，而滚球物理有一个值得了解的精确极限——它是模块大多数拒绝的原因。</p>
+
+<h3>第一幕：碰撞瞬间发生了什么</h3>
+<p>主球触及第一颗球的瞬间，速度沿两条互相垂直的线分配：<span class="cian">连心线</span>（主球中心指向目标球中心），推动对方球的能量由此传出；与之垂直的<span class="cian">切线</span>，则留下主球保有的部分。若球<i>不带旋转</i>到达，它将严格沿切线离开：最多可偏转 90 度。</p>
+
+<h3>第二幕：但滚球很固执</h3>
+<p>约定中的主球是<i>滚动着</i>到达的：绕行进方向向前旋转。这份旋转在碰撞中幸存，球一沿切线离开，旋转便咬住台呢，把它重新朝原方向加速。最终方向是二者的精确混合：</p>
+<div class="formula">v<sub>最终</sub> ∝ (2·cos&nbsp;θ&nbsp;/&nbsp;7) · 连心线&nbsp;&nbsp;+&nbsp;&nbsp;sin&nbsp;θ · 切线</div>
+<p>其中 θ 是切角（0° = 全接触，90° = 极薄）。那个 2/7 不是应用的调校值：它来自任何实心球的质量分布（转动惯量 2/5&nbsp;mR²），全世界每颗台球都一样。</p>
+
+<h3>第三幕：34 度锥角及其驼峰</h3>
+<p>由该公式可推出核心结论：<span class="destacado">无论打多厚，滚球最终行进方向偏离原瞄准线不会超过约 34°。</span>偏转随切角的变化并不直观：</p>
+<table>
+  <tr><th>切角 θ</th><th>接触</th><th>主球偏转</th></tr>
+  <tr><td>≈ 0°</td><td>全厚</td><td>≈ 0°（径直跟进）</td></tr>
+  <tr><td>15°</td><td>四分之三</td><td>≈ 28°</td></tr>
+  <tr><td><b>≈ 28°</b></td><td><b>接近半球</b></td><td><b>33.7°（最大值）</b></td></tr>
+  <tr><td>45°</td><td>四分之一</td><td>≈ 29°</td></tr>
+  <tr><td>→ 90°</td><td>极薄</td><td>→ 0°（几乎只是擦过）</td></tr>
+</table>
+<p>这是一个<span class="cian">驼峰</span>而非坡道：锥内的某个偏转量有<i>两个</i>厚度都能实现（峰值两侧各一，一薄一厚），模块偏爱保留速度的薄的一侧。锥外的偏转量则没有任何厚度可用。而在峰值附近，两个解会合而为一：因此在极限边缘，应用会附加<i>执行余量极小</i>的提示——击球存在，但命悬一线。</p>
+
+<h3>图解：一次锥外的真实击球</h3>
+<div class="figura">
+<svg viewBox="0 0 1500 800" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="滚球物理锥角图解">
+  <rect x="0" y="0" width="1500" height="800" fill="#0e1520"/>
+  <rect x="76" y="62" width="1348" height="708" rx="14" fill="#7a4a22"/>
+  <rect x="98" y="84" width="1304" height="664" rx="8" fill="#1e3f78"/>
+  <rect x="110" y="96" width="1280" height="640" fill="#2e6cb8"/>
+  <!-- cono de la bola rodada: ±34° alrededor de la puntería, desde A -->
+  <path d="M 641.2 414.4 L 920.8 228.3 A 336 336 0 0 1 918.7 603.6 Z"
+        fill="rgba(98,215,255,.16)" stroke="rgba(98,215,255,.75)" stroke-width="2" stroke-dasharray="6 6"/>
+  <!-- línea de puntería (B hacia A, prolongada) -->
+  <line x1="358" y1="412.8" x2="993" y2="416.4" stroke="rgba(255,255,255,.85)" stroke-width="2.6" stroke-dasharray="9 7"/>
+  <!-- línea tangente (perpendicular a la línea de centros) -->
+  <line x1="640.3" y1="262.4" x2="642.1" y2="566.4" stroke="rgba(255,255,255,.5)" stroke-width="2" stroke-dasharray="3 6"/>
+  <!-- salida requerida: fuera del cono -->
+  <line x1="641.2" y1="414.4" x2="742" y2="96" stroke="#ff5a52" stroke-width="5"/>
+  <!-- la M pretendida, fantasmal -->
+  <path d="M 742 96 L 950 736 L 1158 96 L 1361.2 702.4"
+        fill="none" stroke="rgba(255,255,255,.30)" stroke-width="2" stroke-dasharray="5 8"/>
+  <!-- bolas -->
+  <circle cx="358" cy="412.8" r="17.3" fill="#f4f4f4" stroke="rgba(0,0,0,.7)" stroke-width="2.4"/>
+  <text x="358" y="418" font-size="15" font-weight="700" fill="#333" text-anchor="middle">B</text>
+  <circle cx="641.2" cy="414.4" r="17.3" fill="#ffd23f" stroke="rgba(0,0,0,.7)" stroke-width="2.4"/>
+  <text x="641.2" y="419.6" font-size="15" font-weight="700" fill="#222" text-anchor="middle">A</text>
+  <circle cx="1361.2" cy="702.4" r="17.3" fill="#ff4d4d" stroke="rgba(0,0,0,.7)" stroke-width="2.4"/>
+  <text x="1361.2" y="707.6" font-size="15" font-weight="700" fill="#222" text-anchor="middle">R</text>
+  <!-- rótulos -->
+  <g font-family="ui-sans-serif, system-ui, sans-serif" font-weight="700" stroke="rgba(0,0,0,.8)" stroke-width="5" paint-order="stroke">
+    <text x="462" y="376" font-size="17" fill="#ffffff">瞄准线</text>
+    <text x="550" y="216" font-size="15" fill="rgba(255,255,255,.9)">切线（90°，仅限定杆）</text>
+    <text x="878" y="488" font-size="17" fill="#8fdcff">滚球锥角：±34°</text>
+    <text x="878" y="532" font-size="14" fill="#8fdcff">（厚度所能达到的全部范围）</text>
+    <text x="672" y="152" font-size="17" fill="#ff8a84">所需出球 ≈72°：在锥角之外</text>
+    <text x="710" y="680" font-size="14" fill="rgba(255,255,255,.65)">预想的 M 线路（此处滚球无法实现）</text>
+  </g>
+</svg>
+<p class="pie-figura">白球（B）几乎正对黄球（A）身后：线路要求的出球方向与瞄准线成约 72°，超过天蓝色锥角上限的两倍。用滚球，这一击不存在；用定杆则可以（见第二份约定）。</p>
+</div>
+
+<h3>第四幕：这个数字的出身</h3>
+<p>这一结论不是球房里的传说。它由<span class="destacado">加斯帕尔-古斯塔夫·科里奥利</span>（对，就是科里奥利效应的那位）在 1835 年的专著 <i>Théorie mathématique des effets du jeu de billard</i> 中奠定，那是对台球的第一部严肃数学分析。到了现代，物理学家<span class="destacado">大卫·阿尔恰托雷</span>对其进行了测量，并以<i>30 度法则</i>之名变成教学工具：在四分之一到四分之三厚度之间，滚动的主球总是以约 30 度偏离原线离开。当本应用以物理极限为由拒绝一次击球时，开口的是带着台呢与钻石点的科里奥利。</p>
+
+<h2>3. 第二份约定：定杆 / 切线</h2>
+<p>应用为先球击打提供第二份明确的约定，在<b>接触时的杆法</b>中选择：</p>
+<div class="panel">
+  <b>定杆约定：</b>主球以<i>滑动状态</i>到达接触点（低而有力的出杆杀死前旋），并严格沿垂直于连心线的切线离开。最多可达 90 度。零侧旋。过库之后仍应用同一镜像及其系数。
+</div>
+<p>定杆打开了滚球锥角所禁止的击球，比如图中这一杆。它的小字条款是距离：滑动是短命的生物，台呢会在途中把它变成滚动。要让球滑行到较远的接触点，需要低而有力的出杆；当主球距第一颗球超过一米时，应用会给出提醒。极厚的接触也有自己的提醒：沿切线离开的厚接触主球几乎没有速度。</p>
+
+<h2>4. 模块的诊断及各自的应对</h2>
+<div class="diag"><b>该线路无几何解。</b>展开法从当前位置找不到满足所选线路的路径。请尝试其他库边线路或顺序；同一次得分往往存在另一扇门。</div>
+<div class="diag"><b>接触超出滚球物理极限。</b>线路要求的接触后出球方向超过约 34° 锥角。三条路：更换线路（应用通常能找到可行的替代路线）、移动练习位置，或切换到领域直达切线的定杆约定。</div>
+<div class="diag"><b>切线无法到达该线路（定杆）。</b>即使垂直出球也无法从当前位置产生所选路径。这一击需要其他线路或其他位置。</div>
+<div class="diag"><b>连续相同库边。</b>物理上不可能：球不能不经其他库边而连续两次触及同一条库边。</div>
+<div class="diag aviso"><b>注意：执行余量极小。</b>击球存在，但位于锥角边缘：两个厚度解几乎已合而为一。在球台上，毫米级误差就会使其不可能。请考虑余量更大的线路。</div>
+<div class="diag aviso"><b>注意：某库入射角过于平缓。</b>线路几乎平行于该库边进入，而真实库边在平缓角度下表现更差：反弹将不可靠。</div>
+<div class="diag aviso"><b>注意：可能亲吻球。</b>一颗不在线路中的球位于计算路径附近，可能将其拦截。</div>
+<div class="diag aviso"><b>注意：接触极薄 / 极厚。</b>解存在，但处于厚度的极端：薄需要外科手术般的瞄准；厚会消耗主球的速度。</div>
+
+<h2>5. 结语：模块的哲学</h2>
+<p>镜像宁可拒绝画线，也不画一场幻想。它展示的每条轨迹都是所声明约定下的精确几何；每次拒绝都附有物理原因；每条提醒都告诉您模型踏上湿滑地面的位置。最终发言权永远属于球台，而叠加数据的视频正为此而生：逐个接触点、用钻石点的语言，将计划与真实滚动进行对比。</p>
+
+<footer>
+  镜像系统 · 三库开伦台球数字助手 · © Juan José Arango E.<br/>
+  接触物理：Coriolis (1835) · 30° 法则：D. Alciatore.
+</footer>
+
+</div>
+</body>
+</html>
