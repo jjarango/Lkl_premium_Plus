@@ -2020,7 +2020,7 @@ html,body,button,input,select,textarea{font-family:"PingFang SC","Microsoft YaHe
 <option value="bottom">下方长库</option>
 <option value="left">左侧短库</option>
 </select>
-</div><div id="mirrorControls" style="display:none"><div id="mirrorStrikeBlock" style="display:none"><label for="mirrorStrike">接触时的杆法</label><select id="mirrorStrike"><option selected="" value="rolling">滚球（≈34° 锥角）</option><option value="stun">定杆 / 切线（90°）</option></select></div><label for="mirrorCoef">球台系数：<span id="mirrorCoefVal">1.25</span></label><input id="mirrorCoef" max="1.45" min="0.85" step="0.01" type="range" value="1.25"/><p class="small" style="margin:4px 0 10px;">滑块设定球台的最大拉长量：斜向反弹时全量生效；陡峭反弹（与库边夹角约大于 52°）时引擎按实测曲线自动衰减，约 70° 起为纯镜像。出厂按典型球台（1.25）调好；若球总是偏长或偏短，请调整至吻合，数值会自动保存。</p><label style="display:flex; gap:8px; align-items:center; cursor:pointer; margin:0 0 6px;"><input id="mirrorShowHalves" style="width:auto" type="checkbox"/> <span class="small">显示对半作图</span></label><p class="small" id="mirrorContract" style="margin:2px 0 10px;">几何镜像系统。基础：滚球（中心或中上半颗皮头）、零侧旋、自然长台速度。侧旋不参与计算。</p></div><p class="small" id="sequenceHelp">请选择先碰球还是先走库，然后设置走库顺序。</p></div></details><details class="menuModule" id="moduleVideoReplay"><summary><span class="moduleTitle" style="color:#ff5a5a">含数据叠加的击球视频</span><span class="moduleState" id="moduleVideoReplayState">顶置摄像头 · 尚未校准</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><p class="small" style="margin:0 0 10px;">用顶置摄像头录制真实击球，并在视频上叠加击球数据（进攻点与进攻线、到达点）进行回看，支持慢动作与逐帧前进。录像包含摄像头麦克风的音频。只要摄像头不移动，四角校准只需进行一次。<b>若从自动检测器的顶置拍摄应用位置，该校准会自动复用。</b></p><button class="cameraCaptureBtn" id="videoReplayRecordBtn" type="button">录制击球</button><button id="videoReplayCalibBtn" type="button">校准叠加</button><div aria-live="polite" class="cameraCaptureStatus" id="videoReplayModuleStatus" role="status">叠加的数据（进攻与到达）为当时已计算的内容（例如所选主球与库边线路的 LKL / Base 50）。</div></div></details><details class="menuModule" id="moduleEffect"><summary><span class="moduleTitle">侧旋与杆法</span><span class="moduleState" id="moduleEffectState">正向侧旋 · 3级侧旋 · 长送杆</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><div aria-controls="contiTooltip" aria-expanded="false" class="contiHelpAnchor" id="contiHelpAnchor" tabindex="0"><label for="english">侧旋方向</label><span aria-hidden="true" class="contiHelpIcon">i</span></div><select id="english">
+</div><div id="mirrorControls" style="display:none"><div id="mirrorRouteBlock" style="display:none"><label for="mirrorRoute">得分线路</label><select id="mirrorRoute"><option selected="" value="classic">3库 → 球 → 球</option><option value="after2">2库 → 球 → 1库 → 球</option><option value="after1">1库 → 球 → 2库 → 球</option></select></div><div id="mirrorStrikeBlock" style="display:none"><label for="mirrorStrike">接触时的杆法</label><select id="mirrorStrike"><option selected="" value="rolling">滚球（≈34° 锥角）</option><option value="stun">定杆 / 切线（90°）</option></select></div><label for="mirrorCoef">球台系数：<span id="mirrorCoefVal">1.25</span></label><input id="mirrorCoef" max="1.45" min="0.85" step="0.01" type="range" value="1.25"/><p class="small" style="margin:4px 0 10px;">滑块设定球台的最大拉长量：斜向反弹时全量生效；陡峭反弹（与库边夹角约大于 52°）时引擎按实测曲线自动衰减，约 70° 起为纯镜像。出厂按典型球台（1.25）调好；若球总是偏长或偏短，请调整至吻合，数值会自动保存。</p><label style="display:flex; gap:8px; align-items:center; cursor:pointer; margin:0 0 6px;"><input id="mirrorShowHalves" style="width:auto" type="checkbox"/> <span class="small">显示对半作图</span></label><p class="small" id="mirrorContract" style="margin:2px 0 10px;">几何镜像系统。基础：滚球（中心或中上半颗皮头）、零侧旋、自然长台速度。侧旋不参与计算。</p></div><p class="small" id="sequenceHelp">请选择先碰球还是先走库，然后设置走库顺序。</p></div></details><details class="menuModule" id="moduleVideoReplay"><summary><span class="moduleTitle" style="color:#ff5a5a">含数据叠加的击球视频</span><span class="moduleState" id="moduleVideoReplayState">顶置摄像头 · 尚未校准</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><p class="small" style="margin:0 0 10px;">用顶置摄像头录制真实击球，并在视频上叠加击球数据（进攻点与进攻线、到达点）进行回看，支持慢动作与逐帧前进。录像包含摄像头麦克风的音频。只要摄像头不移动，四角校准只需进行一次。<b>若从自动检测器的顶置拍摄应用位置，该校准会自动复用。</b></p><button class="cameraCaptureBtn" id="videoReplayRecordBtn" type="button">录制击球</button><button id="videoReplayCalibBtn" type="button">校准叠加</button><div aria-live="polite" class="cameraCaptureStatus" id="videoReplayModuleStatus" role="status">叠加的数据（进攻与到达）为当时已计算的内容（例如所选主球与库边线路的 LKL / Base 50）。</div></div></details><details class="menuModule" id="moduleEffect"><summary><span class="moduleTitle">侧旋与杆法</span><span class="moduleState" id="moduleEffectState">正向侧旋 · 3级侧旋 · 长送杆</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><div aria-controls="contiTooltip" aria-expanded="false" class="contiHelpAnchor" id="contiHelpAnchor" tabindex="0"><label for="english">侧旋方向</label><span aria-hidden="true" class="contiHelpIcon">i</span></div><select id="english">
 <option value="positive">正向侧旋：打开／拉长线路</option>
 <option value="neutral">无侧旋</option>
 <option value="negative">反向侧旋：收紧／缩短线路</option>
@@ -4073,6 +4073,8 @@ html,body,button,input,select,textarea{font-family:"PingFang SC","Microsoft YaHe
     if(mirrorBlock) mirrorBlock.style.display = isMirror ? 'block' : 'none';
     const strikeBlock = ids('mirrorStrikeBlock');
     if(strikeBlock) strikeBlock.style.display = (isMirror && !isCushionFirstModeValue(c.mode)) ? 'block' : 'none';
+    const routeBlock = ids('mirrorRouteBlock');
+    if(routeBlock) routeBlock.style.display = (isMirror && isCushionFirstModeValue(c.mode) && c.firstBall !== 'midpoint') ? 'block' : 'none';
     const contractEl = ids('mirrorContract');
     if(contractEl && isMirror){
       const esPicada = !isCushionFirstModeValue(c.mode) && ids('mirrorStrike') && ids('mirrorStrike').value === 'stun';
@@ -4107,7 +4109,11 @@ html,body,button,input,select,textarea{font-family:"PingFang SC","Microsoft YaHe
           opt.disabled = isLkl || isPlus || isMirror;
         } else {
           opt.hidden = false;
-          opt.disabled = false;
+          // En Espejo, la tercera no puede repetir la segunda banda,
+          // salvo que el recorrido ponga la bola entre ambas.
+          const rutaEl = ids('mirrorRoute');
+          const bolaEntre23 = isMirror && isCushionFirstModeValue(c.mode) && c.firstBall !== 'midpoint' && rutaEl && rutaEl.value === 'after2';
+          opt.disabled = isMirror && !bolaEntre23 && opt.value === c.rail2;
         }
       });
 
@@ -4169,6 +4175,23 @@ html,body,button,input,select,textarea{font-family:"PingFang SC","Microsoft YaHe
     if(firstBallSelect){
       const midpointAllowed = (c.systemMode === 'lkl' || c.systemMode === 'long' || c.systemMode === 'mirror') &&
         isCushionFirstModeValue(c.mode);
+
+      const fbSel = ids('firstBall');
+      if(fbSel){
+        const nombresBola = {white:'白球', yellow:'黄球', red:'红球'};
+        const esCaromCompleta = c.systemMode === 'mirror' && isCushionFirstModeValue(c.mode);
+        [...fbSel.options].forEach(opt => {
+          if(!(opt.value in nombresBola)) return;
+          if(opt.dataset.rotuloOriginal === undefined) opt.dataset.rotuloOriginal = opt.textContent;
+          if(esCaromCompleta){
+            const objs = objectBallKeysForCueKey(c.cueBall === 'yellow' ? 'yellow' : 'white');
+            const otra = objs.find(kk => kk !== opt.value);
+            opt.textContent = otra ? (nombresBola[opt.value] + ' → ' + nombresBola[otra]) : nombresBola[opt.value];
+          } else {
+            opt.textContent = opt.dataset.rotuloOriginal;
+          }
+        });
+      }
       [...firstBallSelect.options].forEach(opt => {
         if(opt.value === 'midpoint'){
           opt.hidden = !midpointAllowed;
@@ -10192,6 +10215,7 @@ html,body,button,input,select,textarea{font-family:"PingFang SC","Microsoft YaHe
     const R2 = BALL_R * 2;
     const EVAL = phi => {
       const G = {x:B.x + R2 * Math.cos(phi), y:B.y + R2 * Math.sin(phi)};
+      if(G.x < BALL_R || G.x > TABLE.W - BALL_R || G.y < BALL_R || G.y > TABLE.H - BALL_R) return null;
       const d0 = mirrorVec.norm(mirrorVec.sub(G, C));
       const n = mirrorVec.norm(mirrorVec.sub(B, G));
       const c0 = mirrorVec.dot(d0, n);
@@ -10248,6 +10272,7 @@ html,body,button,input,select,textarea{font-family:"PingFang SC","Microsoft YaHe
     for(const s of [1, -1]){
       const n = {x:-d1.y * s, y:d1.x * s};
       const G = {x:B.x - n.x * R2, y:B.y - n.y * R2};
+      if(G.x < BALL_R || G.x > TABLE.W - BALL_R || G.y < BALL_R || G.y > TABLE.H - BALL_R) continue;
       const d0 = mirrorVec.norm(mirrorVec.sub(G, C));
       const c0 = mirrorVec.dot(d0, n);
       const vel = mirrorVec.dot(d0, d1);
@@ -10263,8 +10288,86 @@ html,body,button,input,select,textarea{font-family:"PingFang SC","Microsoft YaHe
   function mirrorContactInfo(p, i, rails){
     const rail = rails[i];
     const horiz = rail === 'top' || rail === 'bottom';
-    const dv = ((horiz ? p.x : p.y) / 10).toFixed(1);
+    // El primer contacto es el que el jugador ejecuta: dos decimales.
+    // Los siguientes son consecuencias auditables: basta uno.
+    const dv = ((horiz ? p.x : p.y) / 10).toFixed(i === 0 ? 2 : 1);
     return {x:p.x, y:p.y, n:i + 1, rail, dv, rotulo:MIRROR_RAIL_ABREV[rail] + ' ' + dv};
+  }
+
+  // Carambola completa en banda previa: la tacadora llega a la bola
+  // escala con dirección fija (la que trae de las bandas) y debe
+  // salir rodada hacia la tercera. Se busca el punto de toma G sobre
+  // el círculo de 2R: la misma física del cono con los actores
+  // intercambiados, resuelta por búsqueda de raíces.
+  function mirrorFinalContactSolve(dIn, B, T){
+    const R2 = BALL_R * 2;
+    const EVAL = phi => {
+      const G = {x:B.x + R2 * Math.cos(phi), y:B.y + R2 * Math.sin(phi)};
+      if(G.x < BALL_R || G.x > TABLE.W - BALL_R || G.y < BALL_R || G.y > TABLE.H - BALL_R) return null;
+      const n = mirrorVec.norm(mirrorVec.sub(B, G));
+      const c0 = mirrorVec.dot(dIn, n);
+      if(c0 <= 0.02) return null;
+      const tRaw = mirrorVec.sub(dIn, mirrorVec.mul(n, c0));
+      const tLen = mirrorVec.len(tRaw);
+      const tHat = tLen > 1e-9 ? mirrorVec.mul(tRaw, 1 / tLen) : {x:-n.y, y:n.x};
+      const vf = mirrorVec.norm(mirrorVec.add(mirrorVec.mul(n, 2 * c0 / 7), mirrorVec.mul(tHat, tLen)));
+      const d1 = mirrorVec.norm(mirrorVec.sub(T, G));
+      const err = Math.atan2(vf.x * d1.y - vf.y * d1.x, vf.x * d1.x + vf.y * d1.y);
+      return {G, cut:c0, err};
+    };
+    const roots = [];
+    let prevEv = null, prevPhi = 0;
+    for(let i = 0; i <= 720; i++){
+      const phi = i * Math.PI * 2 / 720;
+      const ev = EVAL(phi);
+      if(ev && prevEv && ((ev.err > 0) !== (prevEv.err > 0)) &&
+         Math.abs(ev.err) < 0.6 && Math.abs(prevEv.err) < 0.6){
+        let a = prevPhi, b = phi, ea = prevEv.err;
+        for(let j = 0; j < 60; j++){
+          const mid = (a + b) / 2;
+          const em = EVAL(mid);
+          if(!em) break;
+          if((em.err > 0) === (ea > 0)){ a = mid; ea = em.err; } else { b = mid; }
+        }
+        const fin = EVAL((a + b) / 2);
+        if(fin && Math.abs(fin.err) < 0.012) roots.push(fin);
+      }
+      prevEv = ev;
+      prevPhi = phi;
+    }
+    if(!roots.length) return null;
+    roots.sort((x, y) => x.cut - y.cut);
+    const jugables = roots.filter(r => r.cut >= 0.05);
+    const pick = (jugables.length ? jugables : roots)[0];
+    const spread = roots.length >= 2 ? (roots[roots.length - 1].cut - roots[0].cut) : 0;
+    return {G:pick.G, cut:pick.cut, nearLimit: roots.length < 2 || spread < 0.16};
+  }
+
+  // Toma final por tangente: cuando la rodada no alcanza, la
+  // referencia correcta es la picada/retención: la tacadora sale
+  // perpendicular a la línea de centros. Dada la llegada fija y el
+  // objetivo Q, hay a lo sumo dos lados; se prefiere el que conserva
+  // más marcha por la tangente.
+  function mirrorFinalContactSolveStun(dIn, B, Q){
+    const R2 = BALL_R * 2;
+    let best = null;
+    for(const s of [1, -1]){
+      let d1 = mirrorVec.norm(mirrorVec.sub(Q, B));
+      let G = null;
+      for(let j = 0; j < 4; j++){
+        const n = {x:-d1.y * s, y:d1.x * s};
+        G = {x:B.x - n.x * R2, y:B.y - n.y * R2};
+        d1 = mirrorVec.norm(mirrorVec.sub(Q, G));
+      }
+      const n = {x:-d1.y * s, y:d1.x * s};
+      G = {x:B.x - n.x * R2, y:B.y - n.y * R2};
+      if(G.x < BALL_R || G.x > TABLE.W - BALL_R || G.y < BALL_R || G.y > TABLE.H - BALL_R) continue;
+      const c0 = mirrorVec.dot(dIn, n);
+      const vel = mirrorVec.dot(dIn, d1);
+      if(c0 <= 0.03 || vel <= 0.03) continue;
+      if(!best || vel > best.vel) best = {G, cut:c0, vel};
+    }
+    return best;
   }
 
   function mirrorBallName(key){
@@ -10276,7 +10379,13 @@ html,body,button,input,select,textarea{font-family:"PingFang SC","Microsoft YaHe
     const cue = balls[cueKey];
     const rails = [c.rail1, c.rail2, c.thirdRail];
     if(c.fourthRail && c.fourthRail !== 'none') rails.push(c.fourthRail);
+    const rutaSel = (ids('mirrorRoute') && ids('mirrorRoute').value) || 'classic';
+    const esIntermedia = c.mode === 'cushionFirst' && c.firstBall !== 'midpoint' && rutaSel !== 'classic';
+    // Con bola intermedia, la banda anterior y la posterior al contacto
+    // pueden ser la misma: la bola rompe la consecutividad.
+    const fronteraBola = esIntermedia ? (rutaSel === 'after1' ? 1 : 2) : -1;
     for(let i = 1; i < rails.length; i++){
+      if(i === fronteraBola) continue;
       if(rails[i] === rails[i-1]){
         return {error:'镜像：不能连续指定同一条库边。请修改线路。', brief:'连续相同库边'};
       }
@@ -10319,34 +10428,190 @@ html,body,button,input,select,textarea{font-family:"PingFang SC","Microsoft YaHe
     };
 
     if(c.mode === 'cushionFirst'){
-      let T, targetDesc, targetKeys;
+      // Caso punto medio: el objetivo es el punto, sin toma calculada.
       if(c.firstBall === 'midpoint'){
-        T = midpointBetweenObjectBalls(c);
-        targetDesc = mirrorBallName(objKeys[0]) + '与' + mirrorBallName(objKeys[1]) + '之间';
-        targetKeys = objKeys.slice();
-      } else {
-        const tk = objKeys.includes(c.firstBall) ? c.firstBall : objKeys[0];
-        T = balls[tk];
-        targetDesc = mirrorBallName(tk);
-        targetKeys = [tk];
+        const T = midpointBetweenObjectBalls(c);
+        const targetDesc = mirrorBallName(objKeys[0]) + '与' + mirrorBallName(objKeys[1]) + '之间';
+        const sol = solveMirrorPath(cue, rails, T, k);
+        if(!sol) return {error:'镜像：从当前位置该线路组合没有几何解。', brief:'该线路组合无几何解'};
+        sol.trace.S0 = cue;
+        rasanteCheck(sol.trace);
+        const pts = [{x:cue.x, y:cue.y}].concat(sol.trace.contacts).concat([{x:T.x, y:T.y}]);
+        besoCheck(pts, [cueKey].concat(objKeys));
+        const contactos = sol.trace.contacts.map((p, i) => mirrorContactInfo(p, i, rails));
+        return {
+          mirrorShot:true,
+          path:{points:pts},
+          mirror:{
+            contacts: contactos,
+            targetPoint:{x:T.x, y:T.y}
+          },
+          warnings,
+          receta: contactos.map(ct => ct.rotulo).join(' → '),
+          resumen:'先库 · 目标：' + targetDesc + ' · k=' + k.toFixed(2)
+        };
       }
-      const sol = solveMirrorPath(cue, rails, T, k);
-      if(!sol) return {error:'镜像：从当前位置该线路没有几何解。', brief:'该线路无几何解'};
+
+      // Carambola completa: la bola elegida es escala, no destino.
+      // La app calcula la toma exacta para que la tacadora, rodando,
+      // doble desde ahí hacia lo que sigue del recorrido.
+      const tk = objKeys.includes(c.firstBall) ? c.firstBall : objKeys[0];
+      const B2 = balls[tk];
+      const thirdKey = objKeys.find(kk => kk !== tk) || objKeys[0];
+      const T3 = balls[thirdKey];
+      const route = rutaSel;
+
+      // Recorridos con bola intermedia: parte de las bandas van antes
+      // del contacto y el resto después (tres en total: carambola
+      // legal). Doble desdoblamiento acoplado por punto fijo.
+      if(route !== 'classic' && rails.length >= 3){
+        const nPre = route === 'after1' ? 1 : 2;
+        const railsPre = rails.slice(0, nPre);
+        const railsPost = rails.slice(nPre);
+        let P = {x:B2.x, y:B2.y};
+        let solPre = null, solPost = null, toma = null, nearLimitSeen = false;
+        for(let it = 0; it < 4; it++){
+          solPre = solveMirrorPath(cue, railsPre, P, k);
+          if(!solPre) return {error:'镜像：从当前位置到' + mirrorBallName(tk) + '之前的路段无几何解。', brief:'球前路段无解'};
+          solPost = solveMirrorPath(P, railsPost, T3, k);
+          if(!solPost) return {error:'镜像：' + mirrorBallName(tk) + '之后的路段（经' + (railsPost.length === 1 ? '剩余库边' : '剩余各库') + '朝向' + mirrorBallName(thirdKey) + '）无几何解。', brief:'球后路段无解'};
+          const Q = solPost.trace.contacts[0];
+          toma = mirrorFinalContactSolve(solPre.trace.outDir, B2, Q);
+          if(!toma) break;   // sin veto: degrada a dibujo por centros
+          if(toma.nearLimit) nearLimitSeen = true;
+          P = toma.G;
+        }
+        // Escalera de honestidades: si la rodada no alcanza, se
+        // calcula la toma por tangente (picada/retención): fantasma
+        // del lado correcto y ataque recalculado hacia esa toma. Solo
+        // si ni la tangente alcanza, se dibuja por centros.
+        let tomaTg = null;
+        if(!toma){
+          P = {x:B2.x, y:B2.y};
+          for(let it = 0; it < 4; it++){
+            solPre = solveMirrorPath(cue, railsPre, P, k);
+            if(!solPre) break;
+            solPost = solveMirrorPath(P, railsPost, T3, k);
+            if(!solPost) break;
+            tomaTg = mirrorFinalContactSolveStun(solPre.trace.outDir, B2, solPost.trace.contacts[0]);
+            if(!tomaTg) break;
+            P = tomaTg.G;
+          }
+          if(tomaTg && solPre && solPost){
+            warnings.push('切线接触（厚度 ~' + Math.round(tomaTg.cut * 100) + '%）：接触时需要定杆或收杆。所画出球方向假定纯切线：回拉越多弯得越多；加塞时反弹也会随之偏移。');
+          } else {
+            tomaTg = null;
+            P = {x:B2.x, y:B2.y};
+            solPre = solveMirrorPath(cue, railsPre, P, k);
+            solPost = solveMirrorPath(P, railsPost, T3, k);
+            if(!solPre || !solPost) return {error:'镜像：从当前位置该线路无几何解。', brief:'该线路无几何解'};
+            warnings.push(mirrorBallName(tk) + '之后的走向甚至超过切线（90°）：属深度回拉领域。厚度由您掌握，路段按球心绘制；数字仅供参考。');
+          }
+        }
+        const G = toma ? toma.G : (tomaTg ? tomaTg.G : {x:B2.x, y:B2.y});
+        const solPostFin = solveMirrorPath(G, railsPost, T3, k) || solPost;
+        // incidencias rasantes de ambos tramos, con numeración corrida
+        let dirR = mirrorVec.norm(mirrorVec.sub(solPre.trace.contacts[0], cue));
+        for(let i = 0; i < solPre.trace.contacts.length; i++){
+          const rl = railsPre[i];
+          const horizR = rl === 'top' || rl === 'bottom';
+          const grados = Math.abs(Math.asin(clamp(horizR ? dirR.y : dirR.x, -1, 1))) * 180 / Math.PI;
+          if(grados < 12) warnings.push('第 ' + (i + 1) + ' 库入射角过于平缓：实际反弹不可靠。');
+          dirR = mirrorBounce(dirR, rl, k);
+        }
+        dirR = mirrorVec.norm(mirrorVec.sub(solPostFin.trace.contacts[0], G));
+        for(let i = 0; i < solPostFin.trace.contacts.length; i++){
+          const rl = railsPost[i];
+          const horizR = rl === 'top' || rl === 'bottom';
+          const grados = Math.abs(Math.asin(clamp(horizR ? dirR.y : dirR.x, -1, 1))) * 180 / Math.PI;
+          if(grados < 12) warnings.push('第 ' + (nPre + i + 1) + ' 库入射角过于平缓：实际反弹不可靠。');
+          dirR = mirrorBounce(dirR, rl, k);
+        }
+        if(toma && nearLimitSeen) warnings.push('与' + mirrorBallName(tk) + '的接触接近物理极限：执行余量极小。');
+        if(toma && toma.cut < 0.12) warnings.push('与' + mirrorBallName(tk) + '的接触极薄。');
+        if(toma && toma.cut > 0.92) warnings.push('与' + mirrorBallName(tk) + '的接触极厚：主球几乎不弯。');
+        const postPts = [{x:G.x, y:G.y}].concat(solPostFin.trace.contacts).concat([{x:T3.x, y:T3.y}]);
+        let Lpost = 0;
+        for(let i = 1; i < postPts.length; i++) Lpost += Math.hypot(postPts[i].x - postPts[i-1].x, postPts[i].y - postPts[i-1].y);
+        if(Lpost > 35) warnings.push('接触后行程较长（~' + (Lpost / 10).toFixed(1) + ' 颗星）：需要有力的出杆。');
+        const prePts = [{x:cue.x, y:cue.y}].concat(solPre.trace.contacts).concat([{x:G.x, y:G.y}]);
+        besoCheck(prePts.concat(solPostFin.trace.contacts).concat([{x:T3.x, y:T3.y}]), [cueKey, tk, thirdKey]);
+        const railsTodos = railsPre.concat(railsPost);
+        const contactos = solPre.trace.contacts.map((p, i) => mirrorContactInfo(p, i, railsTodos))
+          .concat(solPostFin.trace.contacts.map((p, j) => mirrorContactInfo(p, nPre + j, railsTodos)));
+        return {
+          mirrorShot:true,
+          path:{points:prePts},
+          mirror:{
+            contacts: contactos,
+            targetPoint:null,
+            ghost: (toma || tomaTg) ? {x:G.x, y:G.y} : null,
+            postPath:{points:postPts}
+          },
+          warnings,
+          aviso: toma ? null : (tomaTg
+            ? '镜像：切线接触：需要定杆或收杆 · 请查看诊断'
+            : '镜像：走向超出所有约定（深度回拉）· 请查看诊断'),
+          receta: contactos.map(ct => ct.rotulo).join(' → '),
+          resumen:'线路：' + (nPre === 1 ? '1库' : '2库') + ' → ' + mirrorBallName(tk) + (toma ? '（厚度 ~' + Math.round(toma.cut * 100) + '%）' : (tomaTg ? '（厚度 ~' + Math.round(tomaTg.cut * 100) + '%，切线）' : '（厚度自定）')) + ' → ' + (railsPost.length === 1 ? '1库' : railsPost.length + '库') + ' → ' + mirrorBallName(thirdKey) + ' · k=' + k.toFixed(2)
+        };
+      }
+
+      let P = {x:B2.x, y:B2.y};
+      let sol = null, toma = null, nearLimitSeen = false;
+      for(let it = 0; it < 3; it++){
+        sol = solveMirrorPath(cue, rails, P, k);
+        if(!sol) return {error:'镜像：从当前位置该线路组合没有几何解。', brief:'该线路组合无几何解'};
+        toma = mirrorFinalContactSolve(sol.trace.outDir, B2, T3);
+        if(!toma) break;   // sin veto: degrada a dibujo por centros
+        if(toma.nearLimit) nearLimitSeen = true;
+        P = toma.G;
+      }
+      let tomaTg = null;
+      if(!toma){
+        P = {x:B2.x, y:B2.y};
+        for(let it = 0; it < 4; it++){
+          sol = solveMirrorPath(cue, rails, P, k);
+          if(!sol) break;
+          tomaTg = mirrorFinalContactSolveStun(sol.trace.outDir, B2, T3);
+          if(!tomaTg) break;
+          P = tomaTg.G;
+        }
+        if(tomaTg && sol){
+          warnings.push('切线接触（厚度 ~' + Math.round(tomaTg.cut * 100) + '%）：接触时需要定杆或收杆。所画出球方向假定纯切线：回拉越多弯得越多；加塞时反弹也会随之偏移。');
+        } else {
+          tomaTg = null;
+          P = {x:B2.x, y:B2.y};
+          sol = solveMirrorPath(cue, rails, P, k);
+          if(!sol) return {error:'镜像：从当前位置该线路组合没有几何解。', brief:'该线路组合无几何解'};
+          warnings.push('朝向' + mirrorBallName(thirdKey) + '的走向甚至超过切线（90°）：属深度回拉领域。厚度由您掌握，最后一段按球心绘制；数字仅供参考。');
+        }
+      }
       sol.trace.S0 = cue;
       rasanteCheck(sol.trace);
-      const pts = [{x:cue.x, y:cue.y}].concat(sol.trace.contacts).concat([{x:T.x, y:T.y}]);
-      besoCheck(pts, [cueKey].concat(targetKeys));
+      if(toma && nearLimitSeen) warnings.push('与' + mirrorBallName(tk) + '的接触接近物理极限：执行余量极小。');
+      if(toma && toma.cut < 0.12) warnings.push('与' + mirrorBallName(tk) + '的接触极薄。');
+      if(toma && toma.cut > 0.92) warnings.push('与' + mirrorBallName(tk) + '的接触极厚：主球几乎不朝' + mirrorBallName(thirdKey) + '弯转。');
+      const GC = toma ? toma.G : (tomaTg ? tomaTg.G : {x:B2.x, y:B2.y});
+      if(Math.hypot(T3.x - GC.x, T3.y - GC.y) > 30) warnings.push('朝' + mirrorBallName(thirdKey) + '的最后一段较长：需要充足球速。');
+      const pts = [{x:cue.x, y:cue.y}].concat(sol.trace.contacts).concat([{x:GC.x, y:GC.y}]);
+      besoCheck(pts.concat([{x:T3.x, y:T3.y}]), [cueKey, tk, thirdKey]);
       const contactos = sol.trace.contacts.map((p, i) => mirrorContactInfo(p, i, rails));
       return {
         mirrorShot:true,
         path:{points:pts},
         mirror:{
           contacts: contactos,
-          targetPoint: c.firstBall === 'midpoint' ? {x:T.x, y:T.y} : null
+          targetPoint:null,
+          ghost: (toma || tomaTg) ? {x:GC.x, y:GC.y} : null,
+          finalLeg:{from:{x:GC.x, y:GC.y}, to:{x:T3.x, y:T3.y}}
         },
         warnings,
+        aviso: toma ? null : (tomaTg
+          ? '镜像：切线接触：需要定杆或收杆 · 请查看诊断'
+          : '镜像：走向超出所有约定（深度回拉）· 请查看诊断'),
         receta: contactos.map(ct => ct.rotulo).join(' → '),
-        resumen:'先库 · 目标：' + targetDesc + ' · k=' + k.toFixed(2)
+        resumen:'先库 → ' + mirrorBallName(tk) + (toma ? '（厚度 ~' + Math.round(toma.cut * 100) + '%）' : (tomaTg ? '（厚度 ~' + Math.round(tomaTg.cut * 100) + '%，切线）' : '（厚度自定）')) + ' → ' + mirrorBallName(thirdKey) + ' · k=' + k.toFixed(2)
       };
     }
 
@@ -10361,7 +10626,7 @@ html,body,button,input,select,textarea{font-family:"PingFang SC","Microsoft YaHe
     let sol = null, contact = null, nearLimitSeen = false;
     for(let it = 0; it < 3; it++){
       sol = solveMirrorPath(S, rails, T, k);
-      if(!sol) return {error:'镜像：从当前位置该线路没有几何解。', brief:'该线路无几何解'};
+      if(!sol) return {error:'镜像：从当前位置该线路组合没有几何解。', brief:'该线路组合无几何解'};
       const d1 = mirrorVec.norm(mirrorVec.sub(sol.trace.contacts[0], S));
       contact = strike === 'stun' ? mirrorContactSolveStun(cue, B, d1) : mirrorContactSolve(cue, B, d1);
       if(!contact){
@@ -10458,6 +10723,32 @@ html,body,button,input,select,textarea{font-family:"PingFang SC","Microsoft YaHe
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(q.x, q.y, BALL_R * geom.scale, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    if(s.mirror.finalLeg){
+      const a = worldToScreen(s.mirror.finalLeg.from);
+      const b = worldToScreen(s.mirror.finalLeg.to);
+      ctx.setLineDash([10, 8]);
+      ctx.strokeStyle = 'rgba(98,215,255,.8)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    if(s.mirror.postPath && s.mirror.postPath.points.length >= 2){
+      const pp = s.mirror.postPath.points;
+      ctx.setLineDash([10, 8]);
+      ctx.strokeStyle = 'rgba(98,215,255,.8)';
+      ctx.lineWidth = 3;
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      pp.forEach((p, i) => {
+        const q = worldToScreen(p);
+        if(i) ctx.lineTo(q.x, q.y); else ctx.moveTo(q.x, q.y);
+      });
       ctx.stroke();
       ctx.setLineDash([]);
     }
@@ -10601,6 +10892,7 @@ html,body,button,input,select,textarea{font-family:"PingFang SC","Microsoft YaHe
       drawPath(shot);
       drawMirrorOverlays(shot);
       drawBalls();
+      if(shot.aviso) drawBoardNotice(shot.aviso);
       if(diagEl){
         diagEl.textContent = '镜像系统：' + shot.resumen +
           (shot.receta ? ' · 接触点：' + shot.receta : '') +
@@ -13498,6 +13790,34 @@ function drawStartMarks(){
             g.stroke();
           }
         }
+        if(mirrorInfo.finalLeg){
+          const a = W2V(mirrorInfo.finalLeg.from);
+          const b = W2V(mirrorInfo.finalLeg.to);
+          if(a && b){
+            g.setLineDash([10, 8]);
+            g.strokeStyle = 'rgba(98,215,255,.85)';
+            g.lineWidth = Math.max(2.5, ch * .005);
+            g.beginPath();
+            g.moveTo(a.x, a.y);
+            g.lineTo(b.x, b.y);
+            g.stroke();
+            g.setLineDash([]);
+          }
+        }
+        if(mirrorInfo.postPath && mirrorInfo.postPath.points.length >= 2){
+          g.setLineDash([10, 8]);
+          g.strokeStyle = 'rgba(98,215,255,.85)';
+          g.lineWidth = Math.max(2.5, ch * .005);
+          g.beginPath();
+          let started = false;
+          for(const p of mirrorInfo.postPath.points){
+            const q = W2V(p);
+            if(!q) continue;
+            if(started) g.lineTo(q.x, q.y); else { g.moveTo(q.x, q.y); started = true; }
+          }
+          g.stroke();
+          g.setLineDash([]);
+        }
         g.textAlign = 'start'; g.textBaseline = 'alphabetic';
       }
     }
@@ -14444,13 +14764,21 @@ function drawStartMarks(){
 
   function syncMirrorRailAvailability(){
     const esMirror = ids('systemMode') && ids('systemMode').value === 'mirror';
+    // Con recorrido de bola intermedia, el par de bandas separado por
+    // la bola queda libre de la regla de consecutivas.
+    const modeEl = ids('mode'), fbEl = ids('firstBall'), rEl = ids('mirrorRoute');
+    const rutaSel = (esMirror && modeEl && modeEl.value === 'cushionFirst' && fbEl && fbEl.value !== 'midpoint' && rEl) ? rEl.value : 'classic';
+    const fronteraBola = rutaSel === 'after1' ? 1 : (rutaSel === 'after2' ? 2 : -1);
     let corrigio = false;
+    let idxPar = 0;
     for(const [aId, bId] of [['rail1','rail2'], ['rail2','thirdRail'], ['thirdRail','fourthRail']]){
+      idxPar++;
       const a = ids(aId), b = ids(bId);
       if(!a || !b) continue;
+      const parConBola = idxPar === fronteraBola;
       [...b.options].forEach(opt => {
         if(opt.value === 'none' || opt.value === 'auto') return;
-        const bloquear = esMirror && opt.value === a.value;
+        const bloquear = esMirror && !parConBola && opt.value === a.value;
         opt.disabled = bloquear;
         if(bloquear && b.value === opt.value){
           const alt = [...b.options].find(o => !o.disabled && !o.hidden && o.value !== 'none' && o.value !== 'auto');
@@ -14463,7 +14791,7 @@ function drawStartMarks(){
       updateModuleSummaries();
     }
   }
-  ['systemMode','rail1','rail2','thirdRail'].forEach(id => {
+  ['systemMode','rail1','rail2','thirdRail','mirrorRoute','mode','firstBall'].forEach(id => {
     const el = ids(id);
     if(el) el.addEventListener('change', syncMirrorRailAvailability);
   });
