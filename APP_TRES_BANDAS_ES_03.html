@@ -2036,7 +2036,7 @@
 <option value="bottom">Larga inferior</option>
 <option value="left">Corta izquierda</option>
 </select>
-</div><div id="mirrorControls" style="display:none"><div id="mirrorStrikeBlock" style="display:none"><label for="mirrorStrike">Golpe al contacto</label><select id="mirrorStrike"><option selected="" value="rolling">Rodada (cono de ≈34°)</option><option value="stun">Picada / tangente (90°)</option></select></div><label for="mirrorCoef">Coeficiente de la mesa: <span id="mirrorCoefVal">1.00</span></label><input id="mirrorCoef" max="1.45" min="0.85" step="0.01" type="range" value="1.25"/><p class="small" style="margin:4px 0 10px;">El deslizador fija el alargamiento máximo de su mesa, que aplica pleno en los rebotes sesgados; en los empinados (más de ~52° contra la banda) el motor lo reduce solo, hasta el espejo puro cerca de los 70°, según la curva medida en mesa. Viene ajustado para una mesa típica (1.25); si sus bolas llegan sistemáticamente largas o cortas respecto de la línea, muévalo hasta que coincidan y quedará guardado.</p><label style="display:flex; gap:8px; align-items:center; cursor:pointer; margin:0 0 6px;"><input id="mirrorShowHalves" style="width:auto" type="checkbox"/> <span class="small">Mostrar construcción de mitades</span></label><p class="small" id="mirrorContract" style="margin:2px 0 10px;">Sistema de espejo geométrico. Base: bola rodada (centro o media bola arriba), efecto lateral cero, velocidad de pasón natural. El efecto lateral no participa del cálculo.</p></div><p class="small" id="sequenceHelp">Seleccione si la jugada empieza con bola primero o con banda previa, y luego indique la secuencia de bandas.</p></div></details><details class="menuModule" id="moduleVideoReplay"><summary><span class="moduleTitle" style="color:#ff5a5a">Video de la jugada con datos superpuestos</span><span class="moduleState" id="moduleVideoReplayState">Cámara cenital · sin calibrar</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><p class="small" style="margin:0 0 10px;">Grabe la ejecución real con la cámara cenital y revísela con los datos de la jugada (punto y línea de Ataque, y punto de Llegada) superpuestos sobre el video, con cámara lenta y avance cuadro a cuadro. La grabación incluye el audio del micrófono de la cámara. Requiere calibrar una sola vez las cuatro esquinas de la mesa, mientras la cámara no se mueva. <b>Si aplica posiciones desde una captura cenital del detector automático, esa calibración se reutiliza sola.</b></p><button class="cameraCaptureBtn" id="videoReplayRecordBtn" type="button">Grabar jugada</button><button id="videoReplayCalibBtn" type="button">Calibrar superposición</button><div aria-live="polite" class="cameraCaptureStatus" id="videoReplayModuleStatus" role="status">Los datos superpuestos (Ataque y Llegada) serán los que estén calculados en ese momento (por ejemplo, LKL / Base 50 con la tacadora y la secuencia de bandas elegidas).</div></div></details><details class="menuModule" id="moduleEffect"><summary><span class="moduleTitle">Efecto y golpe</span><span class="moduleState" id="moduleEffectState">Positivo · efecto 3 · Penetrado largo</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><div aria-controls="contiTooltip" aria-expanded="false" class="contiHelpAnchor" id="contiHelpAnchor" tabindex="0"><label for="english">Dirección del efecto</label><span aria-hidden="true" class="contiHelpIcon">i</span></div><select id="english">
+</div><div id="mirrorControls" style="display:none"><div id="mirrorRouteBlock" style="display:none"><label for="mirrorRoute">Recorrido de la carambola</label><select id="mirrorRoute"><option selected="" value="classic">3 bandas → bola → bola</option><option value="after2">2 bandas → bola → 1 banda → bola</option><option value="after1">1 banda → bola → 2 bandas → bola</option></select></div><div id="mirrorStrikeBlock" style="display:none"><label for="mirrorStrike">Golpe al contacto</label><select id="mirrorStrike"><option selected="" value="rolling">Rodada (cono de ≈34°)</option><option value="stun">Picada / tangente (90°)</option></select></div><label for="mirrorCoef">Coeficiente de la mesa: <span id="mirrorCoefVal">1.00</span></label><input id="mirrorCoef" max="1.45" min="0.85" step="0.01" type="range" value="1.25"/><p class="small" style="margin:4px 0 10px;">El deslizador fija el alargamiento máximo de su mesa, que aplica pleno en los rebotes sesgados; en los empinados (más de ~52° contra la banda) el motor lo reduce solo, hasta el espejo puro cerca de los 70°, según la curva medida en mesa. Viene ajustado para una mesa típica (1.25); si sus bolas llegan sistemáticamente largas o cortas respecto de la línea, muévalo hasta que coincidan y quedará guardado.</p><label style="display:flex; gap:8px; align-items:center; cursor:pointer; margin:0 0 6px;"><input id="mirrorShowHalves" style="width:auto" type="checkbox"/> <span class="small">Mostrar construcción de mitades</span></label><p class="small" id="mirrorContract" style="margin:2px 0 10px;">Sistema de espejo geométrico. Base: bola rodada (centro o media bola arriba), efecto lateral cero, velocidad de pasón natural. El efecto lateral no participa del cálculo.</p></div><p class="small" id="sequenceHelp">Seleccione si la jugada empieza con bola primero o con banda previa, y luego indique la secuencia de bandas.</p></div></details><details class="menuModule" id="moduleVideoReplay"><summary><span class="moduleTitle" style="color:#ff5a5a">Video de la jugada con datos superpuestos</span><span class="moduleState" id="moduleVideoReplayState">Cámara cenital · sin calibrar</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><p class="small" style="margin:0 0 10px;">Grabe la ejecución real con la cámara cenital y revísela con los datos de la jugada (punto y línea de Ataque, y punto de Llegada) superpuestos sobre el video, con cámara lenta y avance cuadro a cuadro. La grabación incluye el audio del micrófono de la cámara. Requiere calibrar una sola vez las cuatro esquinas de la mesa, mientras la cámara no se mueva. <b>Si aplica posiciones desde una captura cenital del detector automático, esa calibración se reutiliza sola.</b></p><button class="cameraCaptureBtn" id="videoReplayRecordBtn" type="button">Grabar jugada</button><button id="videoReplayCalibBtn" type="button">Calibrar superposición</button><div aria-live="polite" class="cameraCaptureStatus" id="videoReplayModuleStatus" role="status">Los datos superpuestos (Ataque y Llegada) serán los que estén calculados en ese momento (por ejemplo, LKL / Base 50 con la tacadora y la secuencia de bandas elegidas).</div></div></details><details class="menuModule" id="moduleEffect"><summary><span class="moduleTitle">Efecto y golpe</span><span class="moduleState" id="moduleEffectState">Positivo · efecto 3 · Penetrado largo</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><div aria-controls="contiTooltip" aria-expanded="false" class="contiHelpAnchor" id="contiHelpAnchor" tabindex="0"><label for="english">Dirección del efecto</label><span aria-hidden="true" class="contiHelpIcon">i</span></div><select id="english">
 <option value="positive">Positivo: abre / alarga</option>
 <option value="neutral">Sin efecto lateral</option>
 <option value="negative">Negativo: cierra / acorta</option>
@@ -3990,6 +3990,8 @@
     // El golpe al contacto solo aplica con bola primero.
     const strikeBlock = ids('mirrorStrikeBlock');
     if(strikeBlock) strikeBlock.style.display = (isMirror && !isCushionFirstModeValue(c.mode)) ? 'block' : 'none';
+    const routeBlock = ids('mirrorRouteBlock');
+    if(routeBlock) routeBlock.style.display = (isMirror && isCushionFirstModeValue(c.mode) && c.firstBall !== 'midpoint') ? 'block' : 'none';
     const contractEl = ids('mirrorContract');
     if(contractEl && isMirror){
       const esPicada = !isCushionFirstModeValue(c.mode) && ids('mirrorStrike') && ids('mirrorStrike').value === 'stun';
@@ -4026,7 +4028,11 @@
           opt.disabled = isLkl || isPlus || isMirror;
         } else {
           opt.hidden = false;
-          opt.disabled = false;
+          // En Espejo, la tercera no puede repetir la segunda banda,
+          // salvo que el recorrido ponga la bola entre ambas.
+          const rutaEl = ids('mirrorRoute');
+          const bolaEntre23 = isMirror && isCushionFirstModeValue(c.mode) && c.firstBall !== 'midpoint' && rutaEl && rutaEl.value === 'after2';
+          opt.disabled = isMirror && !bolaEntre23 && opt.value === c.rail2;
         }
       });
 
@@ -4088,6 +4094,25 @@
     if(firstBallSelect){
       const midpointAllowed = (c.systemMode === 'lkl' || c.systemMode === 'long' || c.systemMode === 'mirror') &&
         isCushionFirstModeValue(c.mode);
+
+      // En Espejo + banda previa el selector habla en carambola:
+      // "Amarilla, luego roja" (la bola elegida es escala hacia la otra).
+      const fbSel = ids('firstBall');
+      if(fbSel){
+        const nombresBola = {white:'Blanca', yellow:'Amarilla', red:'Roja'};
+        const esCaromCompleta = c.systemMode === 'mirror' && isCushionFirstModeValue(c.mode);
+        [...fbSel.options].forEach(opt => {
+          if(!(opt.value in nombresBola)) return;
+          if(opt.dataset.rotuloOriginal === undefined) opt.dataset.rotuloOriginal = opt.textContent;
+          if(esCaromCompleta){
+            const objs = objectBallKeysForCueKey(c.cueBall === 'yellow' ? 'yellow' : 'white');
+            const otra = objs.find(kk => kk !== opt.value);
+            opt.textContent = otra ? (nombresBola[opt.value] + ', luego ' + nombresBola[otra].toLowerCase()) : nombresBola[opt.value];
+          } else {
+            opt.textContent = opt.dataset.rotuloOriginal;
+          }
+        });
+      }
       [...firstBallSelect.options].forEach(opt => {
         if(opt.value === 'midpoint'){
           opt.hidden = !midpointAllowed;
@@ -5860,6 +5885,7 @@
     const R2 = BALL_R * 2;
     const EVAL = phi => {
       const G = {x:B.x + R2 * Math.cos(phi), y:B.y + R2 * Math.sin(phi)};
+      if(G.x < BALL_R || G.x > TABLE.W - BALL_R || G.y < BALL_R || G.y > TABLE.H - BALL_R) return null;
       const d0 = mirrorVec.norm(mirrorVec.sub(G, C));
       const n = mirrorVec.norm(mirrorVec.sub(B, G));
       const c0 = mirrorVec.dot(d0, n);
@@ -5916,6 +5942,7 @@
     for(const s of [1, -1]){
       const n = {x:-d1.y * s, y:d1.x * s};
       const G = {x:B.x - n.x * R2, y:B.y - n.y * R2};
+      if(G.x < BALL_R || G.x > TABLE.W - BALL_R || G.y < BALL_R || G.y > TABLE.H - BALL_R) continue;
       const d0 = mirrorVec.norm(mirrorVec.sub(G, C));
       const c0 = mirrorVec.dot(d0, n);
       const vel = mirrorVec.dot(d0, d1);
@@ -5931,8 +5958,86 @@
   function mirrorContactInfo(p, i, rails){
     const rail = rails[i];
     const horiz = rail === 'top' || rail === 'bottom';
-    const dv = ((horiz ? p.x : p.y) / 10).toFixed(1);
+    // El primer contacto es el que el jugador ejecuta: dos decimales.
+    // Los siguientes son consecuencias auditables: basta uno.
+    const dv = ((horiz ? p.x : p.y) / 10).toFixed(i === 0 ? 2 : 1);
     return {x:p.x, y:p.y, n:i + 1, rail, dv, rotulo:MIRROR_RAIL_ABREV[rail] + ' ' + dv};
+  }
+
+  // Carambola completa en banda previa: la tacadora llega a la bola
+  // escala con dirección fija (la que trae de las bandas) y debe
+  // salir rodada hacia la tercera. Se busca el punto de toma G sobre
+  // el círculo de 2R: la misma física del cono con los actores
+  // intercambiados, resuelta por búsqueda de raíces.
+  function mirrorFinalContactSolve(dIn, B, T){
+    const R2 = BALL_R * 2;
+    const EVAL = phi => {
+      const G = {x:B.x + R2 * Math.cos(phi), y:B.y + R2 * Math.sin(phi)};
+      if(G.x < BALL_R || G.x > TABLE.W - BALL_R || G.y < BALL_R || G.y > TABLE.H - BALL_R) return null;
+      const n = mirrorVec.norm(mirrorVec.sub(B, G));
+      const c0 = mirrorVec.dot(dIn, n);
+      if(c0 <= 0.02) return null;
+      const tRaw = mirrorVec.sub(dIn, mirrorVec.mul(n, c0));
+      const tLen = mirrorVec.len(tRaw);
+      const tHat = tLen > 1e-9 ? mirrorVec.mul(tRaw, 1 / tLen) : {x:-n.y, y:n.x};
+      const vf = mirrorVec.norm(mirrorVec.add(mirrorVec.mul(n, 2 * c0 / 7), mirrorVec.mul(tHat, tLen)));
+      const d1 = mirrorVec.norm(mirrorVec.sub(T, G));
+      const err = Math.atan2(vf.x * d1.y - vf.y * d1.x, vf.x * d1.x + vf.y * d1.y);
+      return {G, cut:c0, err};
+    };
+    const roots = [];
+    let prevEv = null, prevPhi = 0;
+    for(let i = 0; i <= 720; i++){
+      const phi = i * Math.PI * 2 / 720;
+      const ev = EVAL(phi);
+      if(ev && prevEv && ((ev.err > 0) !== (prevEv.err > 0)) &&
+         Math.abs(ev.err) < 0.6 && Math.abs(prevEv.err) < 0.6){
+        let a = prevPhi, b = phi, ea = prevEv.err;
+        for(let j = 0; j < 60; j++){
+          const mid = (a + b) / 2;
+          const em = EVAL(mid);
+          if(!em) break;
+          if((em.err > 0) === (ea > 0)){ a = mid; ea = em.err; } else { b = mid; }
+        }
+        const fin = EVAL((a + b) / 2);
+        if(fin && Math.abs(fin.err) < 0.012) roots.push(fin);
+      }
+      prevEv = ev;
+      prevPhi = phi;
+    }
+    if(!roots.length) return null;
+    roots.sort((x, y) => x.cut - y.cut);
+    const jugables = roots.filter(r => r.cut >= 0.05);
+    const pick = (jugables.length ? jugables : roots)[0];
+    const spread = roots.length >= 2 ? (roots[roots.length - 1].cut - roots[0].cut) : 0;
+    return {G:pick.G, cut:pick.cut, nearLimit: roots.length < 2 || spread < 0.16};
+  }
+
+  // Toma final por tangente: cuando la rodada no alcanza, la
+  // referencia correcta es la picada/retención: la tacadora sale
+  // perpendicular a la línea de centros. Dada la llegada fija y el
+  // objetivo Q, hay a lo sumo dos lados; se prefiere el que conserva
+  // más marcha por la tangente.
+  function mirrorFinalContactSolveStun(dIn, B, Q){
+    const R2 = BALL_R * 2;
+    let best = null;
+    for(const s of [1, -1]){
+      let d1 = mirrorVec.norm(mirrorVec.sub(Q, B));
+      let G = null;
+      for(let j = 0; j < 4; j++){
+        const n = {x:-d1.y * s, y:d1.x * s};
+        G = {x:B.x - n.x * R2, y:B.y - n.y * R2};
+        d1 = mirrorVec.norm(mirrorVec.sub(Q, G));
+      }
+      const n = {x:-d1.y * s, y:d1.x * s};
+      G = {x:B.x - n.x * R2, y:B.y - n.y * R2};
+      if(G.x < BALL_R || G.x > TABLE.W - BALL_R || G.y < BALL_R || G.y > TABLE.H - BALL_R) continue;
+      const c0 = mirrorVec.dot(dIn, n);
+      const vel = mirrorVec.dot(dIn, d1);
+      if(c0 <= 0.03 || vel <= 0.03) continue;
+      if(!best || vel > best.vel) best = {G, cut:c0, vel};
+    }
+    return best;
   }
 
   function mirrorBallName(key){
@@ -5944,7 +6049,13 @@
     const cue = balls[cueKey];
     const rails = [c.rail1, c.rail2, c.thirdRail];
     if(c.fourthRail && c.fourthRail !== 'none') rails.push(c.fourthRail);
+    const rutaSel = (ids('mirrorRoute') && ids('mirrorRoute').value) || 'classic';
+    const esIntermedia = c.mode === 'cushionFirst' && c.firstBall !== 'midpoint' && rutaSel !== 'classic';
+    // Con bola intermedia, la banda anterior y la posterior al contacto
+    // pueden ser la misma: la bola rompe la consecutividad.
+    const fronteraBola = esIntermedia ? (rutaSel === 'after1' ? 1 : 2) : -1;
     for(let i = 1; i < rails.length; i++){
+      if(i === fronteraBola) continue;
       if(rails[i] === rails[i-1]){
         return {error:'Espejo: dos bandas consecutivas no pueden ser la misma. Corrija la secuencia.', brief:'bandas consecutivas iguales'};
       }
@@ -5987,34 +6098,190 @@
     };
 
     if(c.mode === 'cushionFirst'){
-      let T, targetDesc, targetKeys;
+      // Caso punto medio: el objetivo es el punto, sin toma calculada.
       if(c.firstBall === 'midpoint'){
-        T = midpointBetweenObjectBalls(c);
-        targetDesc = 'entre la ' + mirrorBallName(objKeys[0]) + ' y la ' + mirrorBallName(objKeys[1]);
-        targetKeys = objKeys.slice();
-      } else {
-        const tk = objKeys.includes(c.firstBall) ? c.firstBall : objKeys[0];
-        T = balls[tk];
-        targetDesc = 'la ' + mirrorBallName(tk);
-        targetKeys = [tk];
+        const T = midpointBetweenObjectBalls(c);
+        const targetDesc = 'entre la ' + mirrorBallName(objKeys[0]) + ' y la ' + mirrorBallName(objKeys[1]);
+        const sol = solveMirrorPath(cue, rails, T, k);
+        if(!sol) return {error:'Espejo: sin solución geométrica para esta secuencia desde estas posiciones.', brief:'sin solución geométrica para esta secuencia'};
+        sol.trace.S0 = cue;
+        rasanteCheck(sol.trace);
+        const pts = [{x:cue.x, y:cue.y}].concat(sol.trace.contacts).concat([{x:T.x, y:T.y}]);
+        besoCheck(pts, [cueKey].concat(objKeys));
+        const contactos = sol.trace.contacts.map((p, i) => mirrorContactInfo(p, i, rails));
+        return {
+          mirrorShot:true,
+          path:{points:pts},
+          mirror:{
+            contacts: contactos,
+            targetPoint:{x:T.x, y:T.y}
+          },
+          warnings,
+          receta: contactos.map(ct => ct.rotulo).join(' → '),
+          resumen:'Banda previa hacia ' + targetDesc + ' · k=' + k.toFixed(2)
+        };
       }
-      const sol = solveMirrorPath(cue, rails, T, k);
-      if(!sol) return {error:'Espejo: sin solución geométrica para esta secuencia desde estas posiciones.', brief:'sin solución geométrica para esta secuencia'};
+
+      // Carambola completa: la bola elegida es escala, no destino.
+      // La app calcula la toma exacta para que la tacadora, rodando,
+      // doble desde ahí hacia lo que sigue del recorrido.
+      const tk = objKeys.includes(c.firstBall) ? c.firstBall : objKeys[0];
+      const B2 = balls[tk];
+      const thirdKey = objKeys.find(kk => kk !== tk) || objKeys[0];
+      const T3 = balls[thirdKey];
+      const route = rutaSel;
+
+      // Recorridos con bola intermedia: parte de las bandas van antes
+      // del contacto y el resto después (tres en total: carambola
+      // legal). Doble desdoblamiento acoplado por punto fijo.
+      if(route !== 'classic' && rails.length >= 3){
+        const nPre = route === 'after1' ? 1 : 2;
+        const railsPre = rails.slice(0, nPre);
+        const railsPost = rails.slice(nPre);
+        let P = {x:B2.x, y:B2.y};
+        let solPre = null, solPost = null, toma = null, nearLimitSeen = false;
+        for(let it = 0; it < 4; it++){
+          solPre = solveMirrorPath(cue, railsPre, P, k);
+          if(!solPre) return {error:'Espejo: sin solución geométrica para el tramo previo a la ' + mirrorBallName(tk) + ' desde estas posiciones.', brief:'sin solución en el tramo previo'};
+          solPost = solveMirrorPath(P, railsPost, T3, k);
+          if(!solPost) return {error:'Espejo: sin solución geométrica para el tramo posterior (de la ' + mirrorBallName(tk) + ' por ' + (railsPost.length === 1 ? 'la banda restante' : 'las bandas restantes') + ' hacia la ' + mirrorBallName(thirdKey) + ').', brief:'sin solución en el tramo posterior'};
+          const Q = solPost.trace.contacts[0];
+          toma = mirrorFinalContactSolve(solPre.trace.outDir, B2, Q);
+          if(!toma) break;   // sin veto: degrada a dibujo por centros
+          if(toma.nearLimit) nearLimitSeen = true;
+          P = toma.G;
+        }
+        // Escalera de honestidades: si la rodada no alcanza, se
+        // calcula la toma por tangente (picada/retención): fantasma
+        // del lado correcto y ataque recalculado hacia esa toma. Solo
+        // si ni la tangente alcanza, se dibuja por centros.
+        let tomaTg = null;
+        if(!toma){
+          P = {x:B2.x, y:B2.y};
+          for(let it = 0; it < 4; it++){
+            solPre = solveMirrorPath(cue, railsPre, P, k);
+            if(!solPre) break;
+            solPost = solveMirrorPath(P, railsPost, T3, k);
+            if(!solPost) break;
+            tomaTg = mirrorFinalContactSolveStun(solPre.trace.outDir, B2, solPost.trace.contacts[0]);
+            if(!tomaTg) break;
+            P = tomaTg.G;
+          }
+          if(tomaTg && solPre && solPost){
+            warnings.push('Toma por tangente (grueso ~' + Math.round(tomaTg.cut * 100) + '%): exige picada o retención al contacto. La salida dibujada asume tangente pura: con más retroceso doblará más; con efecto, los rebotes también se corren.');
+          } else {
+            tomaTg = null;
+            P = {x:B2.x, y:B2.y};
+            solPre = solveMirrorPath(cue, railsPre, P, k);
+            solPost = solveMirrorPath(P, railsPost, T3, k);
+            if(!solPre || !solPost) return {error:'Espejo: sin solución geométrica para este recorrido desde estas posiciones.', brief:'sin solución geométrica para este recorrido'};
+            warnings.push('La continuación tras la ' + mirrorBallName(tk) + ' excede incluso la tangente (90°): territorio de retroceso profundo. El grueso queda a su criterio y los tramos se dibujan por el centro de la bola; tome los números como referencia.');
+          }
+        }
+        const G = toma ? toma.G : (tomaTg ? tomaTg.G : {x:B2.x, y:B2.y});
+        const solPostFin = solveMirrorPath(G, railsPost, T3, k) || solPost;
+        // incidencias rasantes de ambos tramos, con numeración corrida
+        let dirR = mirrorVec.norm(mirrorVec.sub(solPre.trace.contacts[0], cue));
+        for(let i = 0; i < solPre.trace.contacts.length; i++){
+          const rl = railsPre[i];
+          const horizR = rl === 'top' || rl === 'bottom';
+          const grados = Math.abs(Math.asin(clamp(horizR ? dirR.y : dirR.x, -1, 1))) * 180 / Math.PI;
+          if(grados < 12) warnings.push('Incidencia muy rasante en la banda ' + (i + 1) + ': el rebote real será poco confiable.');
+          dirR = mirrorBounce(dirR, rl, k);
+        }
+        dirR = mirrorVec.norm(mirrorVec.sub(solPostFin.trace.contacts[0], G));
+        for(let i = 0; i < solPostFin.trace.contacts.length; i++){
+          const rl = railsPost[i];
+          const horizR = rl === 'top' || rl === 'bottom';
+          const grados = Math.abs(Math.asin(clamp(horizR ? dirR.y : dirR.x, -1, 1))) * 180 / Math.PI;
+          if(grados < 12) warnings.push('Incidencia muy rasante en la banda ' + (nPre + i + 1) + ': el rebote real será poco confiable.');
+          dirR = mirrorBounce(dirR, rl, k);
+        }
+        if(toma && nearLimitSeen) warnings.push('Toma de la ' + mirrorBallName(tk) + ' cerca del límite físico: margen de ejecución mínimo.');
+        if(toma && toma.cut < 0.12) warnings.push('Toma muy fina de la ' + mirrorBallName(tk) + '.');
+        if(toma && toma.cut > 0.92) warnings.push('Toma muy llena de la ' + mirrorBallName(tk) + ': la tacadora casi no doblará.');
+        const postPts = [{x:G.x, y:G.y}].concat(solPostFin.trace.contacts).concat([{x:T3.x, y:T3.y}]);
+        let Lpost = 0;
+        for(let i = 1; i < postPts.length; i++) Lpost += Math.hypot(postPts[i].x - postPts[i-1].x, postPts[i].y - postPts[i-1].y);
+        if(Lpost > 35) warnings.push('Recorrido largo tras el contacto (~' + (Lpost / 10).toFixed(1) + ' diamantes): exigirá tacada con cuerpo.');
+        const prePts = [{x:cue.x, y:cue.y}].concat(solPre.trace.contacts).concat([{x:G.x, y:G.y}]);
+        besoCheck(prePts.concat(solPostFin.trace.contacts).concat([{x:T3.x, y:T3.y}]), [cueKey, tk, thirdKey]);
+        const railsTodos = railsPre.concat(railsPost);
+        const contactos = solPre.trace.contacts.map((p, i) => mirrorContactInfo(p, i, railsTodos))
+          .concat(solPostFin.trace.contacts.map((p, j) => mirrorContactInfo(p, nPre + j, railsTodos)));
+        return {
+          mirrorShot:true,
+          path:{points:prePts},
+          mirror:{
+            contacts: contactos,
+            targetPoint:null,
+            ghost: (toma || tomaTg) ? {x:G.x, y:G.y} : null,
+            postPath:{points:postPts}
+          },
+          warnings,
+          aviso: toma ? null : (tomaTg
+            ? 'Espejo: toma por tangente: exige picada o retención · vea el diagnóstico'
+            : 'Espejo: continuación fuera de todo contrato (retroceso profundo) · vea el diagnóstico'),
+          receta: contactos.map(ct => ct.rotulo).join(' → '),
+          resumen:'Recorrido: ' + (nPre === 1 ? '1 banda' : '2 bandas') + ' → ' + mirrorBallName(tk) + (toma ? ' (grueso ~' + Math.round(toma.cut * 100) + '%)' : (tomaTg ? ' (grueso ~' + Math.round(tomaTg.cut * 100) + '%, tangente)' : ' (grueso a su criterio)')) + ' → ' + (railsPost.length === 1 ? '1 banda' : railsPost.length + ' bandas') + ' → ' + mirrorBallName(thirdKey) + ' · k=' + k.toFixed(2)
+        };
+      }
+
+      let P = {x:B2.x, y:B2.y};
+      let sol = null, toma = null, nearLimitSeen = false;
+      for(let it = 0; it < 3; it++){
+        sol = solveMirrorPath(cue, rails, P, k);
+        if(!sol) return {error:'Espejo: sin solución geométrica para esta secuencia desde estas posiciones.', brief:'sin solución geométrica para esta secuencia'};
+        toma = mirrorFinalContactSolve(sol.trace.outDir, B2, T3);
+        if(!toma) break;   // sin veto: degrada a dibujo por centros
+        if(toma.nearLimit) nearLimitSeen = true;
+        P = toma.G;
+      }
+      let tomaTg = null;
+      if(!toma){
+        P = {x:B2.x, y:B2.y};
+        for(let it = 0; it < 4; it++){
+          sol = solveMirrorPath(cue, rails, P, k);
+          if(!sol) break;
+          tomaTg = mirrorFinalContactSolveStun(sol.trace.outDir, B2, T3);
+          if(!tomaTg) break;
+          P = tomaTg.G;
+        }
+        if(tomaTg && sol){
+          warnings.push('Toma por tangente (grueso ~' + Math.round(tomaTg.cut * 100) + '%): exige picada o retención al contacto. La salida dibujada asume tangente pura: con más retroceso doblará más; con efecto, los rebotes también se corren.');
+        } else {
+          tomaTg = null;
+          P = {x:B2.x, y:B2.y};
+          sol = solveMirrorPath(cue, rails, P, k);
+          if(!sol) return {error:'Espejo: sin solución geométrica para esta secuencia desde estas posiciones.', brief:'sin solución geométrica para esta secuencia'};
+          warnings.push('La continuación hacia la ' + mirrorBallName(thirdKey) + ' excede incluso la tangente (90°): territorio de retroceso profundo. El grueso queda a su criterio y el tramo final se dibuja por el centro; tome los números como referencia.');
+        }
+      }
       sol.trace.S0 = cue;
       rasanteCheck(sol.trace);
-      const pts = [{x:cue.x, y:cue.y}].concat(sol.trace.contacts).concat([{x:T.x, y:T.y}]);
-      besoCheck(pts, [cueKey].concat(targetKeys));
+      if(toma && nearLimitSeen) warnings.push('Toma de la ' + mirrorBallName(tk) + ' cerca del límite físico: margen de ejecución mínimo.');
+      if(toma && toma.cut < 0.12) warnings.push('Toma muy fina de la ' + mirrorBallName(tk) + '.');
+      if(toma && toma.cut > 0.92) warnings.push('Toma muy llena de la ' + mirrorBallName(tk) + ': la tacadora casi no doblará hacia la ' + mirrorBallName(thirdKey) + '.');
+      const GC = toma ? toma.G : (tomaTg ? tomaTg.G : {x:B2.x, y:B2.y});
+      if(Math.hypot(T3.x - GC.x, T3.y - GC.y) > 30) warnings.push('Tramo final largo hacia la ' + mirrorBallName(thirdKey) + ': exigirá buena marcha.');
+      const pts = [{x:cue.x, y:cue.y}].concat(sol.trace.contacts).concat([{x:GC.x, y:GC.y}]);
+      besoCheck(pts.concat([{x:T3.x, y:T3.y}]), [cueKey, tk, thirdKey]);
       const contactos = sol.trace.contacts.map((p, i) => mirrorContactInfo(p, i, rails));
       return {
         mirrorShot:true,
         path:{points:pts},
         mirror:{
           contacts: contactos,
-          targetPoint: c.firstBall === 'midpoint' ? {x:T.x, y:T.y} : null
+          targetPoint:null,
+          ghost: (toma || tomaTg) ? {x:GC.x, y:GC.y} : null,
+          finalLeg:{from:{x:GC.x, y:GC.y}, to:{x:T3.x, y:T3.y}}
         },
         warnings,
+        aviso: toma ? null : (tomaTg
+          ? 'Espejo: toma por tangente: exige picada o retención · vea el diagnóstico'
+          : 'Espejo: continuación fuera de todo contrato (retroceso profundo) · vea el diagnóstico'),
         receta: contactos.map(ct => ct.rotulo).join(' → '),
-        resumen:'Banda previa hacia ' + targetDesc + ' · k=' + k.toFixed(2)
+        resumen:'Banda previa hacia la ' + mirrorBallName(tk) + (toma ? ' (grueso ~' + Math.round(toma.cut * 100) + '%)' : (tomaTg ? ' (grueso ~' + Math.round(tomaTg.cut * 100) + '%, tangente)' : ' (grueso a su criterio)')) + ' y de ahí a la ' + mirrorBallName(thirdKey) + ' · k=' + k.toFixed(2)
       };
     }
 
@@ -6126,6 +6393,32 @@
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(q.x, q.y, BALL_R * geom.scale, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    if(s.mirror.finalLeg){
+      const a = worldToScreen(s.mirror.finalLeg.from);
+      const b = worldToScreen(s.mirror.finalLeg.to);
+      ctx.setLineDash([10, 8]);
+      ctx.strokeStyle = 'rgba(98,215,255,.8)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    if(s.mirror.postPath && s.mirror.postPath.points.length >= 2){
+      const pp = s.mirror.postPath.points;
+      ctx.setLineDash([10, 8]);
+      ctx.strokeStyle = 'rgba(98,215,255,.8)';
+      ctx.lineWidth = 3;
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      pp.forEach((p, i) => {
+        const q = worldToScreen(p);
+        if(i) ctx.lineTo(q.x, q.y); else ctx.moveTo(q.x, q.y);
+      });
       ctx.stroke();
       ctx.setLineDash([]);
     }
@@ -10530,6 +10823,7 @@
       drawPath(shot);
       drawMirrorOverlays(shot);
       drawBalls();
+      if(shot.aviso) drawBoardNotice(shot.aviso);
       if(diagEl){
         diagEl.textContent = 'Espejo (mitades): ' + shot.resumen +
           (shot.receta ? ' · Contactos: ' + shot.receta : '') +
@@ -13535,6 +13829,46 @@ function drawStartMarks(){
             g.stroke();
           }
         }
+        if(mirrorInfo.finalLeg){
+          const a = W2V(mirrorInfo.finalLeg.from);
+          const b = W2V(mirrorInfo.finalLeg.to);
+          if(a && b){
+            g.setLineDash([10, 8]);
+            g.strokeStyle = 'rgba(98,215,255,.85)';
+            g.lineWidth = Math.max(2.5, ch * .005);
+            g.beginPath();
+            g.moveTo(a.x, a.y);
+            g.lineTo(b.x, b.y);
+            g.stroke();
+            g.setLineDash([]);
+          }
+        }
+        if(mirrorInfo.postPath && mirrorInfo.postPath.points.length >= 2){
+          g.setLineDash([10, 8]);
+          g.strokeStyle = 'rgba(98,215,255,.85)';
+          g.lineWidth = Math.max(2.5, ch * .005);
+          g.beginPath();
+          let started = false;
+          for(const p of mirrorInfo.postPath.points){
+            const q = W2V(p);
+            if(!q) continue;
+            if(started) g.lineTo(q.x, q.y); else { g.moveTo(q.x, q.y); started = true; }
+          }
+          g.stroke();
+          g.setLineDash([]);
+        }
+        if(mirrorInfo.ghost){
+          const q = W2V(mirrorInfo.ghost);
+          if(q){
+            g.setLineDash([5, 5]);
+            g.strokeStyle = 'rgba(255,255,255,.9)';
+            g.lineWidth = Math.max(2, ch * .004);
+            g.beginPath();
+            g.arc(q.x, q.y, Math.max(9, ch * .017), 0, Math.PI * 2);
+            g.stroke();
+            g.setLineDash([]);
+          }
+        }
         g.textAlign = 'start'; g.textBaseline = 'alphabetic';
       }
     }
@@ -14483,13 +14817,21 @@ function drawStartMarks(){
   // selector siguiente inhabilita en vivo la opción repetida.
   function syncMirrorRailAvailability(){
     const esMirror = ids('systemMode') && ids('systemMode').value === 'mirror';
+    // Con recorrido de bola intermedia, el par de bandas separado por
+    // la bola queda libre de la regla de consecutivas.
+    const modeEl = ids('mode'), fbEl = ids('firstBall'), rEl = ids('mirrorRoute');
+    const rutaSel = (esMirror && modeEl && modeEl.value === 'cushionFirst' && fbEl && fbEl.value !== 'midpoint' && rEl) ? rEl.value : 'classic';
+    const fronteraBola = rutaSel === 'after1' ? 1 : (rutaSel === 'after2' ? 2 : -1);
     let corrigio = false;
+    let idxPar = 0;
     for(const [aId, bId] of [['rail1','rail2'], ['rail2','thirdRail'], ['thirdRail','fourthRail']]){
+      idxPar++;
       const a = ids(aId), b = ids(bId);
       if(!a || !b) continue;
+      const parConBola = idxPar === fronteraBola;
       [...b.options].forEach(opt => {
         if(opt.value === 'none' || opt.value === 'auto') return;
-        const bloquear = esMirror && opt.value === a.value;
+        const bloquear = esMirror && !parConBola && opt.value === a.value;
         opt.disabled = bloquear;
         if(bloquear && b.value === opt.value){
           const alt = [...b.options].find(o => !o.disabled && !o.hidden && o.value !== 'none' && o.value !== 'auto');
@@ -14502,7 +14844,7 @@ function drawStartMarks(){
       updateModuleSummaries();
     }
   }
-  ['systemMode','rail1','rail2','thirdRail'].forEach(id => {
+  ['systemMode','rail1','rail2','thirdRail','mirrorRoute','mode','firstBall'].forEach(id => {
     const el = ids(id);
     if(el) el.addEventListener('change', syncMirrorRailAvailability);
   });
