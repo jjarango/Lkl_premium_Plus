@@ -10993,11 +10993,6 @@
     const wPx = wU * geom.scale, hPx = hU * geom.scale;
     ctx.save();
     ctx.globalAlpha = 0.93;
-    if(s.espejada){
-      ctx.translate(tl.x + wPx / 2, 0);
-      ctx.scale(-1, 1);
-      ctx.translate(-(tl.x + wPx / 2), 0);
-    }
     ctx.drawImage(img, tl.x, tl.y, wPx, hPx);
     ctx.restore();
     ctx.save();
@@ -11026,7 +11021,6 @@
     ctx.fillText(txtCifra, txT + wRot, tyT);
     const fs = Math.max(20, Math.round(geom.scale * 1.36));
     pasonesLabel('¼ de bola · golpe avanzado · velocidad media-alta', tl.x + wPx / 2, tl.y + hPx + fs * .8, fs);
-    if(s.espejada) pasonesLabel('gráfica espejada (pasón a la izquierda)', tl.x + wPx / 2, tl.y + hPx + fs * 2, fs);
     ctx.restore();
   }
 
