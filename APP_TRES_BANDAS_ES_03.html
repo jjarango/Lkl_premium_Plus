@@ -10823,14 +10823,22 @@
   }
 
   // ============================================================
-  // MOTOR PASONES
+  // MOTOR PASONES (v2 · lectura sobre la baranda de salida)
   // Sistema de Ay Caramba para carambolas de pasón entre las
   // bandas largas, a tres bandas. Contrato fijo: 1/4 de bola,
   // golpe avanzado dejando ir el taco, velocidad media-alta.
   // La única incógnita que el sistema entrega es el efecto:
   //   efecto = (base - espacios) + corrimiento de la bola 3
-  // donde la base (2.0 según el autor) es la separación, en
+  // donde la base (2.0 según el autor) es la lectura, en
   // diamantes, a la que el ángulo del 1/4 de bola es neutro.
+  // Corrección de julio 26 (verificada en mesa): los espacios NO
+  // se miden de centro a centro. Se prolonga la línea de ataque
+  // (tacadora → fantasma del 1/4) hacia atrás hasta el eje de los
+  // diamantes de la baranda de salida (la larga opuesta a la
+  // banda cercana de la bola 2), y la distancia entre ese cruce y
+  // la línea base de la bola 2 es el verdadero "espacios". Por
+  // eso toda tacadora parada sobre una misma línea de ataque se
+  // taca con el mismo efecto, sin importar su profundidad.
   // ============================================================
 
   const PASONES_BASE_KEY = 'tresBandasPasonesBaseV1';
@@ -10870,8 +10878,29 @@
     }
     const dir = dx > 0 ? 1 : -1;
 
-    // Lecturas del sistema, en diamantes (1 diamante = 10 unidades).
-    const espacios = Math.abs(dx) / 10;
+    // Fantasma del 1/4: a 2R de la bola 2, del lado de la banda
+    // larga cercana a ella, adelantado en el sentido del viaje.
+    const R2 = BALL_R * 2;
+    const offsetLateral = 1.5 * BALL_R;                 // 1/4 de bola
+    const offsetLongitudinal = Math.sqrt(R2 * R2 - offsetLateral * offsetLateral);
+    const ny = (B2.y <= TABLE.H / 2) ? -1 : 1;          // hacia la larga cercana
+    const ghost = {
+      x: B2.x - dir * offsetLongitudinal,
+      y: clamp(B2.y + ny * offsetLateral, BALL_R, TABLE.H - BALL_R)
+    };
+
+    // Lectura de espacios sobre la baranda de salida: la línea de
+    // ataque (tacadora → fantasma) se prolonga hasta el eje de los
+    // diamantes de la larga opuesta a la banda cercana de la bola 2,
+    // y el cruce se compara contra la línea base (1 diamante = 10).
+    const offEje = visualDiamondCenterOffsetU();
+    const yEje = (ny === -1) ? (TABLE.H + offEje) : -offEje;
+    const dyAtaque = ghost.y - cue.y;
+    if(Math.abs(dyAtaque) < 1e-9){
+      return {error:'Pasones: la línea de ataque de la ' + pasonesBallName(b2Key) + ' queda paralela a las bandas largas y no cruza la baranda de salida. Esta posición no es un pasón del sistema.', brief:'línea de ataque paralela a las largas'};
+    }
+    const xCruce = cue.x + (ghost.x - cue.x) * (yEje - cue.y) / dyAtaque;
+    const espacios = dir * (B2.x - xCruce) / 10;
     const corrimiento = dir * (B3.x - B2.x) / 10;
 
     // La bola 3 detrás de la tacadora: la posición no es un pasón.
@@ -10881,8 +10910,8 @@
     }
 
     if(espacios < 0.5){
-      warnings.push('La tacadora está a menos de medio diamante de la línea de la ' + pasonesBallName(b2Key) + ': el ángulo queda fuera de los ejemplos del sistema y el efecto pierde autoridad.');
-      if(!aviso) aviso = 'Pasones: tacadora casi sobre la línea de la bola 2 · vea el diagnóstico';
+      warnings.push('La lectura de espacios (' + espacios.toFixed(2) + ') quedó a menos de medio diamante de la línea de la ' + pasonesBallName(b2Key) + ': el ángulo queda fuera de los ejemplos del sistema y el efecto pierde autoridad.');
+      if(!aviso) aviso = 'Pasones: lectura casi sobre la línea de la bola 2 · vea el diagnóstico';
     }
 
     // La fórmula del sistema.
@@ -10904,19 +10933,6 @@
       }
     }
 
-    // Construcciones para el dibujo: la línea base por la bola 2,
-    // el fantasma del 1/4 de bola (del lado de la banda larga
-    // cercana a la bola 2, para que la tacadora doble hacia ella)
-    // y la línea de ataque.
-    const R2 = BALL_R * 2;
-    const offsetLateral = 1.5 * BALL_R;                 // 1/4 de bola
-    const offsetLongitudinal = Math.sqrt(R2 * R2 - offsetLateral * offsetLateral);
-    const ny = (B2.y <= TABLE.H / 2) ? -1 : 1;          // hacia la larga cercana
-    const ghost = {
-      x: B2.x - dir * offsetLongitudinal,
-      y: clamp(B2.y + ny * offsetLateral, BALL_R, TABLE.H - BALL_R)
-    };
-
     const desglose = 'espacios ' + espacios.toFixed(2) + ' (base ' + base.toFixed(1) + ' → ' + pasonesFmt(base - espacios, 2) + ') · ' +
       pasonesBallName(b3Key) + ' ' + pasonesFmt(corrimiento, 2) + ' · efecto ' + pasonesFmt(efecto) +
       (grafica ? ' ≈ ' + pasonesFmt(redondeado, 0) : '');
@@ -10930,6 +10946,7 @@
       ghost,
       aim:{from:{x:cue.x, y:cue.y}, to:{x:ghost.x, y:ghost.y}},
       baseLine:{x:B2.x},
+      cruce:{x:xCruce, yEje, rail: ny === -1 ? 'bottom' : 'top'},
       marker3:{x:B3.x, y:B3.y},
       warnings,
       aviso,
@@ -11020,9 +11037,11 @@
     if(!s || s.system !== 'pasones') return;
     ctx.save();
 
-    // Línea base punteada, de larga a larga, por el centro de la bola 2.
-    const bTop = worldToScreen({x:s.baseLine.x, y:0});
-    const bBot = worldToScreen({x:s.baseLine.x, y:TABLE.H});
+    // Línea base punteada por el centro de la bola 2, extendida hasta
+    // el eje de los diamantes de la baranda de salida.
+    const yEjeSalida = s.cruce ? s.cruce.yEje : null;
+    const bTop = worldToScreen({x:s.baseLine.x, y:yEjeSalida !== null ? Math.min(0, yEjeSalida) : 0});
+    const bBot = worldToScreen({x:s.baseLine.x, y:yEjeSalida !== null ? Math.max(TABLE.H, yEjeSalida) : TABLE.H});
     ctx.setLineDash([7, 6]);
     ctx.strokeStyle = 'rgba(255,255,255,.85)';
     ctx.lineWidth = 2;
@@ -11033,29 +11052,47 @@
     ctx.setLineDash([]);
     pasonesLabel('línea base', bTop.x, bTop.y + Math.max(9, geom.scale * .6), Math.max(9, Math.round(geom.scale * .58)));
 
-    // Regla de espacios: de la tacadora a la línea base, a la altura de
-    // la tacadora, con marcas en los diamantes enteros y la cuenta.
-    const from = s.aim.from;
-    const a = worldToScreen({x:from.x, y:from.y});
-    const b = worldToScreen({x:s.baseLine.x, y:from.y});
-    ctx.strokeStyle = 'rgba(243,216,158,.9)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(a.x, a.y);
-    ctx.lineTo(b.x, b.y);
-    ctx.stroke();
-    const tickH = Math.max(4, geom.scale * .5);
-    for(let k = 1; k <= Math.floor(s.espacios + 1e-9); k++){
-      const tx = s.baseLine.x - s.dir * k * 10;
-      if((tx - from.x) * s.dir < -1e-9) break;
-      const t = worldToScreen({x:tx, y:from.y});
+    // Lectura sobre la baranda de salida: prolongación punteada de la
+    // línea de ataque hasta el cruce con el eje de los diamantes,
+    // marcador del cruce y regla de espacios con la cuenta sobre el eje.
+    if(s.cruce){
+      const from = s.aim.from;
+      const c0 = worldToScreen({x:from.x, y:from.y});
+      const cr = worldToScreen({x:s.cruce.x, y:s.cruce.yEje});
+      ctx.setLineDash([5, 6]);
+      ctx.strokeStyle = 'rgba(255,90,90,.8)';
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(t.x, t.y - tickH);
-      ctx.lineTo(t.x, t.y + tickH);
+      ctx.moveTo(c0.x, c0.y);
+      ctx.lineTo(cr.x, cr.y);
       ctx.stroke();
-      pasonesLabel(String(k), t.x, t.y - tickH - Math.max(6, geom.scale * .45), Math.max(9, Math.round(geom.scale * .52)));
+      ctx.setLineDash([]);
+      const b0 = worldToScreen({x:s.baseLine.x, y:s.cruce.yEje});
+      ctx.strokeStyle = 'rgba(243,216,158,.9)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(b0.x, b0.y);
+      ctx.lineTo(cr.x, cr.y);
+      ctx.stroke();
+      const tickH = Math.max(4, geom.scale * .5);
+      for(let k = 1; k <= Math.floor(s.espacios + 1e-9); k++){
+        const tx = s.baseLine.x - s.dir * k * 10;
+        if((tx - s.cruce.x) * s.dir < -1e-9) break;
+        const t = worldToScreen({x:tx, y:s.cruce.yEje});
+        ctx.beginPath();
+        ctx.moveTo(t.x, t.y - tickH);
+        ctx.lineTo(t.x, t.y + tickH);
+        ctx.stroke();
+        pasonesLabel(String(k), t.x, t.y - tickH - Math.max(6, geom.scale * .45), Math.max(9, Math.round(geom.scale * .52)));
+      }
+      const rC = Math.max(4, geom.scale * .28);
+      ctx.fillStyle = 'rgba(255,90,90,.95)';
+      ctx.beginPath();
+      ctx.arc(cr.x, cr.y, rC, 0, Math.PI * 2);
+      ctx.fill();
+      const ladoAbajo = s.cruce.yEje > TABLE.H / 2;
+      pasonesLabel('espacios ' + s.espacios.toFixed(2), (b0.x + cr.x) / 2, b0.y + (ladoAbajo ? 1 : -1) * Math.max(12, geom.scale * .95), Math.max(10, Math.round(geom.scale * .62)));
     }
-    pasonesLabel('espacios ' + s.espacios.toFixed(2), (a.x + b.x) / 2, a.y + Math.max(10, geom.scale * .8), Math.max(10, Math.round(geom.scale * .62)));
 
     // Marcador del corrimiento de la bola 3, con signo del sistema.
     if(s.marker3){
