@@ -1978,7 +1978,7 @@
             </div>
 </div><div class="photoFileWrap" data-tip="Se sugiere tomar la fotografía desde la mayor altura posible. Una silla ayuda mucho">
 <input accept="image/*" id="photoLocatorInput" type="file"/>
-</div><div class="photoStatus" id="photoLocatorStatus">먼저 어느 쪽에서 촬영했는지 선택하십시오. 자동 인식은 초기 점을 제안하고 모서리를 안쪽으로 5 cm 보정합니다. 최종 경기면은 확인한 네 점으로 정해집니다.</div></div></details><details class="menuModule" id="moduleSequence"><summary><span class="moduleTitle">진행 순서</span><span class="moduleState" id="moduleSequenceState">목적구 먼저 · larga superior → corta derecha</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><button aria-pressed="false" class="noPlanBtn" id="noPlanSequenceBtn" type="button">샷 시퀀스를 계획하지 않음</button><p class="small" style="margin:-4px 0 12px;">LKL / Base 50이나 Plus로 치지 않는 자유 샷용: 궤적이나 조준점 없이 공 원만 녹화에 표시합니다. 시퀀스를 선택하면 꺼집니다.</p><label for="mode" id="modeLabel">수구 출발</label><select id="mode">
+</div><div class="photoStatus" id="photoLocatorStatus">먼저 어느 쪽에서 촬영했는지 선택하십시오. 자동 인식은 초기 점을 제안하고 모서리를 안쪽으로 5 cm 보정합니다. 최종 경기면은 확인한 네 점으로 정해집니다.</div></div></details><details class="menuModule" id="moduleSequence"><summary><span class="moduleTitle">진행 순서</span><span class="moduleState" id="moduleSequenceState">목적구 먼저 · 위쪽 장쿠션 → 오른쪽 단쿠션</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><button aria-pressed="false" class="noPlanBtn" id="noPlanSequenceBtn" type="button">샷 시퀀스를 계획하지 않음</button><p class="small" style="margin:-4px 0 12px;">LKL / Base 50이나 Plus로 치지 않는 자유 샷용: 궤적이나 조준점 없이 공 원만 녹화에 표시합니다. 시퀀스를 선택하면 꺼집니다.</p><label for="mode" id="modeLabel">수구 출발</label><select id="mode">
 <option value="ballFirst">목적구 먼저, 그다음 쿠션</option>
 <option value="cushionFirst">쿠션 먼저, 그다음 목적구</option>
 </select><label for="firstBall" id="firstBallLabel">제1목적구</label><select id="firstBall">
@@ -2042,7 +2042,7 @@
 <option value="positive">플러스: 길어짐</option>
 <option value="neutral">무회전</option>
 <option value="negative">마이너스: 짧아짐</option>
-</select><label for="tips">횡회전 <span class="value" id="tipsVal">Efecto 3 = 1.5 puntas = 18.0 mm</span></label><input id="tips" max="4" min="0" step="1" type="range" value="3"/><label for="tipMm">팁 한 단위의 실제 지름 <span class="value" id="tipMmVal">12.0 mm</span></label><input id="tipMm" max="14" min="8" step="0.5" type="range" value="12"/><label for="stroke">스트로크 종류</label><select id="stroke">
+</select><label for="tips">횡회전 <span class="value" id="tipsVal">회전 3 = 팁 1.5개 = 18.0 mm</span></label><input id="tips" max="4" min="0" step="1" type="range" value="3"/><label for="tipMm">팁 한 단위의 실제 지름 <span class="value" id="tipMmVal">12.0 mm</span></label><input id="tipMm" max="14" min="8" step="0.5" type="range" value="12"/><label for="stroke">스트로크 종류</label><select id="stroke">
 <option value="long">긴 팔로스루</option>
 <option value="short">짧은 팔로스루</option>
 <option value="dry">짧고 강한 스트로크</option>
@@ -2113,6 +2113,10 @@
 <div class="videoReplayRow">
 <button class="cameraCaptureBtn" id="videoReplayExportBtn" style="margin:0" type="button">데이터 포함 다운로드</button>
 </div>
+</div>
+<div class="videoReplayGroup" id="videoReplayCameraPanel">
+<label class="small" for="videoReplayCameraSel" style="display:block; margin:0 0 6px;">카메라</label>
+<select id="videoReplayCameraSel" style="width:100%"><option value="">브라우저가 선택하는 카메라</option></select>
 </div>
 <div class="videoReplayGroup">
 <div aria-live="polite" class="videoReplayStatus" id="videoReplayStatus" role="status">—</div>
@@ -6128,7 +6132,7 @@
           const u = clamp(mirrorVec.dot(mirrorVec.sub(Bb, A), ab) / L2, 0, 1);
           const q = {x:A.x + ab.x * u, y:A.y + ab.y * u};
           if(Math.hypot(Bb.x - q.x, Bb.y - q.y) < BALL_R * 2 + 0.3){
-            warnings.push('La ' + mirrorBallName(key) + '이(가) 계산된 선을 가로막습니다(키스 가능성).');
+            warnings.push('' + mirrorBallName(key) + '이(가) 계산된 선을 가로막습니다(키스 가능성).');
             return;
           }
         }
@@ -6371,7 +6375,7 @@
       },
       warnings,
       receta: contactos.map(ct => ct.rotulo).join(' → '),
-      resumen:'목적구 먼저 ' + (strike === 'stun' ? 'picada ' : '') + '(' + mirrorBallName(firstKey) + ', grueso ~' + Math.round(contact.cut * 100) + '%) · 방향: ' + mirrorBallName(targetKey) + ' · k=' + k.toFixed(2)
+      resumen:'목적구 먼저 ' + (strike === 'stun' ? '스턴 ' : '') + '(' + mirrorBallName(firstKey) + ', grueso ~' + Math.round(contact.cut * 100) + '%) · 방향: ' + mirrorBallName(targetKey) + ' · k=' + k.toFixed(2)
     };
   }
 
@@ -10930,7 +10934,7 @@
 
     // La bola 3 detrás de la tacadora: la posición no es un pasón.
     if(dir * (B3.x - cue.x) < 0){
-      warnings.push('La ' + pasonesBallName(b3Key) + '이(가) 수구 뒤에 있습니다. 이 배치는 전진 샷이 아닙니다. 계산은 참고용으로만 표시됩니다.');
+      warnings.push('' + pasonesBallName(b3Key) + '이(가) 수구 뒤에 있습니다. 이 배치는 전진 샷이 아닙니다. 계산은 참고용으로만 표시됩니다.');
       aviso = 'Pasones: 3번 공이 수구 뒤에 있습니다 · 진단을 확인하십시오';
     }
 
@@ -11030,7 +11034,7 @@
     ctx.font = '900 ' + fsT + 'px ui-sans-serif, system-ui';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
-    const txtRotulo = 'EFECTO ';
+    const txtRotulo = '회전 ';
     const txtCifra = pasonesFmt(s.redondeado, 0);
     const wRot = ctx.measureText(txtRotulo).width;
     const wCif = ctx.measureText(txtCifra).width;
@@ -11424,7 +11428,7 @@
       ctx.font = '900 ' + fsT + 'px ui-sans-serif, system-ui';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'alphabetic';
-      const txtRotulo = 'EFECTO ';
+      const txtRotulo = '회전 ';
       const wRot = ctx.measureText(txtRotulo).width;
       const wCif = ctx.measureText(cifraTxt).width;
       const txT = xCentroPx - (wRot + wCif) / 2;
@@ -13174,7 +13178,7 @@ function drawStartMarks(){
   function describeCaptureRejection(validation){
     if(!validation) return '';
     const c = validation.checks || {};
-    if(validation.reason === 'imagen no procesable') return 'La imagen no se pudo procesar.';
+    if(validation.reason === 'imagen no procesable') return '이미지를 처리할 수 없습니다.';
     if(validation.reason === '천 표면 인식 실패') return '이미지에서 당구 천 표면을 인식하지 못했습니다.';
     if(validation.reason === '평가 불가한 기하') return '인식된 표면의 기하를 평가하지 못했습니다.';
     if(!c.largeFelt) return '사유: 천이 화면에서 너무 작은 면적을 차지합니다(카메라가 너무 멀거나 치우침).';
@@ -13490,6 +13494,40 @@ function drawStartMarks(){
     try{ return localStorage.getItem(CAMERA_STORAGE_KEY) || null; }catch{ return null; }
   }
 
+  function clearStoredCameraId(){
+    try{ localStorage.removeItem(CAMERA_STORAGE_KEY); }catch{}
+  }
+  // La lista visible de cámaras: todas las que el navegador enumere,
+  // con la elegida (guardada o realmente abierta) seleccionada.
+  async function refreshVideoReplayCameraList(){
+    const sel = ids('videoReplayCameraSel');
+    if(!sel || !navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+    try{
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const cams = devices.filter(d => d.kind === 'videoinput');
+      let actualId = null;
+      try{
+        const pista = videoReplay.stream && videoReplay.stream.getVideoTracks()[0];
+        const aj = pista && pista.getSettings ? pista.getSettings() : null;
+        actualId = (aj && aj.deviceId) || null;
+      }catch{}
+      const stored = getStoredCameraId();
+      sel.innerHTML = '';
+      const cero = document.createElement('option');
+      cero.value = '';
+      cero.textContent = '브라우저가 선택하는 카메라';
+      sel.appendChild(cero);
+      cams.forEach((d, idx) => {
+        const o = document.createElement('option');
+        o.value = d.deviceId;
+        o.textContent = d.label || ('카메라 ' + (idx + 1));
+        sel.appendChild(o);
+      });
+      const objetivo = (stored && cams.some(d => d.deviceId === stored)) ? stored
+        : ((actualId && cams.some(d => d.deviceId === actualId)) ? actualId : '');
+      sel.value = objetivo;
+    }catch{}
+  }
   function saveStoredCameraId(deviceId){
     if(!deviceId) return;
     try{ localStorage.setItem(CAMERA_STORAGE_KEY, deviceId); }catch{}
@@ -13506,7 +13544,13 @@ function drawStartMarks(){
       const brio = cameras.find(device => /brio/i.test(device.label || '') && !isVirtual(device.label));
       if(brio) return brio.deviceId;
       const logitech = cameras.find(device => /logitech|logi/i.test(device.label || '') && !isVirtual(device.label));
-      return logitech ? logitech.deviceId : null;
+      if(logitech) return logitech.deviceId;
+      // Sin Brio ni Logitech a la vista: cualquier cámara física con
+      // nombre sirve (Arducam y compañía). Las cámaras virtuales (OBS,
+      // capturadoras) jamás se eligen solas, porque entregan un cuadro
+      // de espera en lugar de la mesa.
+      const fisica = cameras.find(device => (device.label || '') && !isVirtual(device.label));
+      return fisica ? fisica.deviceId : null;
     }catch{
       return storedId;
     }
@@ -13541,7 +13585,8 @@ function drawStartMarks(){
     const actualWidth = Number(video.videoWidth || settings.width || 0);
     const actualHeight = Number(video.videoHeight || settings.height || 0);
     const actualDeviceId = settings.deviceId || null;
-    if(actualDeviceId) saveStoredCameraId(actualDeviceId);
+    const esVirtual = /capture|virtual|obs/i.test((track && track.label) || '');
+      if(actualDeviceId && !esVirtual) saveStoredCameraId(actualDeviceId);
 
     return {
       stream, track, video, settings, actualWidth, actualHeight,
@@ -14324,16 +14369,26 @@ function drawStartMarks(){
     if(st) st.textContent = '천장 인식기에서 확인한 네 모서리로 영상 보정이 자동 갱신되었습니다. 이제 데이터를 겹쳐 샷을 녹화할 수 있습니다.';
   }
 
-  async function findVideoReplayMicId(){
+  async function findVideoReplayMicId(cameraId){
     if(!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return null;
     try{
       const devices = await navigator.mediaDevices.enumerateDevices();
       const mics = devices.filter(d => d.kind === 'audioinput');
       const isVirtual = label => /capture|virtual|obs/i.test(label || '');
+      // El micrófono de la propia cámara comparte groupId con ella.
+      if(cameraId){
+        const cam = devices.find(d => d.kind === 'videoinput' && d.deviceId === cameraId);
+        if(cam && cam.groupId){
+          const propio = mics.find(d => d.groupId === cam.groupId && !isVirtual(d.label));
+          if(propio) return propio.deviceId;
+        }
+      }
       const brio = mics.find(d => /brio/i.test(d.label || '') && !isVirtual(d.label));
       if(brio) return brio.deviceId;
       const logi = mics.find(d => /logitech|logi/i.test(d.label || '') && !isVirtual(d.label));
-      return logi ? logi.deviceId : null;
+      if(logi) return logi.deviceId;
+      const fisico = mics.find(d => (d.label || '') && !isVirtual(d.label));
+      return fisico ? fisico.deviceId : null;
     }catch{ return null; }
   }
 
@@ -14355,7 +14410,7 @@ function drawStartMarks(){
     // supresión de ruido, para conservar nítidos el golpe del taco y el
     // contacto de las bolas. Si el micrófono falla o el permiso es negado,
     // se graba solo el video.
-    const micId = await findVideoReplayMicId();
+    const micId = await findVideoReplayMicId(preferredId);
     const audioBase = {echoCancellation:false, noiseSuppression:false, autoGainControl:false};
     let stream = null;
     try{
@@ -14367,6 +14422,14 @@ function drawStartMarks(){
     }
     videoReplay.stream = stream;
     videoReplay.hasAudio = stream.getAudioTracks().length > 0;
+    // Recordar la cámara realmente abierta, para que la próxima visita
+    // vaya directo a ella aunque no se llame Logitech.
+    try{
+      const pista = stream.getVideoTracks()[0];
+      const ajustes = pista && pista.getSettings ? pista.getSettings() : null;
+      const esVirtual = /capture|virtual|obs/i.test((pista && pista.label) || '');
+      if(ajustes && ajustes.deviceId && !esVirtual) saveStoredCameraId(ajustes.deviceId);
+    }catch{}
     const live = ids('videoReplayLive');
     live.srcObject = stream;
     live.muted = true; // La vista en vivo queda silenciada para evitar acoples con los parlantes.
@@ -15053,6 +15116,7 @@ function drawStartMarks(){
     try{
       setVideoReplayStatus('천장 카메라를 1920 × 1080 모드로 여는 중…');
       await openVideoReplayStream();
+      await refreshVideoReplayCameraList();
       const audioNote = videoReplay.hasAudio
         ? ' 녹화에 카메라 마이크의 오디오가 포함됩니다.'
         : ' 마이크를 켜지 못해 녹화에 소리가 없습니다.';
@@ -15492,6 +15556,25 @@ function drawStartMarks(){
   function setupVideoReplay(){
     videoReplay.calib = loadVideoCalibration();
     updateVideoReplayModuleState();
+
+    const camSel = ids('videoReplayCameraSel');
+    if(camSel){
+      camSel.addEventListener('change', async () => {
+        // La elección explícita del usuario manda y se memoriza tal
+        // cual, incluso si escoge una cámara virtual a propósito.
+        if(camSel.value) saveStoredCameraId(camSel.value);
+        else clearStoredCameraId();
+        try{
+          setVideoReplayStatus('카메라 전환 중…');
+          stopVideoReplayStream();
+          await openVideoReplayStream();
+          await refreshVideoReplayCameraList();
+          setVideoReplayStatus('카메라 준비 완료. 샷을 실행할 때 녹화 시작을 누르십시오.' + videoReplayFocusNote(), 'good');
+        }catch(err){
+          setVideoReplayStatus('카메라를 사용할 수 없습니다: ' + (err && err.message ? err.message : err), 'bad');
+        }
+      });
+    }
 
     const recordBtn = ids('videoReplayRecordBtn');
     const calibBtn = ids('videoReplayCalibBtn');
