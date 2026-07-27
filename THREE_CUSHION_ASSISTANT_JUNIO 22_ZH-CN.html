@@ -1978,7 +1978,7 @@
             </div>
 </div><div class="photoFileWrap" data-tip="Se sugiere tomar la fotografía desde la mayor altura posible. Una silla ayuda mucho">
 <input accept="image/*" id="photoLocatorInput" type="file"/>
-</div><div class="photoStatus" id="photoLocatorStatus">建议先选择照片的拍摄方位。自动识别会给出初始点，并将四角向内修正 5 cm；最终比赛台面由确认后的四个角点定义。</div></div></details><details class="menuModule" id="moduleSequence"><summary><span class="moduleTitle">击球顺序</span><span class="moduleState" id="moduleSequenceState">先碰球 · larga superior → corta derecha</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><button aria-pressed="false" class="noPlanBtn" id="noPlanSequenceBtn" type="button">不规划击球线路</button><p class="small" style="margin:-4px 0 12px;">适用于不使用 LKL / Base 50 或 Plus 的自由击球：不显示轨迹和瞄准点，录像中只显示球圈。选择任何线路后自动关闭。</p><label for="mode" id="modeLabel">母球出发</label><select id="mode">
+</div><div class="photoStatus" id="photoLocatorStatus">建议先选择照片的拍摄方位。自动识别会给出初始点，并将四角向内修正 5 cm；最终比赛台面由确认后的四个角点定义。</div></div></details><details class="menuModule" id="moduleSequence"><summary><span class="moduleTitle">击球顺序</span><span class="moduleState" id="moduleSequenceState">先碰球 · 上方长库 → 右侧短库</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><button aria-pressed="false" class="noPlanBtn" id="noPlanSequenceBtn" type="button">不规划击球线路</button><p class="small" style="margin:-4px 0 12px;">适用于不使用 LKL / Base 50 或 Plus 的自由击球：不显示轨迹和瞄准点，录像中只显示球圈。选择任何线路后自动关闭。</p><label for="mode" id="modeLabel">母球出发</label><select id="mode">
 <option value="ballFirst">先碰目标球，再走库</option>
 <option value="cushionFirst">先走库，再碰目标球</option>
 </select><label for="firstBall" id="firstBallLabel">第一目标球</label><select id="firstBall">
@@ -2042,7 +2042,7 @@
 <option value="positive">正旋：线路变长</option>
 <option value="neutral">无侧旋</option>
 <option value="negative">负旋：线路变短</option>
-</select><label for="tips">侧旋 <span class="value" id="tipsVal">Efecto 3 = 1.5 puntas = 18.0 mm</span></label><input id="tips" max="4" min="0" step="1" type="range" value="3"/><label for="tipMm">一颗皮头的实际偏移量 <span class="value" id="tipMmVal">12.0 mm</span></label><input id="tipMm" max="14" min="8" step="0.5" type="range" value="12"/><label for="stroke">击球方式</label><select id="stroke">
+</select><label for="tips">侧旋 <span class="value" id="tipsVal">旋转 3 = 1.5 个皮头 = 18.0 mm</span></label><input id="tips" max="4" min="0" step="1" type="range" value="3"/><label for="tipMm">一颗皮头的实际偏移量 <span class="value" id="tipMmVal">12.0 mm</span></label><input id="tipMm" max="14" min="8" step="0.5" type="range" value="12"/><label for="stroke">击球方式</label><select id="stroke">
 <option value="long">长延伸杆</option>
 <option value="short">短延伸杆</option>
 <option value="dry">短促发力</option>
@@ -2113,6 +2113,10 @@
 <div class="videoReplayRow">
 <button class="cameraCaptureBtn" id="videoReplayExportBtn" style="margin:0" type="button">含数据下载</button>
 </div>
+</div>
+<div class="videoReplayGroup" id="videoReplayCameraPanel">
+<label class="small" for="videoReplayCameraSel" style="display:block; margin:0 0 6px;">摄像头</label>
+<select id="videoReplayCameraSel" style="width:100%"><option value="">由浏览器选择的摄像头</option></select>
 </div>
 <div class="videoReplayGroup">
 <div aria-live="polite" class="videoReplayStatus" id="videoReplayStatus" role="status">—</div>
@@ -6128,7 +6132,7 @@
           const u = clamp(mirrorVec.dot(mirrorVec.sub(Bb, A), ab) / L2, 0, 1);
           const q = {x:A.x + ab.x * u, y:A.y + ab.y * u};
           if(Math.hypot(Bb.x - q.x, Bb.y - q.y) < BALL_R * 2 + 0.3){
-            warnings.push('La ' + mirrorBallName(key) + '挡住了计算线路（可能亲吻球）。');
+            warnings.push('' + mirrorBallName(key) + '挡住了计算线路（可能亲吻球）。');
             return;
           }
         }
@@ -6371,7 +6375,7 @@
       },
       warnings,
       receta: contactos.map(ct => ct.rotulo).join(' → '),
-      resumen:'先碰球 ' + (strike === 'stun' ? 'picada ' : '') + '(' + mirrorBallName(firstKey) + ', grueso ~' + Math.round(contact.cut * 100) + '%）· 朝向：' + mirrorBallName(targetKey) + ' · k=' + k.toFixed(2)
+      resumen:'先碰球 ' + (strike === 'stun' ? '定杆 ' : '') + '(' + mirrorBallName(firstKey) + ', grueso ~' + Math.round(contact.cut * 100) + '%）· 朝向：' + mirrorBallName(targetKey) + ' · k=' + k.toFixed(2)
     };
   }
 
@@ -10930,7 +10934,7 @@
 
     // La bola 3 detrás de la tacadora: la posición no es un pasón.
     if(dir * (B3.x - cue.x) < 0){
-      warnings.push('La ' + pasonesBallName(b3Key) + '落在了母球后方：该球位不是前进型往返球。计算仅供参考。');
+      warnings.push('' + pasonesBallName(b3Key) + '落在了母球后方：该球位不是前进型往返球。计算仅供参考。');
       aviso = 'Pasones：3 号球在母球后方 · 请查看诊断';
     }
 
@@ -11030,7 +11034,7 @@
     ctx.font = '900 ' + fsT + 'px ui-sans-serif, system-ui';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
-    const txtRotulo = 'EFECTO ';
+    const txtRotulo = '旋转 ';
     const txtCifra = pasonesFmt(s.redondeado, 0);
     const wRot = ctx.measureText(txtRotulo).width;
     const wCif = ctx.measureText(txtCifra).width;
@@ -11424,7 +11428,7 @@
       ctx.font = '900 ' + fsT + 'px ui-sans-serif, system-ui';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'alphabetic';
-      const txtRotulo = 'EFECTO ';
+      const txtRotulo = '旋转 ';
       const wRot = ctx.measureText(txtRotulo).width;
       const wCif = ctx.measureText(cifraTxt).width;
       const txT = xCentroPx - (wRot + wCif) / 2;
@@ -13174,7 +13178,7 @@ function drawStartMarks(){
   function describeCaptureRejection(validation){
     if(!validation) return '';
     const c = validation.checks || {};
-    if(validation.reason === 'imagen no procesable') return 'La imagen no se pudo procesar.';
+    if(validation.reason === 'imagen no procesable') return '无法处理该图像。';
     if(validation.reason === '未识别出台呢表面') return '图像中未识别出台呢表面。';
     if(validation.reason === '几何无法评估') return '无法评估识别表面的几何。';
     if(!c.largeFelt) return '原因：台呢在画面中占比太小（摄像头太远或偏移）。';
@@ -13490,6 +13494,40 @@ function drawStartMarks(){
     try{ return localStorage.getItem(CAMERA_STORAGE_KEY) || null; }catch{ return null; }
   }
 
+  function clearStoredCameraId(){
+    try{ localStorage.removeItem(CAMERA_STORAGE_KEY); }catch{}
+  }
+  // La lista visible de cámaras: todas las que el navegador enumere,
+  // con la elegida (guardada o realmente abierta) seleccionada.
+  async function refreshVideoReplayCameraList(){
+    const sel = ids('videoReplayCameraSel');
+    if(!sel || !navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+    try{
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const cams = devices.filter(d => d.kind === 'videoinput');
+      let actualId = null;
+      try{
+        const pista = videoReplay.stream && videoReplay.stream.getVideoTracks()[0];
+        const aj = pista && pista.getSettings ? pista.getSettings() : null;
+        actualId = (aj && aj.deviceId) || null;
+      }catch{}
+      const stored = getStoredCameraId();
+      sel.innerHTML = '';
+      const cero = document.createElement('option');
+      cero.value = '';
+      cero.textContent = '由浏览器选择的摄像头';
+      sel.appendChild(cero);
+      cams.forEach((d, idx) => {
+        const o = document.createElement('option');
+        o.value = d.deviceId;
+        o.textContent = d.label || ('摄像头 ' + (idx + 1));
+        sel.appendChild(o);
+      });
+      const objetivo = (stored && cams.some(d => d.deviceId === stored)) ? stored
+        : ((actualId && cams.some(d => d.deviceId === actualId)) ? actualId : '');
+      sel.value = objetivo;
+    }catch{}
+  }
   function saveStoredCameraId(deviceId){
     if(!deviceId) return;
     try{ localStorage.setItem(CAMERA_STORAGE_KEY, deviceId); }catch{}
@@ -13506,7 +13544,13 @@ function drawStartMarks(){
       const brio = cameras.find(device => /brio/i.test(device.label || '') && !isVirtual(device.label));
       if(brio) return brio.deviceId;
       const logitech = cameras.find(device => /logitech|logi/i.test(device.label || '') && !isVirtual(device.label));
-      return logitech ? logitech.deviceId : null;
+      if(logitech) return logitech.deviceId;
+      // Sin Brio ni Logitech a la vista: cualquier cámara física con
+      // nombre sirve (Arducam y compañía). Las cámaras virtuales (OBS,
+      // capturadoras) jamás se eligen solas, porque entregan un cuadro
+      // de espera en lugar de la mesa.
+      const fisica = cameras.find(device => (device.label || '') && !isVirtual(device.label));
+      return fisica ? fisica.deviceId : null;
     }catch{
       return storedId;
     }
@@ -13541,7 +13585,8 @@ function drawStartMarks(){
     const actualWidth = Number(video.videoWidth || settings.width || 0);
     const actualHeight = Number(video.videoHeight || settings.height || 0);
     const actualDeviceId = settings.deviceId || null;
-    if(actualDeviceId) saveStoredCameraId(actualDeviceId);
+    const esVirtual = /capture|virtual|obs/i.test((track && track.label) || '');
+      if(actualDeviceId && !esVirtual) saveStoredCameraId(actualDeviceId);
 
     return {
       stream, track, video, settings, actualWidth, actualHeight,
@@ -14324,16 +14369,26 @@ function drawStartMarks(){
     if(st) st.textContent = '视频校准已用顶置识别器确认的四角自动更新。现在可以录制叠加数据的击球了。';
   }
 
-  async function findVideoReplayMicId(){
+  async function findVideoReplayMicId(cameraId){
     if(!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return null;
     try{
       const devices = await navigator.mediaDevices.enumerateDevices();
       const mics = devices.filter(d => d.kind === 'audioinput');
       const isVirtual = label => /capture|virtual|obs/i.test(label || '');
+      // El micrófono de la propia cámara comparte groupId con ella.
+      if(cameraId){
+        const cam = devices.find(d => d.kind === 'videoinput' && d.deviceId === cameraId);
+        if(cam && cam.groupId){
+          const propio = mics.find(d => d.groupId === cam.groupId && !isVirtual(d.label));
+          if(propio) return propio.deviceId;
+        }
+      }
       const brio = mics.find(d => /brio/i.test(d.label || '') && !isVirtual(d.label));
       if(brio) return brio.deviceId;
       const logi = mics.find(d => /logitech|logi/i.test(d.label || '') && !isVirtual(d.label));
-      return logi ? logi.deviceId : null;
+      if(logi) return logi.deviceId;
+      const fisico = mics.find(d => (d.label || '') && !isVirtual(d.label));
+      return fisico ? fisico.deviceId : null;
     }catch{ return null; }
   }
 
@@ -14355,7 +14410,7 @@ function drawStartMarks(){
     // supresión de ruido, para conservar nítidos el golpe del taco y el
     // contacto de las bolas. Si el micrófono falla o el permiso es negado,
     // se graba solo el video.
-    const micId = await findVideoReplayMicId();
+    const micId = await findVideoReplayMicId(preferredId);
     const audioBase = {echoCancellation:false, noiseSuppression:false, autoGainControl:false};
     let stream = null;
     try{
@@ -14367,6 +14422,14 @@ function drawStartMarks(){
     }
     videoReplay.stream = stream;
     videoReplay.hasAudio = stream.getAudioTracks().length > 0;
+    // Recordar la cámara realmente abierta, para que la próxima visita
+    // vaya directo a ella aunque no se llame Logitech.
+    try{
+      const pista = stream.getVideoTracks()[0];
+      const ajustes = pista && pista.getSettings ? pista.getSettings() : null;
+      const esVirtual = /capture|virtual|obs/i.test((pista && pista.label) || '');
+      if(ajustes && ajustes.deviceId && !esVirtual) saveStoredCameraId(ajustes.deviceId);
+    }catch{}
     const live = ids('videoReplayLive');
     live.srcObject = stream;
     live.muted = true; // La vista en vivo queda silenciada para evitar acoples con los parlantes.
@@ -15053,6 +15116,7 @@ function drawStartMarks(){
     try{
       setVideoReplayStatus('正在以 1920 × 1080 模式打开顶置摄像头…');
       await openVideoReplayStream();
+      await refreshVideoReplayCameraList();
       const audioNote = videoReplay.hasAudio
         ? ' 录像将包含摄像头麦克风的声音。'
         : ' 无法启用麦克风：录像将没有声音。';
@@ -15492,6 +15556,25 @@ function drawStartMarks(){
   function setupVideoReplay(){
     videoReplay.calib = loadVideoCalibration();
     updateVideoReplayModuleState();
+
+    const camSel = ids('videoReplayCameraSel');
+    if(camSel){
+      camSel.addEventListener('change', async () => {
+        // La elección explícita del usuario manda y se memoriza tal
+        // cual, incluso si escoge una cámara virtual a propósito.
+        if(camSel.value) saveStoredCameraId(camSel.value);
+        else clearStoredCameraId();
+        try{
+          setVideoReplayStatus('正在切换摄像头…');
+          stopVideoReplayStream();
+          await openVideoReplayStream();
+          await refreshVideoReplayCameraList();
+          setVideoReplayStatus('摄像头就绪。准备击球时按开始录制。' + videoReplayFocusNote(), 'good');
+        }catch(err){
+          setVideoReplayStatus('无法使用摄像头：' + (err && err.message ? err.message : err), 'bad');
+        }
+      });
+    }
 
     const recordBtn = ids('videoReplayRecordBtn');
     const calibBtn = ids('videoReplayCalibBtn');
