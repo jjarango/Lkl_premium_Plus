@@ -5380,7 +5380,7 @@
 
     // Rótulo Plus con el mismo tamaño visual usado en los rótulos LKL.
     const plusAttackLabel = makeLklTopLabelBox(
-      `Ataque ${fmt(pc.attackNumber,1)}`,
+      `조준점 ${fmt(pc.attackNumber,1)}`,
       q,
       'attack'
     );
@@ -8170,7 +8170,7 @@
     ctx.save();
 
     // Letrero de llegada en capa superior, después de las bolas.
-    const label = `Llegada ${fmt(cr.arrivalValue,1)}`;
+    const label = `도착 ${fmt(cr.arrivalValue,1)}`;
     const fontSize = Math.max(20, geom.scale * 1.45);
     ctx.font = `900 ${fontSize}px ui-sans-serif, system-ui`;
     ctx.textAlign = 'left';
@@ -8411,7 +8411,7 @@
 
     if(r.attackPoint && Number.isFinite(r.ataque)){
       boxes.push(makeLklTopLabelBox(
-        `Ataque ${fmt(r.ataque,1)}`,
+        `조준점 ${fmt(r.ataque,1)}`,
         worldToScreen(r.attackPoint),
         'attack'
       ));
@@ -8421,7 +8421,7 @@
        study.connectorResult.arrivalPoint &&
        Number.isFinite(study.connectorResult.arrivalValue)){
       boxes.push(makeLklTopLabelBox(
-        `Llegada ${fmt(study.connectorResult.arrivalValue,1)}`,
+        `도착 ${fmt(study.connectorResult.arrivalValue,1)}`,
         worldToScreen(study.connectorResult.arrivalPoint),
         'arrival',
         {arrivalRail:study.arrivalRail}
@@ -11705,8 +11705,12 @@
       }
       shot.c = c;
       // Línea de ataque disponible para la superposición de video: a la
-      // esquina en proyección (banda previa) o a la bola de contacto.
-      shot.path = {points:[shot.aim.from, shot.aim.to]};
+      // esquina en proyección (banda previa) o a la bola de contacto y
+      // de ahí al contacto real con la banda, para que ambos queden
+      // registrados en la grabación.
+      shot.path = {points: (shot.bolaPrimero && shot.contacto)
+        ? [shot.aim.from, shot.aim.to, shot.contacto]
+        : [shot.aim.from, shot.aim.to]};
       currentShot = shot;
       drawTable();
       drawRenverseChart(shot);
@@ -12069,7 +12073,7 @@ function drawStartMarks(){
       ctx.stroke();
       ctx.restore();
 
-      drawAttackLabel(q, `Ataque ${fmt(s.attackCorrCoord,1)}`);
+      drawAttackLabel(q, `조준점 ${fmt(s.attackCorrCoord,1)}`);
     }
     ctx.restore();
   }
@@ -14501,6 +14505,11 @@ function drawStartMarks(){
   function videoReplayAttackInfo(){
     const shot = currentShot;
     if(!shot) return null;
+    // Renversé: el punto quemado es el contacto real con la banda de
+    // juego; la línea azul del path ya dibuja la línea de ataque.
+    if(shot.system === 'renverse'){
+      return shot.contacto ? { point: shot.contacto, number: null, lineFrom: null, lineTo: null } : null;
+    }
     const r = shot.departureAttackResult;
     if(r && r.status === 'ok' && r.attackPoint){
       return {
@@ -14698,7 +14707,7 @@ function drawStartMarks(){
           g.beginPath(); g.arc(q.x, q.y, dotR, 0, Math.PI*2);
           g.fillStyle = '#fc020e'; g.fill();
           g.strokeStyle = 'rgba(0,0,0,.95)'; g.lineWidth = Math.max(2, ch * .004); g.stroke();
-          const label = attackInfo.number !== null ? ('Ataque ' + fmt(attackInfo.number, 1)) : '조준점';
+          const label = attackInfo.number !== null ? ('조준점 ' + fmt(attackInfo.number, 1)) : '조준점';
           const fs = Math.max(15, Math.round(ch * .032));
           g.font = '900 ' + fs + 'px ui-sans-serif, system-ui';
           g.lineWidth = Math.max(3.6, fs * .24);
@@ -14718,7 +14727,7 @@ function drawStartMarks(){
           g.beginPath(); g.arc(q.x, q.y, dotR, 0, Math.PI*2);
           g.fillStyle = '#39ff14'; g.fill();
           g.strokeStyle = 'rgba(0,0,0,.95)'; g.lineWidth = Math.max(2, ch * .004); g.stroke();
-          const label = arrivalInfo.number !== null ? ('Llegada ' + fmt(arrivalInfo.number, 1)) : '도착';
+          const label = arrivalInfo.number !== null ? ('도착 ' + fmt(arrivalInfo.number, 1)) : '도착';
           const fs = Math.max(15, Math.round(ch * .032));
           g.font = '900 ' + fs + 'px ui-sans-serif, system-ui';
           g.lineWidth = Math.max(3.6, fs * .24);
