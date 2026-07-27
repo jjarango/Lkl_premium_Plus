@@ -13506,7 +13506,13 @@ function drawStartMarks(){
       const brio = cameras.find(device => /brio/i.test(device.label || '') && !isVirtual(device.label));
       if(brio) return brio.deviceId;
       const logitech = cameras.find(device => /logitech|logi/i.test(device.label || '') && !isVirtual(device.label));
-      return logitech ? logitech.deviceId : null;
+      if(logitech) return logitech.deviceId;
+      // Sin Brio ni Logitech a la vista: cualquier cámara física con
+      // nombre sirve (Arducam y compañía). Las cámaras virtuales (OBS,
+      // capturadoras) jamás se eligen solas, porque entregan un cuadro
+      // de espera en lugar de la mesa.
+      const fisica = cameras.find(device => (device.label || '') && !isVirtual(device.label));
+      return fisica ? fisica.deviceId : null;
     }catch{
       return storedId;
     }
@@ -13541,7 +13547,8 @@ function drawStartMarks(){
     const actualWidth = Number(video.videoWidth || settings.width || 0);
     const actualHeight = Number(video.videoHeight || settings.height || 0);
     const actualDeviceId = settings.deviceId || null;
-    if(actualDeviceId) saveStoredCameraId(actualDeviceId);
+    const esVirtual = /capture|virtual|obs/i.test((track && track.label) || '');
+      if(actualDeviceId && !esVirtual) saveStoredCameraId(actualDeviceId);
 
     return {
       stream, track, video, settings, actualWidth, actualHeight,
@@ -14324,16 +14331,26 @@ function drawStartMarks(){
     if(st) st.textContent = 'La calibración del video se actualizó automáticamente con las cuatro esquinas confirmadas en el detector cenital. Ya puede grabar jugadas con los datos superpuestos.';
   }
 
-  async function findVideoReplayMicId(){
+  async function findVideoReplayMicId(cameraId){
     if(!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return null;
     try{
       const devices = await navigator.mediaDevices.enumerateDevices();
       const mics = devices.filter(d => d.kind === 'audioinput');
       const isVirtual = label => /capture|virtual|obs/i.test(label || '');
+      // El micrófono de la propia cámara comparte groupId con ella.
+      if(cameraId){
+        const cam = devices.find(d => d.kind === 'videoinput' && d.deviceId === cameraId);
+        if(cam && cam.groupId){
+          const propio = mics.find(d => d.groupId === cam.groupId && !isVirtual(d.label));
+          if(propio) return propio.deviceId;
+        }
+      }
       const brio = mics.find(d => /brio/i.test(d.label || '') && !isVirtual(d.label));
       if(brio) return brio.deviceId;
       const logi = mics.find(d => /logitech|logi/i.test(d.label || '') && !isVirtual(d.label));
-      return logi ? logi.deviceId : null;
+      if(logi) return logi.deviceId;
+      const fisico = mics.find(d => (d.label || '') && !isVirtual(d.label));
+      return fisico ? fisico.deviceId : null;
     }catch{ return null; }
   }
 
@@ -14355,7 +14372,7 @@ function drawStartMarks(){
     // supresión de ruido, para conservar nítidos el golpe del taco y el
     // contacto de las bolas. Si el micrófono falla o el permiso es negado,
     // se graba solo el video.
-    const micId = await findVideoReplayMicId();
+    const micId = await findVideoReplayMicId(preferredId);
     const audioBase = {echoCancellation:false, noiseSuppression:false, autoGainControl:false};
     let stream = null;
     try{
@@ -14367,6 +14384,14 @@ function drawStartMarks(){
     }
     videoReplay.stream = stream;
     videoReplay.hasAudio = stream.getAudioTracks().length > 0;
+    // Recordar la cámara realmente abierta, para que la próxima visita
+    // vaya directo a ella aunque no se llame Logitech.
+    try{
+      const pista = stream.getVideoTracks()[0];
+      const ajustes = pista && pista.getSettings ? pista.getSettings() : null;
+      const esVirtual = /capture|virtual|obs/i.test((pista && pista.label) || '');
+      if(ajustes && ajustes.deviceId && !esVirtual) saveStoredCameraId(ajustes.deviceId);
+    }catch{}
     const live = ids('videoReplayLive');
     live.srcObject = stream;
     live.muted = true; // La vista en vivo queda silenciada para evitar acoples con los parlantes.
