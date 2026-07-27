@@ -2114,6 +2114,10 @@
 <button class="cameraCaptureBtn" id="videoReplayExportBtn" style="margin:0" type="button">Descargar con datos</button>
 </div>
 </div>
+<div class="videoReplayGroup" id="videoReplayCameraPanel">
+<label class="small" for="videoReplayCameraSel" style="display:block; margin:0 0 6px;">Cámara</label>
+<select id="videoReplayCameraSel" style="width:100%"><option value="">Cámara que elija el navegador</option></select>
+</div>
 <div class="videoReplayGroup">
 <div aria-live="polite" class="videoReplayStatus" id="videoReplayStatus" role="status">—</div>
 </div>
@@ -13490,6 +13494,40 @@ function drawStartMarks(){
     try{ return localStorage.getItem(CAMERA_STORAGE_KEY) || null; }catch{ return null; }
   }
 
+  function clearStoredCameraId(){
+    try{ localStorage.removeItem(CAMERA_STORAGE_KEY); }catch{}
+  }
+  // La lista visible de cámaras: todas las que el navegador enumere,
+  // con la elegida (guardada o realmente abierta) seleccionada.
+  async function refreshVideoReplayCameraList(){
+    const sel = ids('videoReplayCameraSel');
+    if(!sel || !navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+    try{
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const cams = devices.filter(d => d.kind === 'videoinput');
+      let actualId = null;
+      try{
+        const pista = videoReplay.stream && videoReplay.stream.getVideoTracks()[0];
+        const aj = pista && pista.getSettings ? pista.getSettings() : null;
+        actualId = (aj && aj.deviceId) || null;
+      }catch{}
+      const stored = getStoredCameraId();
+      sel.innerHTML = '';
+      const cero = document.createElement('option');
+      cero.value = '';
+      cero.textContent = 'Cámara que elija el navegador';
+      sel.appendChild(cero);
+      cams.forEach((d, idx) => {
+        const o = document.createElement('option');
+        o.value = d.deviceId;
+        o.textContent = d.label || ('Cámara ' + (idx + 1));
+        sel.appendChild(o);
+      });
+      const objetivo = (stored && cams.some(d => d.deviceId === stored)) ? stored
+        : ((actualId && cams.some(d => d.deviceId === actualId)) ? actualId : '');
+      sel.value = objetivo;
+    }catch{}
+  }
   function saveStoredCameraId(deviceId){
     if(!deviceId) return;
     try{ localStorage.setItem(CAMERA_STORAGE_KEY, deviceId); }catch{}
@@ -15078,6 +15116,7 @@ function drawStartMarks(){
     try{
       setVideoReplayStatus('Abriendo la cámara cenital en modo 1920 × 1080…');
       await openVideoReplayStream();
+      await refreshVideoReplayCameraList();
       const audioNote = videoReplay.hasAudio
         ? ' La grabación incluirá el audio del micrófono de la cámara.'
         : ' No fue posible activar el micrófono: la grabación quedará sin audio.';
@@ -15517,6 +15556,25 @@ function drawStartMarks(){
   function setupVideoReplay(){
     videoReplay.calib = loadVideoCalibration();
     updateVideoReplayModuleState();
+
+    const camSel = ids('videoReplayCameraSel');
+    if(camSel){
+      camSel.addEventListener('change', async () => {
+        // La elección explícita del usuario manda y se memoriza tal
+        // cual, incluso si escoge una cámara virtual a propósito.
+        if(camSel.value) saveStoredCameraId(camSel.value);
+        else clearStoredCameraId();
+        try{
+          setVideoReplayStatus('Cambiando de cámara…');
+          stopVideoReplayStream();
+          await openVideoReplayStream();
+          await refreshVideoReplayCameraList();
+          setVideoReplayStatus('Cámara lista. Pulse Iniciar grabación cuando vaya a ejecutar la tacada.' + videoReplayFocusNote(), 'good');
+        }catch(err){
+          setVideoReplayStatus('No fue posible usar la cámara: ' + (err && err.message ? err.message : err), 'bad');
+        }
+      });
+    }
 
     const recordBtn = ids('videoReplayRecordBtn');
     const calibBtn = ids('videoReplayCalibBtn');
