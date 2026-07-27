@@ -1802,7 +1802,7 @@
 <section class="stage">
 <div class="canvasWrap" id="canvasWrap">
 <canvas id="table"></canvas>
-<div class="boardNotice" id="boardNotice" style="display:none"><span id="boardNoticeText"></span>&nbsp;·&nbsp;<a href="explicacion.html" id="boardNoticeLink" rel="noopener" target="_blank">Mayor explicación</a></div>
+<div class="boardNotice" id="boardNotice" style="display:none"><span id="boardNoticeText"></span><span id="boardNoticeLinkWrap">&nbsp;·&nbsp;<a href="explicacion.html" id="boardNoticeLink" rel="noopener" target="_blank">Mayor explicación</a></span></div>
 <canvas aria-hidden="true" class="loupeCanvas" height="528" id="loupe" width="528"></canvas>
 <div aria-hidden="true" class="connectorMapAdvisory" id="connectorMapAdvisory"></div>
 <div aria-live="polite" class="lklFourthAdvisory" id="lklFourthAdvisory"></div>
@@ -1880,6 +1880,7 @@
 <option value="mirror">Espejo (mitades)</option>
 <option value="pasones">Pasones</option>
 <option value="plus">Plus</option>
+<option value="renverse">Renversé</option>
 </select><p class="small" id="systemHelp">LKL / Base 50 queda reservado para recorridos de hasta tres bandas. El módulo Plus queda reservado para figuras corta → larga → larga con tercera banda larga como banda del cero.</p></div></details><details class="menuModule" id="modulePrecisePosition"><summary><span class="moduleTitle">Ubique las bolas midiendo las distancias a las bandas</span><span class="moduleState" id="modulePrecisePositionState">Entrada manual en centímetros</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><p class="small">Puede arrastrar las bolas o escribir directamente las distancias en centímetros. Use punto o coma decimal. La bola se mueve mientras escribe. Superficie jugable: 284 × 142 cm de banda a banda. Marco visual: banda azul interna de 5 cm y baranda café de 9 cm. Salida y ataque se leen proyectados al eje central de los diamantes; la llegada se marca sobre el borde interno de la banda.</p><div class="ballBox">
 <h3 id="whiteBallBoxTitle">Blanca tacadora</h3>
 <div class="cmrow">
@@ -2037,7 +2038,7 @@
 <option value="bottom">Larga inferior</option>
 <option value="left">Corta izquierda</option>
 </select>
-</div><div id="mirrorControls" style="display:none"><div id="mirrorRouteBlock" style="display:none"><label for="mirrorRoute">Recorrido de la carambola</label><select id="mirrorRoute"><option selected="" value="classic">3 bandas → bola → bola</option><option value="after2">2 bandas → bola → 1 banda → bola</option><option value="after1">1 banda → bola → 2 bandas → bola</option></select></div><div id="mirrorStrikeBlock" style="display:none"><label for="mirrorStrike">Golpe al contacto</label><select id="mirrorStrike"><option selected="" value="rolling">Rodada (cono de ≈34°)</option><option value="stun">Picada / tangente (90°)</option></select></div><label for="mirrorCoef">Coeficiente de la mesa: <span id="mirrorCoefVal">1.00</span></label><input id="mirrorCoef" max="1.45" min="0.85" step="0.01" type="range" value="1.25"/><p class="small" style="margin:4px 0 10px;">El deslizador fija el alargamiento máximo de su mesa, que aplica pleno en los rebotes sesgados; en los empinados (más de ~52° contra la banda) el motor lo reduce solo, hasta el espejo puro cerca de los 70°, según la curva medida en mesa. Viene ajustado para una mesa típica (1.25); si sus bolas llegan sistemáticamente largas o cortas respecto de la línea, muévalo hasta que coincidan y quedará guardado.</p><label style="display:flex; gap:8px; align-items:center; cursor:pointer; margin:0 0 6px;"><input id="mirrorShowHalves" style="width:auto" type="checkbox"/> <span class="small">Mostrar construcción de mitades</span></label><p class="small" id="mirrorContract" style="margin:2px 0 10px;">Sistema de espejo geométrico. Base: bola rodada (centro o media bola arriba), efecto lateral cero, velocidad de pasón natural. El efecto lateral no participa del cálculo.</p></div><div id="pasonesControls" style="display:none"><label for="pasonesBase">Base del pasón: <span id="pasonesBaseVal">2.0</span> espacios</label><input id="pasonesBase" max="2.5" min="1.5" step="0.1" type="range" value="2.0"/><p class="small" style="margin:4px 0 10px;">La base es la separación, en espacios (diamantes), a la que el ángulo del ¼ de bola resulta neutro en su mesa: con la bola 3 sobre la línea de la bola 2 y la tacadora a esa distancia, la carambola sale con efecto 0. El autor la fija en 2.0. Ritual de calibración: monte la posición del efecto 0 y ejecútela varias veces con el contrato del sistema; si sus pasones quedan sistemáticamente cortos, suba la base; si quedan largos, bájela. El valor queda guardado y es independiente del coeficiente del Espejo.</p><label style="display:flex; gap:8px; align-items:center; cursor:pointer; margin:0 0 6px;"><input checked="" id="pasonesShowChart" style="width:auto" type="checkbox"/> <span class="small">Mostrar gráfica del efecto</span></label><p class="small" id="pasonesContract" style="margin:2px 0 10px;">Sistema Pasones: carambolas de pasón entre las bandas largas, a tres bandas. Contrato fijo: ¼ de bola, golpe avanzado dejando ir el taco, velocidad media-alta. La única salida del sistema es el efecto.</p></div><p class="small" id="sequenceHelp">Seleccione si la jugada empieza con bola primero o con banda previa, y luego indique la secuencia de bandas.</p></div></details><details class="menuModule" id="moduleVideoReplay"><summary><span class="moduleTitle" style="color:#ff5a5a">Video de la jugada con datos superpuestos</span><span class="moduleState" id="moduleVideoReplayState">Cámara cenital · sin calibrar</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><p class="small" style="margin:0 0 10px;">Grabe la ejecución real con la cámara cenital y revísela con los datos de la jugada (punto y línea de Ataque, y punto de Llegada) superpuestos sobre el video, con cámara lenta y avance cuadro a cuadro. La grabación incluye el audio del micrófono de la cámara. Requiere calibrar una sola vez las cuatro esquinas de la mesa, mientras la cámara no se mueva. <b>Si aplica posiciones desde una captura cenital del detector automático, esa calibración se reutiliza sola.</b></p><button class="cameraCaptureBtn" id="videoReplayRecordBtn" type="button">Grabar jugada</button><button id="videoReplayCalibBtn" type="button">Calibrar superposición</button><div aria-live="polite" class="cameraCaptureStatus" id="videoReplayModuleStatus" role="status">Los datos superpuestos (Ataque y Llegada) serán los que estén calculados en ese momento (por ejemplo, LKL / Base 50 con la tacadora y la secuencia de bandas elegidas).</div></div></details><details class="menuModule" id="moduleEffect"><summary><span class="moduleTitle">Efecto y golpe</span><span class="moduleState" id="moduleEffectState">Positivo · efecto 3 · Penetrado largo</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><div aria-controls="contiTooltip" aria-expanded="false" class="contiHelpAnchor" id="contiHelpAnchor" tabindex="0"><label for="english">Dirección del efecto</label><span aria-hidden="true" class="contiHelpIcon">i</span></div><select id="english">
+</div><div id="mirrorControls" style="display:none"><div id="mirrorRouteBlock" style="display:none"><label for="mirrorRoute">Recorrido de la carambola</label><select id="mirrorRoute"><option selected="" value="classic">3 bandas → bola → bola</option><option value="after2">2 bandas → bola → 1 banda → bola</option><option value="after1">1 banda → bola → 2 bandas → bola</option></select></div><div id="mirrorStrikeBlock" style="display:none"><label for="mirrorStrike">Golpe al contacto</label><select id="mirrorStrike"><option selected="" value="rolling">Rodada (cono de ≈34°)</option><option value="stun">Picada / tangente (90°)</option></select></div><label for="mirrorCoef">Coeficiente de la mesa: <span id="mirrorCoefVal">1.00</span></label><input id="mirrorCoef" max="1.45" min="0.85" step="0.01" type="range" value="1.25"/><p class="small" style="margin:4px 0 10px;">El deslizador fija el alargamiento máximo de su mesa, que aplica pleno en los rebotes sesgados; en los empinados (más de ~52° contra la banda) el motor lo reduce solo, hasta el espejo puro cerca de los 70°, según la curva medida en mesa. Viene ajustado para una mesa típica (1.25); si sus bolas llegan sistemáticamente largas o cortas respecto de la línea, muévalo hasta que coincidan y quedará guardado.</p><label style="display:flex; gap:8px; align-items:center; cursor:pointer; margin:0 0 6px;"><input id="mirrorShowHalves" style="width:auto" type="checkbox"/> <span class="small">Mostrar construcción de mitades</span></label><p class="small" id="mirrorContract" style="margin:2px 0 10px;">Sistema de espejo geométrico. Base: bola rodada (centro o media bola arriba), efecto lateral cero, velocidad de pasón natural. El efecto lateral no participa del cálculo.</p></div><div id="pasonesControls" style="display:none"><label for="pasonesBase">Base del pasón: <span id="pasonesBaseVal">2.0</span> espacios</label><input id="pasonesBase" max="2.5" min="1.5" step="0.1" type="range" value="2.0"/><p class="small" style="margin:4px 0 10px;">La base es la separación, en espacios (diamantes), a la que el ángulo del ¼ de bola resulta neutro en su mesa: con la bola 3 sobre la línea de la bola 2 y la tacadora a esa distancia, la carambola sale con efecto 0. El autor la fija en 2.0. Ritual de calibración: monte la posición del efecto 0 y ejecútela varias veces con el contrato del sistema; si sus pasones quedan sistemáticamente cortos, suba la base; si quedan largos, bájela. El valor queda guardado y es independiente del coeficiente del Espejo.</p><label style="display:flex; gap:8px; align-items:center; cursor:pointer; margin:0 0 6px;"><input checked="" id="pasonesShowChart" style="width:auto" type="checkbox"/> <span class="small">Mostrar gráfica del efecto</span></label><p class="small" id="pasonesContract" style="margin:2px 0 10px;">Sistema Pasones: carambolas de pasón entre las bandas largas, a tres bandas. Contrato fijo: ¼ de bola, golpe avanzado dejando ir el taco, velocidad media-alta. La única salida del sistema es el efecto.</p></div><div id="renverseControls" style="display:none"><label for="renverseVariant">Variante del renversé</label><select id="renverseVariant"><option selected="" value="long">Renversé por banda larga</option><option value="short">Renversé por banda corta</option></select><label for="renverseAttack">Tipo de ataque</label><select id="renverseAttack"><option selected="" value="cushion">Banda previa</option><option value="ball">Bola primero</option></select><div id="renverseImpactBlock" style="display:none"><label for="renverseImpactBall">Bola a impactar o recibidora</label><select id="renverseImpactBall"><option value="white">Blanca</option><option selected="" value="yellow">Amarilla</option><option value="red">Roja</option></select><p class="small" style="margin:4px 0 10px;">La llegada se lee sobre la bola que queda, y el diagnóstico la nombra.</p></div><div id="renverseArrivalBlock"><label for="renverseArrival">Bola de llegada</label><select id="renverseArrival"><option value="white">Blanca</option><option selected="" value="yellow">Amarilla</option><option value="red">Roja</option><option value="midpoint">Justo entre la amarilla y la roja</option></select></div><label for="renverseAjuste">Ajuste fino de mesa: <span id="renverseAjusteVal">+0.0</span></label><input id="renverseAjuste" max="1" min="-1" step="0.1" type="range" value="0"/><p class="small" style="margin:4px 0 10px;">El ajuste se suma al efecto calculado, para acomodar el sistema a su mesa y su estilo: si sus renversés quedan sistemáticamente cortos, súbalo; si quedan largos, bájelo. Por defecto vale 0 y el valor queda guardado.</p><label style="display:flex; gap:8px; align-items:center; cursor:pointer; margin:0 0 6px;"><input checked="" id="renverseShowChart" style="width:auto" type="checkbox"/> <span class="small">Mostrar gráfica del efecto</span></label><p class="small" id="renverseContract" style="margin:2px 0 10px;">Sistema Renversé: la tacadora ataca siempre la esquina en proyección (el primer diamante de la banda larga en la esquina, no el rincón), con efecto contrario, golpe avanzado y sin exceso de fuerza. Efecto = salida + llegada, y la app lo canta siempre en enteros.</p></div><p class="small" id="sequenceHelp">Seleccione si la jugada empieza con bola primero o con banda previa, y luego indique la secuencia de bandas.</p></div></details><details class="menuModule" id="moduleVideoReplay"><summary><span class="moduleTitle" style="color:#ff5a5a">Video de la jugada con datos superpuestos</span><span class="moduleState" id="moduleVideoReplayState">Cámara cenital · sin calibrar</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><p class="small" style="margin:0 0 10px;">Grabe la ejecución real con la cámara cenital y revísela con los datos de la jugada (punto y línea de Ataque, y punto de Llegada) superpuestos sobre el video, con cámara lenta y avance cuadro a cuadro. La grabación incluye el audio del micrófono de la cámara. Requiere calibrar una sola vez las cuatro esquinas de la mesa, mientras la cámara no se mueva. <b>Si aplica posiciones desde una captura cenital del detector automático, esa calibración se reutiliza sola.</b></p><button class="cameraCaptureBtn" id="videoReplayRecordBtn" type="button">Grabar jugada</button><button id="videoReplayCalibBtn" type="button">Calibrar superposición</button><div aria-live="polite" class="cameraCaptureStatus" id="videoReplayModuleStatus" role="status">Los datos superpuestos (Ataque y Llegada) serán los que estén calculados en ese momento (por ejemplo, LKL / Base 50 con la tacadora y la secuencia de bandas elegidas).</div></div></details><details class="menuModule" id="moduleEffect"><summary><span class="moduleTitle">Efecto y golpe</span><span class="moduleState" id="moduleEffectState">Positivo · efecto 3 · Penetrado largo</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><div aria-controls="contiTooltip" aria-expanded="false" class="contiHelpAnchor" id="contiHelpAnchor" tabindex="0"><label for="english">Dirección del efecto</label><span aria-hidden="true" class="contiHelpIcon">i</span></div><select id="english">
 <option value="positive">Positivo: abre / alarga</option>
 <option value="neutral">Sin efecto lateral</option>
 <option value="negative">Negativo: cierra / acorta</option>
@@ -3987,17 +3988,35 @@
     const isPlus = c.systemMode === 'plus';
     const isMirror = c.systemMode === 'mirror';
     const isPasones = c.systemMode === 'pasones';
+    const isRenverse = c.systemMode === 'renverse';
     const mirrorBlock = ids('mirrorControls');
     if(mirrorBlock) mirrorBlock.style.display = isMirror ? 'block' : 'none';
     const pasonesBlock = ids('pasonesControls');
     if(pasonesBlock) pasonesBlock.style.display = isPasones ? 'block' : 'none';
+    const renverseBlock = ids('renverseControls');
+    if(renverseBlock) renverseBlock.style.display = isRenverse ? 'block' : 'none';
     // Pasones: la secuencia es implícita (pasón entre las bandas largas,
     // a tres bandas), así que los selectores de salida y de bandas se
     // ocultan; queda solo "Primera bola", que aquí nombra la bola 2.
     const pasonesOcultables = [ids('modeLabel'), ids('mode'), ids('thirdRailLabel'), ids('thirdRail')];
     const filaBandas = ids('rail1') ? ids('rail1').closest('.row') : null;
     if(filaBandas) pasonesOcultables.push(filaBandas);
-    pasonesOcultables.forEach(el => { if(el) el.style.display = isPasones ? 'none' : ''; });
+    pasonesOcultables.forEach(el => { if(el) el.style.display = (isPasones || isRenverse) ? 'none' : ''; });
+    // En Renversé el selector compartido "Primera bola" se oculta: el
+    // módulo tiene sus propios selectores de bola, uno por tipo de
+    // ataque (a impactar con bola primero; de llegada con banda previa).
+    [ids('firstBallLabel'), ids('firstBall')].forEach(el => { if(el) el.style.display = isRenverse ? 'none' : ''; });
+    const atkR = ids('renverseAttack');
+    const esBolaPrimeroR = !!(atkR && atkR.value === 'ball');
+    if(ids('renverseImpactBlock')) ids('renverseImpactBlock').style.display = esBolaPrimeroR ? 'block' : 'none';
+    if(ids('renverseArrivalBlock')) ids('renverseArrivalBlock').style.display = esBolaPrimeroR ? 'none' : 'block';
+    const contratoR = ids('renverseContract');
+    if(contratoR){
+      const varR = ids('renverseVariant');
+      contratoR.textContent = (varR && varR.value === 'short')
+        ? 'El renversé por banda corta es mucho más sensible al efecto, a la línea de ataque y a la ejecución. Este cálculo es solo una ayuda. Efecto = salida ×2 + llegada, cantado en enteros, con el mismo golpe: esquina en proyección, efecto contrario, sin exceso de fuerza.'
+        : 'Sistema Renversé: la tacadora ataca siempre la esquina en proyección (el primer diamante de la banda larga en la esquina, no el rincón), con efecto contrario, golpe avanzado y sin exceso de fuerza. Efecto = salida + llegada, y la app lo canta siempre en enteros.';
+    }
     // El golpe al contacto solo aplica con bola primero.
     const strikeBlock = ids('mirrorStrikeBlock');
     if(strikeBlock) strikeBlock.style.display = (isMirror && !isCushionFirstModeValue(c.mode)) ? 'block' : 'none';
@@ -4013,10 +4032,10 @@
     // Los conectores 4→5 / 5→6 y la cabaña son instrumentos del LKL:
     // en Espejo (mitades) se ocultan para no confundir.
     document.querySelectorAll('.connectorButtonFamily').forEach(el => {
-      el.style.display = (isMirror || isPasones) ? 'none' : '';
+      el.style.display = (isMirror || isPasones || isRenverse) ? 'none' : '';
     });
     const cabinBadge = ids('autoCabinBadge');
-    if(cabinBadge) cabinBadge.style.display = (isMirror || isPasones) ? 'none' : '';
+    if(cabinBadge) cabinBadge.style.display = (isMirror || isPasones || isRenverse) ? 'none' : '';
     const extra = ids('longRailsExtra');
     if(extra) extra.style.display = isLong ? 'block' : 'none';
 
@@ -4076,7 +4095,9 @@
 
     if(ids('systemHelp')){
       ids('systemHelp').textContent =
-        c.systemMode === 'pasones'
+        c.systemMode === 'renverse'
+          ? 'Renversé: carambolas de vuelta atacando siempre la esquina en proyección (el primer diamante de la banda de juego, sobre el eje de sus diamantes), con efecto contrario, golpe avanzado y sin exceso de fuerza. Efecto = salida + llegada en banda larga, y salida ×2 + llegada en banda corta, siempre cantado en enteros.'
+          : c.systemMode === 'pasones'
           ? 'Pasones: carambolas de pasón entre las bandas largas, a tres bandas. La secuencia es implícita y la única salida del sistema es el efecto, con el contrato fijo de ¼ de bola, golpe avanzado y velocidad media-alta.'
           : c.systemMode === 'lkl'
           ? 'LKL / Base 50: tercera banda obligatoria y cuarta banda opcional. Si escoge cuarta banda, el ataque se recalcula para llegar a esa cuarta antes de la bola final.'
@@ -4148,7 +4169,9 @@
 
     if(ids('sequenceHelp')){
       ids('sequenceHelp').textContent =
-        c.systemMode === 'pasones'
+        c.systemMode === 'renverse'
+          ? 'En Renversé elija la variante y el ataque. Con banda previa, "Primera bola" escoge la bola de llegada (roja, amarilla o el punto medio de ambas); con bola primero, escoge la bola de contacto que define la salida, y la llegada se lee sobre la otra bola.'
+          : c.systemMode === 'pasones'
           ? 'En Pasones no se elige secuencia: el pasón viaja de larga a larga, a tres bandas. Elija únicamente la bola 2 en "Primera bola"; la otra bola objetivo queda como bola 3.'
           : c.systemMode === 'lkl'
           ? `En LKL / Base 50 puede jugar a tres bandas o agregar una cuarta banda obligatoria. En banda previa puede apuntar a la ${objectPairText(c, ', a la ')} o justo entre ambas.`
@@ -6385,11 +6408,13 @@
   // Letrero discreto sobre el paño para diagnósticos de rechazo,
   // ahora como elemento HTML real: puede llevar el enlace de "Mayor
   // explicación" hacia explicacion.html (misma carpeta de la app).
-  function drawBoardNotice(text){
+  function drawBoardNotice(text, conEnlace = true){
     const box = ids('boardNotice');
     const span = ids('boardNoticeText');
     if(!box || !span) return;
     span.textContent = text;
+    const wrap = ids('boardNoticeLinkWrap');
+    if(wrap) wrap.style.display = conEnlace ? '' : 'none';
     box.style.display = 'block';
   }
 
@@ -10814,7 +10839,7 @@
       im = new Image();
       im.onload = () => {
         const sel = ids('systemMode');
-        if(sel && sel.value === 'pasones') recalculateAll('pasones-grafica-lista');
+        if(sel && (sel.value === 'pasones' || sel.value === 'renverse')) recalculateAll('pasones-grafica-lista');
       };
       im.src = PASONES_EFFECT_IMAGES[name];
       pasonesImgCache[name] = im;
@@ -11126,6 +11151,506 @@
   }
 
 
+  // ============================================================
+  // RENVERSÉ · INTEGRACIÓN EN LA APP (v1, banda larga)
+  // Sistema de Ay Caramba. Motor con arnés propio (18/18 en verde).
+  // Reutiliza las gráficas de efectos en cascada incrustadas por
+  // Pasones (contrarios 1-4 y el 0). Sobre la mesa se dibuja solo la
+  // construcción honesta del sistema, sin trayectoria de retorno.
+  // ============================================================
+
+  // ============================================================
+  // MOTOR RENVERSÉ (v6 · banda larga y banda corta)
+  // Sistema de Ay Caramba (banda larga) y su extensión por banda
+  // corta verificada en mesa por el autor de la app. La tacadora
+  // ataca SIEMPRE la esquina en proyección (el primer diamante de la
+  // banda de juego en la esquina, sobre el eje de sus diamantes, no
+  // el rincón), con efecto contrario, golpe avanzado y sin exceso de
+  // fuerza. Las dos lecturas usan una misma construcción: recta desde
+  // el diamante de la esquina de ataque que pasa por el centro del
+  // punto (tacadora o bola a impactar → salida; objetivo → llegada),
+  // prolongada hasta el eje de los diamantes de la banda de lectura,
+  // con el 0 en la esquina del lado de la banda de juego.
+  //   · Banda larga: efecto = salida + llegada; la salida muere en 2.
+  //   · Banda corta: efecto = salida ×2 + llegada; la salida muere en
+  //     1, porque el recorrido de apertura se trunca a la mitad. Es
+  //     una variante mucho más sensible al efecto y a la línea de
+  //     ataque y a la ejecución: el cálculo es solo una ayuda.
+  // El efecto SIEMPRE se canta en enteros (el .5 sube), salvo la
+  // franja del a caballo (±0.05 alrededor del .5), que se reporta con
+  // su decimal y la pareja de gráficas. Tope universal de efecto: 4.
+  // ============================================================
+
+  const RENVERSE_VARIANT_KEY = 'tresBandasRenverseVariantV1';
+  const RENVERSE_ATTACK_KEY = 'tresBandasRenverseAttackV1';
+  const RENVERSE_AJUSTE_KEY = 'tresBandasRenverseAjusteV1';
+  const RENVERSE_CHART_KEY = 'tresBandasRenverseGraficaV1';
+
+  function renverseAjuste(){
+    const el = ids('renverseAjuste');
+    const v = el ? parseFloat(el.value) : NaN;
+    return isFinite(v) ? clamp(v, -1, 1) : 0;
+  }
+
+  function computeRenverseShot(c){
+    const variantEl = ids('renverseVariant');
+    const variant = variantEl && variantEl.value === 'short' ? 'short' : 'long';
+    const esCorta = variant === 'short';
+    const attackEl = ids('renverseAttack');
+    const bolaPrimero = !!(attackEl && attackEl.value === 'ball');
+    const cueKey = c.cueBall === 'yellow' ? 'yellow' : 'white';
+    const cue = balls[cueKey];
+    const objKeys = objectBallKeysForCueKey(cueKey);
+    const warnings = [];
+    let aviso = null;
+
+    // Bolas del renversé según el tipo de ataque, con los selectores
+    // propios del módulo: con bola primero solo se elige la bola a
+    // impactar y la llegada es la que queda; con banda previa solo se
+    // elige la bola de llegada (o el punto medio de la pareja).
+    let contactoKey = null;
+    let llegadaPunto, llegadaNombre, esPuntoMedio = false;
+    if(bolaPrimero){
+      const impEl = ids('renverseImpactBall');
+      contactoKey = (impEl && objKeys.includes(impEl.value)) ? impEl.value : objKeys[0];
+      const otraKey = objKeys.find(k => k !== contactoKey);
+      llegadaPunto = {x: balls[otraKey].x, y: balls[otraKey].y};
+      llegadaNombre = pasonesBallName(otraKey) + ' (la que queda)';
+    } else {
+      const arrEl = ids('renverseArrival');
+      const arr = arrEl ? arrEl.value : 'midpoint';
+      if(arr === 'midpoint'){
+        const a = balls[objKeys[0]], b = balls[objKeys[1]];
+        llegadaPunto = {x:(a.x + b.x) / 2, y:(a.y + b.y) / 2};
+        llegadaNombre = 'punto medio ' + pasonesBallName(objKeys[0]) + '-' + pasonesBallName(objKeys[1]);
+        esPuntoMedio = true;
+      } else {
+        const k = objKeys.includes(arr) ? arr : objKeys[0];
+        llegadaPunto = {x: balls[k].x, y: balls[k].y};
+        llegadaNombre = pasonesBallName(k);
+      }
+    }
+
+    // Orientación automática por variante. El punto de ataque es el
+    // PRIMER DIAMANTE de la banda de juego en la esquina más lejana
+    // del objetivo: sobre el eje de los diamantes de esa banda, a la
+    // altura del borde del paño. El eje de lectura corre por la banda
+    // perpendicular del lado del objetivo, con el 0 en la esquina del
+    // lado de la banda de juego.
+    const off = visualDiamondCenterOffsetU();
+    let corner, lectura, contactoDe;
+    let playBottom = null, cornerLeft = null, playRight = null, cornerTop = null;
+    let ejeX = null, ejeY = null, railY = null, railX = null;
+    if(!esCorta){
+      playBottom = llegadaPunto.y > TABLE.H / 2;
+      railY = playBottom ? TABLE.H : 0;
+      cornerLeft = llegadaPunto.x > TABLE.W / 2;
+      corner = {x: cornerLeft ? 0 : TABLE.W, y: playBottom ? TABLE.H + off : -off};
+      ejeX = cornerLeft ? TABLE.W + off : -off;
+      lectura = (P) => {
+        const t = (ejeX - corner.x) / (P.x - corner.x);
+        const yCruce = corner.y + t * (P.y - corner.y);
+        return {r: playBottom ? (TABLE.H - yCruce) / 10 : yCruce / 10, cruce:{x: ejeX, y: yCruce}};
+      };
+      contactoDe = (o) => {
+        const tC = (railY - o.y) / (corner.y - o.y);
+        return {x: o.x + tC * (corner.x - o.x), y: railY};
+      };
+    } else {
+      playRight = llegadaPunto.x > TABLE.W / 2;
+      railX = playRight ? TABLE.W : 0;
+      cornerTop = llegadaPunto.y > TABLE.H / 2;
+      corner = {x: playRight ? TABLE.W + off : -off, y: cornerTop ? 0 : TABLE.H};
+      ejeY = cornerTop ? TABLE.H + off : -off;
+      lectura = (P) => {
+        const t = (ejeY - corner.y) / (P.y - corner.y);
+        const xCruce = corner.x + t * (P.x - corner.x);
+        return {r: playRight ? (TABLE.W - xCruce) / 10 : xCruce / 10, cruce:{x: xCruce, y: ejeY}};
+      };
+      contactoDe = (o) => {
+        const tC = (railX - o.x) / (corner.x - o.x);
+        return {x: railX, y: o.y + tC * (corner.y - o.y)};
+      };
+    }
+
+    const origen = bolaPrimero
+      ? {x: balls[contactoKey].x, y: balls[contactoKey].y}
+      : {x: cue.x, y: cue.y};
+    const lSal = lectura(origen);
+    const lLleg = lectura(llegadaPunto);
+    const salida = lSal.r;
+    const llegada = lLleg.r;
+
+    // Dominio de la salida por variante: 2 en banda larga, 1 en banda
+    // corta (el recorrido de apertura se trunca a la mitad). Más allá,
+    // con el efecto que se le ponga, la bola no regresa: no hay
+    // renversé posible y el módulo lo dice sin fingir lecturas.
+    const topeSalida = esCorta ? 1 : 2;
+    if(salida > topeSalida + 1e-9){
+      return {
+        error:'La salida leída es ' + salida.toFixed(2) + ', más allá del ' + topeSalida + ', y el renversé por banda ' + (esCorta ? 'corta' : 'larga') + ' solo cubre salidas de 0 a ' + topeSalida + ': con el efecto que se le ponga, la tacadora no regresaría. Es muy complejo un renversé con una salida tan alta; respetuosamente recomiendo usar otro sistema.',
+        brief:'Es muy complejo un renversé con una salida tan alta. Respetuosamente recomiendo usar otro sistema'
+      };
+    }
+
+    // Punto de contacto real sobre la banda de juego: la proyección a
+    // la esquina hace que la banda se toque bastante antes del rincón.
+    const contacto = contactoDe(origen);
+    const contactoDentro = esCorta
+      ? (contacto.y >= -1e-9 && contacto.y <= TABLE.H + 1e-9)
+      : (contacto.x >= -1e-9 && contacto.x <= TABLE.W + 1e-9);
+    if(!contactoDentro){
+      warnings.push('La línea de ataque a la esquina sale de la mesa antes de tocar la banda de juego: esta posición no es un renversé de esta variante.');
+      aviso = 'Renversé: la línea de ataque no alcanza la banda de juego · vea el diagnóstico';
+    }
+
+    // La fórmula del sistema por variante, con el ajuste fino de la
+    // mesa, y el efecto SIEMPRE entero: el .5 sube.
+    const factorSalida = esCorta ? 2 : 1;
+    const ajuste = renverseAjuste();
+    const exacto = salida * factorSalida + llegada + ajuste;
+    let entero = Math.round(exacto);
+    if(entero === 0) entero = 0; // normaliza el -0 de Math.round
+    // El medio se reporta con su decimal cuando el efecto, redondeado
+    // a UN decimal, cae en el .5: la franja de ±0.05 alrededor del
+    // medio (de 2.45 a 2.55 se reporta -2.5), para que el caso exista
+    // en la mesa real y el jugador decida mejor informado.
+    const decimas = Math.round((exacto + 1e-9) * 10);
+    const aCaballo = decimas % 10 === 5 && decimas >= 5 && decimas <= 35;
+    const medio = aCaballo ? decimas / 10 : null;
+    const efectoBajo = aCaballo ? Math.floor(medio) : null;
+    const efectoAlto = aCaballo ? Math.ceil(medio) : null;
+
+    let grafica = null;
+    let graficaPar = null;
+    if(entero > 4){
+      warnings.push('El efecto calculado (' + exacto.toFixed(2) + ' ≈ ' + entero + ') queda fuera del dominio del sistema: no existe más efecto contrario que 4. Busque otra figura para esta carambola.');
+      if(!aviso) aviso = 'Renversé: efecto fuera del dominio del sistema (máximo 4) · vea el diagnóstico';
+    } else if(entero < 0){
+      warnings.push('El efecto calculado (' + exacto.toFixed(2) + ' ≈ ' + entero + ') pide efecto a favor, y el renversé se taca siempre con efecto contrario. Revise el ajuste fino o la posición.');
+      if(!aviso) aviso = 'Renversé: la posición no pide efecto contrario · vea el diagnóstico';
+    } else if(aCaballo){
+      graficaPar = [
+        efectoBajo === 0 ? 'EFECTO_CASCADA_0' : ('EFECTO_CASCADA_CONTRARIO_' + efectoBajo),
+        'EFECTO_CASCADA_CONTRARIO_' + efectoAlto
+      ];
+      warnings.push('El efecto calculado (' + exacto.toFixed(2) + ') queda a caballo entre -' + efectoBajo + ' y -' + efectoAlto + ': se reporta -' + medio.toFixed(1) + ' con las dos gráficas para que usted decida; el ajuste fino de mesa inclina la balanza.');
+      if(!aviso) aviso = 'Renversé: efecto -' + medio.toFixed(1) + ', a caballo entre -' + efectoBajo + ' y -' + efectoAlto + ' · el ajuste fino inclina la balanza';
+    } else {
+      grafica = entero === 0 ? 'EFECTO_CASCADA_0' : ('EFECTO_CASCADA_CONTRARIO_' + entero);
+    }
+
+    const mostradoTxt = aCaballo ? ('-' + medio.toFixed(1)) : (entero === 0 ? '0' : String(-entero));
+    const salidaTxt = 'salida ' + salida.toFixed(2) + (factorSalida === 2 ? ' ×2' : '');
+    const desglose = salidaTxt + ' + llegada ' + llegada.toFixed(2) +
+      (Math.abs(ajuste) > 1e-9 ? ' + ajuste ' + pasonesFmt(ajuste, 1) : '') +
+      ' = ' + exacto.toFixed(2) + ' · efecto ' + mostradoTxt + (aCaballo ? ' (a caballo)' : '');
+
+    return {
+      system:'renverse',
+      variant, esCorta, bolaPrimero,
+      salida, llegada, ajuste, exacto, entero, aCaballo, medio, efectoBajo, efectoAlto,
+      factorSalida, topeSalida,
+      mostrado: aCaballo ? -medio : (entero === 0 ? 0 : -entero),
+      mostradoTxt,
+      grafica, graficaPar,
+      playBottom, cornerLeft, playRight, cornerTop,
+      corner, ejeX, ejeY, railY, railX,
+      origen, contacto, contactoDentro,
+      cruceSalida: lSal.cruce,
+      cruceLlegada: lLleg.cruce,
+      llegadaPunto, llegadaNombre, esPuntoMedio,
+      contactoKey,
+      aim:{from:{x: cue.x, y: cue.y}, to: bolaPrimero ? {x: balls[contactoKey].x, y: balls[contactoKey].y} : {x: contacto.x, y: contacto.y}},
+      warnings,
+      aviso,
+      desglose,
+      resumen:'Renversé por banda ' + (esCorta
+          ? ('corta ' + (playRight ? 'derecha' : 'izquierda') + ', esquina ' + (cornerTop ? 'superior' : 'inferior'))
+          : ('larga ' + (playBottom ? 'inferior' : 'superior') + ', esquina ' + (cornerLeft ? 'izquierda' : 'derecha'))) +
+        ' · ' + (bolaPrimero ? 'bola primero con la ' + pasonesBallName(contactoKey) : 'banda previa') +
+        ' · llegada a ' + llegadaNombre +
+        ' · ' + desglose +
+        ' · ataque a la esquina en proyección, golpe avanzado, sin exceso de fuerza'
+    };
+  }
+
+  function enforceRenverseControls(c){
+    // Los selectores propios del módulo solo ofrecen las bolas objetivo
+    // legales para la tacadora elegida, y el rótulo del punto medio
+    // nombra la pareja vigente.
+    const legales = objectBallKeysForCueKey(c.cueBall === 'yellow' ? 'yellow' : 'white');
+    const nombres = {white:'Blanca', yellow:'Amarilla', red:'Roja'};
+    for(const id of ['renverseImpactBall', 'renverseArrival']){
+      const el = ids(id);
+      if(!el) continue;
+      [...el.options].forEach(opt => {
+        if(opt.value === 'midpoint'){
+          opt.textContent = 'Justo entre la ' + objectPairText(c);
+          return;
+        }
+        const ok = legales.includes(opt.value);
+        opt.hidden = !ok;
+        opt.disabled = !ok;
+        if(nombres[opt.value]) opt.textContent = nombres[opt.value];
+      });
+      if(el.value !== 'midpoint' && !legales.includes(el.value)) el.value = legales[0];
+    }
+  }
+
+  function drawRenverseChart(s){
+    if(!s || s.system !== 'renverse' || (!s.grafica && !s.aCaballo)) return;
+    const chk = ids('renverseShowChart');
+    if(chk && !chk.checked) return;
+
+    // Ubicación: el candidato más lejos de las tres bolas.
+    const mejorCentro = (wTot, hTot) => {
+      const cands = [{x:20, y:TABLE.H / 2}, {x:60, y:TABLE.H / 2}];
+      let best = cands[0], bestD = -1;
+      for(const p of cands){
+        let d = Infinity;
+        for(const k of ['white', 'yellow', 'red']){
+          const b = balls[k];
+          d = Math.min(d, Math.hypot(b.x - p.x, b.y - p.y));
+        }
+        if(d > bestD){ bestD = d; best = p; }
+      }
+      return best;
+    };
+
+    const fsT = Math.max(35, Math.round(geom.scale * 3));
+    const fs = Math.max(20, Math.round(geom.scale * 1.36));
+    const titular = (xCentroPx, yPx, cifraTxt) => {
+      ctx.font = '900 ' + fsT + 'px ui-sans-serif, system-ui';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'alphabetic';
+      const txtRotulo = 'EFECTO ';
+      const wRot = ctx.measureText(txtRotulo).width;
+      const wCif = ctx.measureText(cifraTxt).width;
+      const txT = xCentroPx - (wRot + wCif) / 2;
+      ctx.lineWidth = Math.max(4, fsT * .14);
+      ctx.strokeStyle = 'rgba(0,0,0,.85)';
+      ctx.fillStyle = '#f3d89e';
+      ctx.strokeText(txtRotulo, txT, yPx);
+      ctx.fillText(txtRotulo, txT, yPx);
+      ctx.fillStyle = '#ff3b30';
+      ctx.strokeText(cifraTxt, txT + wRot, yPx);
+      ctx.fillText(cifraTxt, txT + wRot, yPx);
+    };
+
+    if(s.aCaballo){
+      // A caballo: el titular con el decimal y la PAREJA de gráficas,
+      // la del efecto de abajo y la del de arriba, cada una con su
+      // cifra, para decidir en mesa entre las dos opciones.
+      const imgB = pasonesEffectImage(s.graficaPar[0]);
+      const imgA = pasonesEffectImage(s.graficaPar[1]);
+      if(!imgB || !imgA) return;
+      const wU = 11, gapU = 1.8;
+      const hU = wU * (imgB.naturalHeight / imgB.naturalWidth);
+      const best = mejorCentro(2 * wU + gapU, hU);
+      const tl = worldToScreen({x:best.x - (wU + gapU / 2), y:best.y - hU / 2});
+      const wPx = wU * geom.scale, gapPx = gapU * geom.scale, hPx = hU * geom.scale;
+      const xB = tl.x, xA = tl.x + wPx + gapPx;
+      ctx.save();
+      ctx.globalAlpha = 0.93;
+      ctx.drawImage(imgB, xB, tl.y, wPx, hPx);
+      ctx.drawImage(imgA, xA, tl.y, wPx, hPx);
+      ctx.restore();
+      ctx.save();
+      ctx.strokeStyle = 'rgba(0,0,0,.55)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(xB, tl.y, wPx, hPx);
+      ctx.strokeRect(xA, tl.y, wPx, hPx);
+      titular(tl.x + wPx + gapPx / 2, tl.y - fsT * .45, s.mostradoTxt);
+      const cifraBajo = s.efectoBajo === 0 ? '0' : '-' + s.efectoBajo;
+      pasonesLabel(cifraBajo, xB + wPx / 2, tl.y + hPx + fs * .8, fs);
+      pasonesLabel('-' + s.efectoAlto, xA + wPx / 2, tl.y + hPx + fs * .8, fs);
+      pasonesLabel('a caballo entre ' + cifraBajo + ' y -' + s.efectoAlto + ' · el ajuste fino inclina la balanza', tl.x + wPx + gapPx / 2, tl.y + hPx + fs * 2.0, fs);
+      pasonesLabel('Esquina en proyección · golpe avanzado · sin exceso de fuerza', tl.x + wPx + gapPx / 2, tl.y + hPx + fs * 3.2, fs);
+      ctx.restore();
+      return;
+    }
+
+    const img = pasonesEffectImage(s.grafica);
+    if(!img) return;
+    const wU = 15;
+    const hU = wU * (img.naturalHeight / img.naturalWidth);
+    const best = mejorCentro(wU, hU);
+    const tl = worldToScreen({x:best.x - wU / 2, y:best.y - hU / 2});
+    const wPx = wU * geom.scale, hPx = hU * geom.scale;
+    ctx.save();
+    ctx.globalAlpha = 0.93;
+    ctx.drawImage(img, tl.x, tl.y, wPx, hPx);
+    ctx.restore();
+    ctx.save();
+    ctx.strokeStyle = 'rgba(0,0,0,.55)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(tl.x, tl.y, wPx, hPx);
+    // Titular grande, legible desde la mesa: "EFECTO" en dorado y la
+    // cifra en rojo, porque el renversé es siempre contrario.
+    titular(tl.x + wPx / 2, tl.y - fsT * .45, s.mostradoTxt);
+    pasonesLabel('Esquina en proyección · golpe avanzado · sin exceso de fuerza', tl.x + wPx / 2, tl.y + hPx + fs * .8, fs);
+    ctx.restore();
+  }
+
+  // Construcción honesta del renversé sobre la mesa: escala de lectura
+  // 0-1-2-3 en la banda corta opuesta, esquina de ataque, línea de
+  // ataque con su contacto real en la banda y las dos proyecciones.
+  function drawRenverseOverlays(s){
+    if(!s || s.system !== 'renverse') return;
+    ctx.save();
+
+    // Escala de lectura sobre el eje de los diamantes de la banda de
+    // lectura: 0 en la esquina del lado de la banda de juego. En la
+    // larga corre por la banda corta opuesta (vertical); en la corta,
+    // por la banda larga del lado del objetivo (horizontal), con la
+    // media 0.5 marcada, fiel a la figura del sistema.
+    const puntoEscala = (r) => s.esCorta
+      ? {x: s.playRight ? TABLE.W - 10 * r : 10 * r, y: s.ejeY}
+      : {x: s.ejeX, y: s.playBottom ? TABLE.H - 10 * r : 10 * r};
+    const cero = worldToScreen(puntoEscala(0));
+    const fin = worldToScreen(puntoEscala(3));
+    ctx.strokeStyle = 'rgba(243,216,158,.9)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cero.x, cero.y);
+    ctx.lineTo(fin.x, fin.y);
+    ctx.stroke();
+    const tickW = Math.max(4, geom.scale * .5);
+    const marcas = [{r:0, txt:'0', mayor:true}, {r:1, txt:'1', mayor:true}, {r:2, txt:'2', mayor:true}, {r:3, txt:'3', mayor:true}];
+    if(s.esCorta) marcas.push({r:0.5, txt:'0.5', mayor:false});
+    for(const m of marcas){
+      const t = worldToScreen(puntoEscala(m.r));
+      const tw = m.mayor ? tickW : tickW * .6;
+      ctx.beginPath();
+      if(s.esCorta){
+        ctx.moveTo(t.x, t.y - tw);
+        ctx.lineTo(t.x, t.y + tw);
+      } else {
+        ctx.moveTo(t.x - tw, t.y);
+        ctx.lineTo(t.x + tw, t.y);
+      }
+      ctx.stroke();
+      const fsE = Math.max(9, Math.round(geom.scale * (m.mayor ? .55 : .45)));
+      if(s.esCorta){
+        pasonesLabel(m.txt, t.x, t.y + (s.cornerTop ? 1 : -1) * Math.max(12, geom.scale * .9), fsE);
+      } else {
+        pasonesLabel(m.txt, t.x + (s.cornerLeft ? 1 : -1) * Math.max(11, geom.scale * .85), t.y, fsE);
+      }
+    }
+
+    // Esquina de ataque: el 0 de la banda larga, sobre el eje.
+    const cw = worldToScreen(s.corner);
+    ctx.fillStyle = 'rgba(243,216,158,.95)';
+    ctx.beginPath();
+    ctx.arc(cw.x, cw.y, Math.max(4, geom.scale * .3), 0, Math.PI * 2);
+    ctx.fill();
+    const dxEsq = s.esCorta ? (s.playRight ? -1 : 1) * Math.max(34, geom.scale * 4.6) : (s.cornerLeft ? 1 : -1) * Math.max(30, geom.scale * 4.2);
+    const dyEsq = s.esCorta ? (s.cornerTop ? -1 : 1) * Math.max(10, geom.scale * .7) : (s.playBottom ? 1 : -1) * Math.max(10, geom.scale * .7);
+    pasonesLabel('esquina (0) · ataque en proyección', cw.x + dxEsq, cw.y + dyEsq, Math.max(9, Math.round(geom.scale * .55)));
+
+    // Con bola primero, la tacadora viaja primero a la bola de contacto.
+    if(s.bolaPrimero){
+      const c0 = worldToScreen(s.aim.from);
+      const b2 = worldToScreen(s.origen);
+      ctx.strokeStyle = 'rgba(255,255,255,.85)';
+      ctx.lineWidth = 2.4;
+      ctx.beginPath();
+      ctx.moveTo(c0.x, c0.y);
+      ctx.lineTo(b2.x, b2.y);
+      ctx.stroke();
+      pasonesLabel('bola de contacto', b2.x, b2.y - BALL_R * geom.scale - Math.max(7, geom.scale * .55), Math.max(9, Math.round(geom.scale * .55)));
+    }
+
+    // Línea de ataque a la esquina, prolongada hacia atrás hasta el eje
+    // de lectura: esa prolongación ES la lectura de salida.
+    const o = worldToScreen(s.origen);
+    ctx.strokeStyle = 'rgba(255,90,90,.95)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(o.x, o.y);
+    ctx.lineTo(cw.x, cw.y);
+    ctx.stroke();
+    const crS = worldToScreen(s.cruceSalida);
+    ctx.setLineDash([5, 6]);
+    ctx.strokeStyle = 'rgba(255,90,90,.8)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(o.x, o.y);
+    ctx.lineTo(crS.x, crS.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(255,90,90,.95)';
+    ctx.beginPath();
+    ctx.arc(crS.x, crS.y, Math.max(4, geom.scale * .26), 0, Math.PI * 2);
+    ctx.fill();
+
+    // Contacto real: la proyección hace tocar la banda antes del rincón.
+    if(s.contactoDentro){
+      const pc = worldToScreen(s.contacto);
+      ctx.fillStyle = 'rgba(255,80,220,.95)';
+      ctx.beginPath();
+      ctx.arc(pc.x, pc.y, Math.max(4, geom.scale * .28), 0, Math.PI * 2);
+      ctx.fill();
+      if(s.esCorta){
+        pasonesLabel('contacto real', pc.x + (s.playRight ? -1 : 1) * Math.max(42, geom.scale * 4.6), pc.y, Math.max(9, Math.round(geom.scale * .55)));
+      } else {
+        pasonesLabel('contacto real', pc.x, pc.y + (s.playBottom ? -1 : 1) * Math.max(11, geom.scale * .8), Math.max(9, Math.round(geom.scale * .55)));
+      }
+    }
+
+    // Lectura de llegada: proyección hacia atrás del objetivo elegido
+    // (roja, amarilla o punto medio) desde la misma esquina.
+    const crL = worldToScreen(s.cruceLlegada);
+    ctx.setLineDash([5, 6]);
+    ctx.strokeStyle = 'rgba(243,216,158,.9)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cw.x, cw.y);
+    ctx.lineTo(crL.x, crL.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(243,216,158,.95)';
+    ctx.beginPath();
+    ctx.arc(crL.x, crL.y, Math.max(4, geom.scale * .26), 0, Math.PI * 2);
+    ctx.fill();
+    const lp = worldToScreen(s.llegadaPunto);
+    ctx.setLineDash([4, 5]);
+    ctx.strokeStyle = 'rgba(255,255,255,.9)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(lp.x, lp.y, (s.esPuntoMedio ? .6 : 1) * BALL_R * geom.scale, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    if(s.esPuntoMedio) pasonesLabel('punto medio', lp.x, lp.y - Math.max(11, geom.scale * .8), Math.max(9, Math.round(geom.scale * .55)));
+    ctx.restore();
+  }
+
+  // Las dos lecturas del sistema se rotulan en una pasada tardía,
+  // DESPUÉS de dibujar las bolas, con letra mayor: así nunca quedan
+  // tapadas cuando el cruce coincide con una bola.
+  function drawRenverseReadings(s){
+    if(!s || s.system !== 'renverse') return;
+    ctx.save();
+    const fsL = Math.max(15, Math.round(geom.scale * 1.05));
+    const crS = worldToScreen(s.cruceSalida);
+    const crL = worldToScreen(s.cruceLlegada);
+    if(s.esCorta){
+      // Eje horizontal: los rótulos se apilan hacia afuera de la mesa,
+      // corridos hacia el interior para no chocar con la escala.
+      const dxC = (s.playRight ? -1 : 1) * Math.max(30, geom.scale * 3.4);
+      const dyC = (s.cornerTop ? 1 : -1);
+      pasonesLabel('salida ' + s.salida.toFixed(2), crS.x + dxC, crS.y + dyC * Math.max(18, geom.scale * 1.3), fsL);
+      pasonesLabel('llegada ' + s.llegada.toFixed(2), crL.x + dxC, crL.y + dyC * Math.max(38, geom.scale * 2.7), fsL);
+    } else {
+      const dx = (s.cornerLeft ? -1 : 1) * Math.max(46, geom.scale * 5.4);
+      pasonesLabel('salida ' + s.salida.toFixed(2), crS.x + dx, crS.y - Math.max(11, geom.scale * .8), fsL);
+      pasonesLabel('llegada ' + s.llegada.toFixed(2), crL.x + dx, crL.y + Math.max(15, geom.scale * 1.1), fsL);
+    }
+    ctx.restore();
+  }
+
+
   function recalculateAll(reason='user-change'){
     resetCalculationState(reason);
 
@@ -11151,6 +11676,52 @@
       drawBalls();
       const diag = ids('diagnostic');
       if(diag) diag.textContent = 'Sin planear: grabación libre, solo círculos de bolas.';
+      return;
+    }
+
+    if(c.systemMode === 'renverse'){
+      enforceRenverseControls(c);
+      updateSystemModeUi(c);
+      const shot = computeRenverseShot(c);
+      calculationState = {
+        version: (calculationState?.version || 0) + 1,
+        reason,
+        shot: shot.error ? null : shot,
+        error: shot.error || null
+      };
+      const diagEl = ids('diagnostic');
+      if(shot.error){
+        currentShot = null;
+        drawTable();
+        drawBalls();
+        // Los letreros de rechazo del Renversé van sin enlace de
+        // explicación. El respetuoso de la salida alta habla solo,
+        // sin prefijo del módulo.
+        const brief = shot.brief || 'jugada rechazada';
+        const prefijo = /^Es muy complejo/.test(brief) ? '' : 'Renversé: ';
+        drawBoardNotice(prefijo + brief + ' · vea el diagnóstico', false);
+        if(diagEl) diagEl.textContent = shot.error;
+        return;
+      }
+      shot.c = c;
+      // Línea de ataque disponible para la superposición de video: a la
+      // esquina en proyección (banda previa) o a la bola de contacto.
+      shot.path = {points:[shot.aim.from, shot.aim.to]};
+      currentShot = shot;
+      drawTable();
+      drawRenverseChart(shot);
+      drawRenverseOverlays(shot);
+      drawBalls();
+      drawRenverseReadings(shot);
+      // Los avisos del Renversé van sin enlace de explicación (el
+      // capítulo aún no existe). En banda corta, el letrero permanente
+      // de sensibilidad ocupa el paño mientras no haya aviso puntual.
+      if(shot.aviso) drawBoardNotice(shot.aviso, false);
+      else if(shot.esCorta) drawBoardNotice('El renversé por banda corta es mucho más sensible al efecto, a la línea de ataque y a la ejecución. Este cálculo es solo una ayuda', false);
+      if(diagEl){
+        diagEl.textContent = 'Renversé: ' + shot.resumen +
+          (shot.warnings.length ? ' · Atención: ' + shot.warnings.join(' ') : '');
+      }
       return;
     }
 
@@ -15152,6 +15723,13 @@ function drawStartMarks(){
       const baseEl = ids('pasonesBase');
       const baseTxt = baseEl ? Number(baseEl.value).toFixed(1) : '2.0';
       setModuleState('moduleSequenceState', 'Pasones · larga-larga a 3 bandas · base ' + baseTxt);
+    } else if(ids('systemMode') && ids('systemMode').value === 'renverse'){
+      const varEl = ids('renverseVariant');
+      const atkEl = ids('renverseAttack');
+      const ajV = ids('renverseAjuste') ? Number(ids('renverseAjuste').value) : 0;
+      setModuleState('moduleSequenceState', 'Renversé · ' + (varEl && varEl.value === 'short' ? 'banda corta' : 'banda larga') +
+        ' · ' + (atkEl && atkEl.value === 'ball' ? 'Bola primero' : 'Banda previa') +
+        ' · ajuste ' + (ajV >= 0 ? '+' : '') + ajV.toFixed(1));
     } else {
       const start=ids('mode')?.value==='cushionFirst' ? 'Banda previa' : 'Bola primero';
       const rails=[ids('rail1')?.value,ids('rail2')?.value,ids('thirdRail')?.value]
@@ -15236,6 +15814,73 @@ function drawStartMarks(){
     }catch{}
     pasonesChartEl.addEventListener('change', () => {
       try{ localStorage.setItem(PASONES_CHART_KEY, pasonesChartEl.checked ? '1' : '0'); }catch{}
+    });
+  }
+  const renverseVariantEl = ids('renverseVariant');
+  if(renverseVariantEl){
+    try{
+      const sv = localStorage.getItem(RENVERSE_VARIANT_KEY);
+      if(sv === 'long' || sv === 'short') renverseVariantEl.value = sv;
+    }catch{}
+    renverseVariantEl.addEventListener('change', () => {
+      try{ localStorage.setItem(RENVERSE_VARIANT_KEY, renverseVariantEl.value); }catch{}
+    });
+  }
+  const renverseAttackEl = ids('renverseAttack');
+  if(renverseAttackEl){
+    try{
+      const sa = localStorage.getItem(RENVERSE_ATTACK_KEY);
+      if(sa === 'cushion' || sa === 'ball') renverseAttackEl.value = sa;
+    }catch{}
+    renverseAttackEl.addEventListener('change', () => {
+      try{ localStorage.setItem(RENVERSE_ATTACK_KEY, renverseAttackEl.value); }catch{}
+    });
+  }
+  const renverseAjusteEl = ids('renverseAjuste');
+  if(renverseAjusteEl){
+    try{
+      const saved = parseFloat(localStorage.getItem(RENVERSE_AJUSTE_KEY));
+      if(Number.isFinite(saved)) renverseAjusteEl.value = String(clamp(saved, -1, 1));
+    }catch{}
+    const syncRenverseAjusteLabel = () => {
+      const lbl = ids('renverseAjusteVal');
+      const v = Number(renverseAjusteEl.value);
+      if(lbl) lbl.textContent = (v >= 0 ? '+' : '') + v.toFixed(1);
+    };
+    syncRenverseAjusteLabel();
+    renverseAjusteEl.addEventListener('input', () => {
+      syncRenverseAjusteLabel();
+      try{ localStorage.setItem(RENVERSE_AJUSTE_KEY, renverseAjusteEl.value); }catch{}
+    });
+  }
+  const renverseImpactEl = ids('renverseImpactBall');
+  if(renverseImpactEl){
+    try{
+      const si = localStorage.getItem('tresBandasRenverseImpactV1');
+      if(['white', 'yellow', 'red'].includes(si)) renverseImpactEl.value = si;
+    }catch{}
+    renverseImpactEl.addEventListener('change', () => {
+      try{ localStorage.setItem('tresBandasRenverseImpactV1', renverseImpactEl.value); }catch{}
+    });
+  }
+  const renverseArrivalEl = ids('renverseArrival');
+  if(renverseArrivalEl){
+    try{
+      const sl = localStorage.getItem('tresBandasRenverseArrivalV1');
+      if(['white', 'yellow', 'red', 'midpoint'].includes(sl)) renverseArrivalEl.value = sl;
+    }catch{}
+    renverseArrivalEl.addEventListener('change', () => {
+      try{ localStorage.setItem('tresBandasRenverseArrivalV1', renverseArrivalEl.value); }catch{}
+    });
+  }
+  const renverseChartEl = ids('renverseShowChart');
+  if(renverseChartEl){
+    try{
+      const savedChart = localStorage.getItem(RENVERSE_CHART_KEY);
+      if(savedChart !== null) renverseChartEl.checked = savedChart === '1';
+    }catch{}
+    renverseChartEl.addEventListener('change', () => {
+      try{ localStorage.setItem(RENVERSE_CHART_KEY, renverseChartEl.checked ? '1' : '0'); }catch{}
     });
   }
 
