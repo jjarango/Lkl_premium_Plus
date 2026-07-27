@@ -11705,8 +11705,12 @@
       }
       shot.c = c;
       // Línea de ataque disponible para la superposición de video: a la
-      // esquina en proyección (banda previa) o a la bola de contacto.
-      shot.path = {points:[shot.aim.from, shot.aim.to]};
+      // esquina en proyección (banda previa) o a la bola de contacto y
+      // de ahí al contacto real con la banda, para que ambos queden
+      // registrados en la grabación.
+      shot.path = {points: (shot.bolaPrimero && shot.contacto)
+        ? [shot.aim.from, shot.aim.to, shot.contacto]
+        : [shot.aim.from, shot.aim.to]};
       currentShot = shot;
       drawTable();
       drawRenverseChart(shot);
@@ -14501,6 +14505,11 @@ function drawStartMarks(){
   function videoReplayAttackInfo(){
     const shot = currentShot;
     if(!shot) return null;
+    // Renversé: el punto quemado es el contacto real con la banda de
+    // juego; la línea azul del path ya dibuja la línea de ataque.
+    if(shot.system === 'renverse'){
+      return shot.contacto ? { point: shot.contacto, number: null, lineFrom: null, lineTo: null } : null;
+    }
     const r = shot.departureAttackResult;
     if(r && r.status === 'ok' && r.attackPoint){
       return {
