@@ -2116,7 +2116,7 @@
 </div>
 <div class="videoReplayGroup" id="videoReplayCameraPanel">
 <label class="small" for="videoReplayCameraSel" style="display:block; margin:0 0 6px;">카메라</label>
-<select id="videoReplayCameraSel" style="width:100%"><option value="">브라우저가 선택하는 카메라</option></select>
+<select id="videoReplayCameraSel" style="width:100%"><option value="">브라우저가 고르는 카메라</option></select>
 </div>
 <div class="videoReplayGroup">
 <div aria-live="polite" class="videoReplayStatus" id="videoReplayStatus" role="status">—</div>
@@ -13515,7 +13515,7 @@ function drawStartMarks(){
       sel.innerHTML = '';
       const cero = document.createElement('option');
       cero.value = '';
-      cero.textContent = '브라우저가 선택하는 카메라';
+      cero.textContent = '브라우저가 고르는 카메라';
       sel.appendChild(cero);
       cams.forEach((d, idx) => {
         const o = document.createElement('option');
@@ -14571,7 +14571,15 @@ function drawStartMarks(){
     // Renversé: el punto quemado es el contacto real con la banda de
     // juego; la línea azul del path ya dibuja la línea de ataque.
     if(shot.system === 'renverse'){
-      return shot.contacto ? { point: shot.contacto, number: null, lineFrom: null, lineTo: null } : null;
+      if(!shot.contacto) return null;
+      // La línea de ataque: de la tacadora a la esquina en proyección
+      // (banda previa) o de la segunda bola a esa esquina (bola
+      // primero), en rojo tenue para no competir con la ruta azul.
+      const desde = (shot.bolaPrimero && shot.aim && shot.aim.to)
+        ? shot.aim.to
+        : (shot.aim ? shot.aim.from : null);
+      return { point: shot.contacto, number: null,
+               lineFrom: desde, lineTo: shot.corner || null, lineFaint: true };
     }
     const r = shot.departureAttackResult;
     if(r && r.status === 'ok' && r.attackPoint){
@@ -14753,14 +14761,17 @@ function drawStartMarks(){
           const la = W2V(attackInfo.lineFrom);
           const lb = W2V(attackInfo.lineTo);
           if(la && lb){
+            // El Renversé pide su línea de ataque en rojo tenue; los
+            // demás sistemas conservan el rojo pleno con halo.
+            const tenue = attackInfo.lineFaint === true;
             g.beginPath();
             g.moveTo(la.x, la.y);
             g.lineTo(lb.x, lb.y);
-            g.strokeStyle = 'rgba(0,0,0,.68)';
-            g.lineWidth = Math.max(3.2, ch * .0058);
+            g.strokeStyle = tenue ? 'rgba(0,0,0,.28)' : 'rgba(0,0,0,.68)';
+            g.lineWidth = Math.max(tenue ? 2.6 : 3.2, ch * (tenue ? .0048 : .0058));
             g.stroke();
-            g.strokeStyle = 'rgba(252,2,14,.92)';
-            g.lineWidth = Math.max(1.5, ch * .0027);
+            g.strokeStyle = tenue ? 'rgba(252,2,14,.5)' : 'rgba(252,2,14,.92)';
+            g.lineWidth = Math.max(tenue ? 1.2 : 1.5, ch * (tenue ? .0022 : .0027));
             g.stroke();
           }
         }
