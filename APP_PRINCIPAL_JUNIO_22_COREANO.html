@@ -5058,7 +5058,7 @@
 
     if(ids('tips')) ids('tips').disabled = false;
     if(ids('tipMm')) ids('tipMm').disabled = false;
-    if(ids('tipsVal')) ids('tipsVal').textContent = `Efecto ${effectLevel.toFixed(0)} = ${fmt(effectiveTips,1)} punta${effectiveTips===1?'':'s'} = ${fmt(effectOffsetMm,1)} mm`;
+    if(ids('tipsVal')) ids('tipsVal').textContent = `회전 ${effectLevel.toFixed(0)} = ${fmt(effectiveTips,1)} punta${effectiveTips===1?'':'s'} = ${fmt(effectOffsetMm,1)} mm`;
     if(ids('tipMmVal')) ids('tipMmVal').textContent = `${fmt(c.tipMm,1)} mm`;
     if(ids('firstBallLabel')) ids('firstBallLabel').textContent = c.mode === 'ballFirst' ? '제1목적구' : '쿠션 후 목적구';
 
@@ -5448,7 +5448,7 @@
 
     ids('tips').disabled = neutralEnglish;
     ids('tipMm').disabled = neutralEnglish;
-    ids('tipsVal').textContent = `Efecto ${effectLevel.toFixed(0)} = ${fmt(effectiveTips,1)} punta${effectiveTips===1?'':'s'} = ${fmt(effectOffsetMm,1)} mm`;
+    ids('tipsVal').textContent = `회전 ${effectLevel.toFixed(0)} = ${fmt(effectiveTips,1)} punta${effectiveTips===1?'':'s'} = ${fmt(effectOffsetMm,1)} mm`;
     ids('tipMmVal').textContent = `${fmt(c.tipMm,1)} mm`;
     ids('firstBallLabel').textContent = c.mode === 'ballFirst' ? '제1목적구' : '쿠션 후 목적구';
 
@@ -11859,7 +11859,7 @@
     const effectOffsetMm = effectiveTips*c.tipMm;
     if(ids('tips')) ids('tips').disabled = neutralEnglish;
     if(ids('tipMm')) ids('tipMm').disabled = neutralEnglish;
-    if(ids('tipsVal')) ids('tipsVal').textContent = `Efecto ${effectLevel.toFixed(0)} = ${fmt(effectiveTips,1)} punta${effectiveTips===1?'':'s'} = ${fmt(effectOffsetMm,1)} mm`;
+    if(ids('tipsVal')) ids('tipsVal').textContent = `회전 ${effectLevel.toFixed(0)} = ${fmt(effectiveTips,1)} punta${effectiveTips===1?'':'s'} = ${fmt(effectOffsetMm,1)} mm`;
     if(ids('tipMmVal')) ids('tipMmVal').textContent = `${fmt(c.tipMm,1)} mm`;
     if(ids('firstBallLabel')) ids('firstBallLabel').textContent = c.mode === 'ballFirst' ? '제1목적구' : '쿠션 후 목적구';
 
@@ -14642,6 +14642,15 @@ function drawStartMarks(){
     if(!shot) return null;
     // Renversé: el punto quemado es el contacto real con la banda de
     // juego; la línea azul del path ya dibuja la línea de ataque.
+    if(shot.system === 'pasones'){
+      if(!(shot.aim && shot.aim.from && shot.aim.to)) return null;
+      // La única instrucción del sistema es el efecto: se canta sobre
+      // el punto del ¼ de bola, al final de la línea de puntería.
+      const e = Math.round(shot.efecto);
+      return { point: shot.aim.to, number: null,
+               pointLabel: '회전 ' + (e > 0 ? '+' : '') + e,
+               lineFrom: shot.aim.from, lineTo: shot.aim.to, lineFaint: false };
+    }
     if(shot.system === 'renverse'){
       if(!shot.contacto) return null;
       // La línea de ataque: de la tacadora a la esquina en proyección
@@ -15161,7 +15170,7 @@ function drawStartMarks(){
           g.beginPath(); g.arc(q.x, q.y, dotR, 0, Math.PI*2);
           g.fillStyle = '#fc020e'; g.fill();
           g.strokeStyle = 'rgba(0,0,0,.95)'; g.lineWidth = Math.max(2, ch * .004); g.stroke();
-          const label = attackInfo.number !== null ? ('조준점 ' + fmt(attackInfo.number, 1)) : '조준점';
+          const label = attackInfo.pointLabel !== undefined ? attackInfo.pointLabel : (attackInfo.number !== null ? ('조준점 ' + fmt(attackInfo.number, 1)) : '조준점');
           const fs = Math.max(15, Math.round(ch * .032));
           g.font = '900 ' + fs + 'px ui-sans-serif, system-ui';
           g.lineWidth = Math.max(3.6, fs * .24);
