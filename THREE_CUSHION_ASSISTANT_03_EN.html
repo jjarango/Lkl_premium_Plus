@@ -11755,7 +11755,7 @@
         drawTable();
         drawMirrorDiamondNumbers();
         drawBalls();
-        drawBoardNotice('Pasones: ' + (shot.brief || 'shot rejected') + ' · see diagnostics');
+        drawBoardNotice('Pasones: ' + (shot.brief || 'shot rejected') + ' · see diagnostics', false);
         if(diagEl) diagEl.textContent = shot.error;
         return;
       }
@@ -11769,7 +11769,8 @@
       drawPasonesChart(shot);
       drawPasonesOverlays(shot);
       drawBalls();
-      if(shot.aviso) drawBoardNotice(shot.aviso);
+      // Sin enlace de explicación: el capítulo de Pasones aún no existe.
+      if(shot.aviso) drawBoardNotice(shot.aviso, false);
       if(diagEl){
         diagEl.textContent = 'Pasones: ' + shot.resumen +
           (shot.warnings.length ? ' · Note: ' + shot.warnings.join(' ') : '');
