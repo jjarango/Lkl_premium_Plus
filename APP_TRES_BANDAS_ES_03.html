@@ -2064,12 +2064,13 @@
 <div class="videoReplaySide">
 <div class="videoReplayGroup" id="videoReplayCalibPanel" style="display:none">
 <h3>Calibración de cuatro esquinas</h3>
-<p class="small">Arrastre cada punto hasta la esquina interna del paño (donde se tocan las bandas), en este orden según se ve la mesa en la app: 1 superior izquierda, 2 superior derecha, 3 inferior derecha, 4 inferior izquierda. Los anillos de las bolas y los diamantes proyectados deben coincidir con el video. Ajuste fino: flechas del teclado (con Mayús, pasos de 5 píxeles) o los botones de abajo.</p>
+<p class="small">Arrastre cada punto hasta la esquina interna del paño (donde se tocan las bandas), en este orden según se ve la mesa en la app: 1 superior izquierda, 2 superior derecha, 3 inferior derecha, 4 inferior izquierda. Los puntos verdes 5 y 6 van sobre el borde del paño, en el centro de la banda larga superior y de la corta derecha: con ellos la app mide la curvatura del lente para poder enderezarla. Los anillos de las bolas y los diamantes proyectados deben coincidir con el video. Ajuste fino: flechas del teclado (con Mayús, pasos de 5 píxeles) o los botones de abajo.</p>
+<p class="small" id="videoReplayDewarpMeter">—</p>
 <div class="videoReplayRow" id="videoReplayCornerBtns">
 <button data-corner="0" type="button">Punto 1</button>
 <button data-corner="1" type="button">Punto 2</button>
 <button data-corner="2" type="button">Punto 3</button>
-<button data-corner="3" type="button">Punto 4</button>
+<button data-corner="3" type="button">Punto 4</button> <button data-corner="4" type="button">Punto 5 (larga)</button> <button data-corner="5" type="button">Punto 6 (corta)</button>
 </div>
 <div class="videoReplayNudge">
 <span></span><button id="vrNudgeUp" type="button">▲</button><span></span>
@@ -2113,6 +2114,11 @@
 <div class="videoReplayRow">
 <button class="cameraCaptureBtn" id="videoReplayExportBtn" style="margin:0" type="button">Descargar con datos</button>
 </div>
+</div>
+<div class="videoReplayGroup" id="videoReplayDewarpPanel">
+<label class="small" style="display:flex; align-items:center; gap:8px; cursor:pointer;"><input id="videoReplayDewarpChk" type="checkbox"> Enderezar lente (mesa recta)</label>
+<label class="small" style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-top:6px;"><input id="videoReplayRectifyChk" type="checkbox"> Vista rectificada (mesa rectangular)</label>
+<p class="small" id="videoReplayDewarpNote" style="margin:6px 0 0;">—</p>
 </div>
 <div class="videoReplayGroup" id="videoReplayCameraPanel">
 <label class="small" for="videoReplayCameraSel" style="display:block; margin:0 0 6px;">Cámara</label>
@@ -14323,13 +14329,42 @@ function drawStartMarks(){
       const data = JSON.parse(raw);
       if(!data || !Array.isArray(data.corners) || data.corners.length !== 4) return null;
       if(!data.corners.every(p => p && Number.isFinite(p.x) && Number.isFinite(p.y))) return null;
+      // Compatibilidad con calibraciones de antes del enderezador: los
+      // centros de banda nacen en el punto medio y k1 queda pendiente.
+      const midsOk = Array.isArray(data.mids) && data.mids.length === 2 &&
+        data.mids.every(p => p && Number.isFinite(p.x) && Number.isFinite(p.y));
+      if(!midsOk) data.mids = defaultVideoCalibMids(data.corners);
+      if(!Number.isFinite(data.k1)) data.k1 = null;
+      data.dewarp = data.dewarp === true;
+      data.rectified = data.rectified === true;
       return data;
     }catch{ return null; }
   }
+  // Los centros de banda por defecto: mitad de la banda larga superior
+  // (entre los puntos 1 y 2) y mitad de la corta derecha (entre 2 y 3).
+  function defaultVideoCalibMids(corners){
+    const m = (a, b) => ({x:(a.x + b.x)/2, y:(a.y + b.y)/2});
+    return [m(corners[0], corners[1]), m(corners[1], corners[2])];
+  }
 
-  function saveVideoCalibration(corners, origin){
+  function saveVideoCalibration(corners, origin, extra){
+    const previo = videoReplay.calib;
+    const esquinas = corners.slice(0, 4).map(p => ({x:clamp(p.x,0,1), y:clamp(p.y,0,1)}));
+    const midsPrevios = previo && Array.isArray(previo.mids) && previo.mids.length === 2
+      ? previo.mids : null;
+    const mids = (extra && extra.mids) ? extra.mids.map(p => ({x:clamp(p.x,0,1), y:clamp(p.y,0,1)}))
+      : (midsPrevios || defaultVideoCalibMids(esquinas));
     const data = {
-      corners:corners.map(p => ({x:clamp(p.x,0,1), y:clamp(p.y,0,1)})),
+      corners: esquinas,
+      mids,
+      // El coeficiente es propiedad del lente, no de las esquinas: si
+      // no llega uno nuevo, se hereda el anterior.
+      k1: (extra && Number.isFinite(extra.k1)) ? extra.k1
+        : (previo && Number.isFinite(previo.k1) ? previo.k1 : null),
+      dewarp: (extra && typeof extra.dewarp === 'boolean') ? extra.dewarp
+        : !!(previo && previo.dewarp),
+      rectified: (extra && typeof extra.rectified === 'boolean') ? extra.rectified
+        : !!(previo && previo.rectified),
       origin:origin || 'manual',
       savedAt:Date.now()
     };
@@ -14436,6 +14471,7 @@ function drawStartMarks(){
     await live.play();
     await waitForVideoReady(live, 12000);
     await lockVideoReplayFocus();
+    await lockVideoReplayWhiteBalance();
   }
 
   // Bloqueo automático de enfoque: con una cámara cenital fija, la mesa
@@ -14489,6 +14525,41 @@ function drawStartMarks(){
     return videoReplay.focusLocked
       ? ' El enfoque quedó bloqueado: no habrá reenfoques durante la grabación.'
       : ' El bloqueo de enfoque no está disponible en esta cámara o navegador; el autofoco seguirá activo (puede fijarlo con Logi Tune).';
+  }
+
+  async function lockVideoReplayWhiteBalance(){
+    videoReplay.wbLocked = false;
+    const stream = videoReplay.stream;
+    if(!stream) return false;
+    const track = stream.getVideoTracks()[0];
+    if(!track || typeof track.getCapabilities !== 'function' || typeof track.applyConstraints !== 'function') return false;
+    try{
+      const caps = track.getCapabilities();
+      if(!caps || !Array.isArray(caps.whiteBalanceMode) || !caps.whiteBalanceMode.includes('manual')) return false;
+      const current = track.getSettings ? track.getSettings() : {};
+      if(current.whiteBalanceMode === 'manual'){
+        // Balance fijado por el usuario (Logi Tune y compañía): esa
+        // calibración es la única fuente de verdad y no se toca.
+        videoReplay.wbLocked = true;
+        videoReplay.wbRespected = true;
+        return true;
+      }
+      videoReplay.wbRespected = false;
+      // Dejar que el balance automático converja con la mesa despejada
+      // (el enfoque ya esperó lo suyo) y congelarlo, para que el cuerpo
+      // del jugador durante la tacada no corra los colores.
+      await new Promise(r => setTimeout(r, 1200));
+      const settings = track.getSettings ? track.getSettings() : {};
+      const constraint = {whiteBalanceMode:'manual'};
+      if(Number.isFinite(settings.colorTemperature)) constraint.colorTemperature = settings.colorTemperature;
+      await track.applyConstraints({advanced:[constraint]});
+      videoReplay.wbLocked = true;
+      return true;
+    }catch(error){
+      console.warn('Video de la jugada: no fue posible fijar el balance de blancos.', error);
+      videoReplay.wbLocked = false;
+      return false;
+    }
   }
 
   function stopVideoReplayStream(){
@@ -14688,13 +14759,321 @@ function drawStartMarks(){
 
   // Homografía mundo (80 × 40) -> píxeles del lienzo de video,
   // reutilizando homographyFromFourPoints del localizador fotográfico.
+  // ---------- Enderezado del lente (barril radial de Brown, k1) ----------
+  // Coordenadas normalizadas 0..1 de la imagen; el radio se mide en un
+  // espacio isótropo centrado, escalado para que la esquina valga ~1.
+  function videoLensAxes(aspect){
+    const asp = (Number.isFinite(aspect) && aspect > 0) ? aspect : 16/9;
+    const D = Math.hypot(asp, 1);
+    return {ax: 2*asp/D, ay: 2/D, asp};
+  }
+  // Del espacio enderezado al observado (el que entrega la cámara).
+  function videoDistortPoint(p, k1, aspect){
+    const {ax, ay} = videoLensAxes(aspect);
+    const x = (p.x - 0.5)*ax, y = (p.y - 0.5)*ay;
+    const f = 1 + k1*(x*x + y*y);
+    return {x: 0.5 + x*f/ax, y: 0.5 + y*f/ay};
+  }
+  // Del observado al enderezado (punto fijo, converge en pocas vueltas).
+  function videoUndistortPoint(p, k1, aspect){
+    const {ax, ay} = videoLensAxes(aspect);
+    const xd = (p.x - 0.5)*ax, yd = (p.y - 0.5)*ay;
+    let x = xd, y = yd;
+    for(let i = 0; i < 9; i++){
+      const f = 1 + k1*(x*x + y*y);
+      if(!Number.isFinite(f) || Math.abs(f) < 1e-6) break;
+      x = xd/f; y = yd/f;
+    }
+    return {x: 0.5 + x/ax, y: 0.5 + y/ay};
+  }
+  // Estima k1 con seis puntos observados: 4 esquinas del paño y los
+  // centros de una banda larga (p5, entre 1 y 2) y una corta (p6,
+  // entre 2 y 3). El k1 correcto es el que deja cada centro colineal
+  // con sus dos esquinas tras enderezar. Devuelve además las combas en
+  // centímetros, antes y después, usando el paño (284 × 142 cm) como
+  // regla de conversión.
+  function estimateVideoDewarp(puntos, aspect){
+    if(!Array.isArray(puntos) || puntos.length < 6) return null;
+    const {asp} = videoLensAxes(aspect);
+    const M = p => ({x: p.x*asp, y: p.y});
+    const distLinea = (p, a, b) => {
+      const ux = b.x - a.x, uy = b.y - a.y;
+      const L = Math.hypot(ux, uy) || 1;
+      return Math.abs((p.x - a.x)*uy - (p.y - a.y)*ux)/L;
+    };
+    const errorDe = k1 => {
+      const U = q => M(videoUndistortPoint(q, k1, asp));
+      const c0 = U(puntos[0]), c1 = U(puntos[1]), c2 = U(puntos[2]);
+      const eL = distLinea(U(puntos[4]), c0, c1);
+      const eC = distLinea(U(puntos[5]), c1, c2);
+      return eL*eL + eC*eC;
+    };
+    let mejor = 0, mejorErr = Infinity;
+    for(let k = -0.6; k <= 0.6001; k += 0.004){
+      const e = errorDe(k);
+      if(e < mejorErr){ mejorErr = e; mejor = k; }
+    }
+    let lo = mejor - 0.008, hi = mejor + 0.008;
+    for(let i = 0; i < 60; i++){
+      const a = lo + (hi - lo)/3, b = hi - (hi - lo)/3;
+      if(errorDe(a) < errorDe(b)) hi = b; else lo = a;
+    }
+    const k1 = (lo + hi)/2;
+    const combaCm = (k) => {
+      const U = k === null ? (q => M(q)) : (q => M(videoUndistortPoint(q, k, asp)));
+      const c0 = U(puntos[0]), c1 = U(puntos[1]), c2 = U(puntos[2]);
+      const esc = (cm, a, b) => cm/(Math.hypot(b.x - a.x, b.y - a.y) || 1);
+      return {
+        larga: distLinea(U(puntos[4]), c0, c1)*esc(284, c0, c1),
+        corta: distLinea(U(puntos[5]), c1, c2)*esc(142, c1, c2)
+      };
+    };
+    const antes = combaCm(null);
+    const despues = combaCm(k1);
+    return {k1, combaLargaCm: antes.larga, combaCortaCm: antes.corta,
+            residLargaCm: despues.larga, residCortaCm: despues.corta};
+  }
+  // Lienzo WebGL que fabrica el cuadro enderezado por muestreo inverso.
+  function createVideoDewarper(){
+    try{
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl', {premultipliedAlpha:false, preserveDrawingBuffer:false})
+              || canvas.getContext('experimental-webgl');
+      if(!gl || typeof gl.createShader !== 'function') return {ok:false};
+      const compilar = (tipo, src) => {
+        const sh = gl.createShader(tipo);
+        gl.shaderSource(sh, src);
+        gl.compileShader(sh);
+        if(!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) throw new Error('shader');
+        return sh;
+      };
+      const vs = compilar(gl.VERTEX_SHADER,
+        'attribute vec2 aPos; varying vec2 vUv;\n' +
+        'void main(){ vUv = aPos*0.5 + 0.5; gl_Position = vec4(aPos, 0.0, 1.0); }');
+      const fs = compilar(gl.FRAGMENT_SHADER,
+        'precision mediump float; varying vec2 vUv;\n' +
+        'uniform sampler2D uTex; uniform float uK1; uniform vec2 uAxes;\n' +
+        'void main(){\n' +
+        '  vec2 c = vec2((vUv.x - 0.5)*uAxes.x, (vUv.y - 0.5)*uAxes.y);\n' +
+        '  float f = 1.0 + uK1*dot(c, c);\n' +
+        '  vec2 src = vec2(0.5 + c.x*f/uAxes.x, 0.5 + c.y*f/uAxes.y);\n' +
+        '  if(src.x < 0.0 || src.x > 1.0 || src.y < 0.0 || src.y > 1.0){\n' +
+        '    gl_FragColor = vec4(0.02, 0.027, 0.04, 1.0);\n' +
+        '  } else { gl_FragColor = texture2D(uTex, src); }\n' +
+        '}');
+      const prog = gl.createProgram();
+      gl.attachShader(prog, vs);
+      gl.attachShader(prog, fs);
+      gl.linkProgram(prog);
+      if(!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error('link');
+      gl.useProgram(prog);
+      const buf = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+      const aPos = gl.getAttribLocation(prog, 'aPos');
+      gl.enableVertexAttribArray(aPos);
+      gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+      const tex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+      const uK1 = gl.getUniformLocation(prog, 'uK1');
+      const uAxes = gl.getUniformLocation(prog, 'uAxes');
+      return {
+        ok: true,
+        canvas,
+        render(fuente, outW, outH, k1, aspect){
+          if(canvas.width !== outW || canvas.height !== outH){
+            canvas.width = outW;
+            canvas.height = outH;
+          }
+          gl.viewport(0, 0, outW, outH);
+          gl.bindTexture(gl.TEXTURE_2D, tex);
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, fuente);
+          const {ax, ay} = videoLensAxes(aspect);
+          gl.uniform1f(uK1, k1);
+          gl.uniform2f(uAxes, ax, ay);
+          gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        }
+      };
+    }catch{
+      return {ok:false};
+    }
+  }
+  const videoDewarpers = {};
+  function getVideoDewarper(nombre){
+    if(!(nombre in videoDewarpers)) videoDewarpers[nombre] = createVideoDewarper();
+    return videoDewarpers[nombre];
+  }
+  function videoReplayDewarpSupported(){
+    return getVideoDewarper('pantalla').ok;
+  }
+  // ---------- Vista rectificada (mesa rectangular por construcción) ----------
+  // Rectángulo del paño dentro del lienzo de salida: proporción 2:1
+  // exacta, centrado, con margen para que se vean las maderas.
+  function rectifiedClothRect(cw, ch){
+    let w = 0.90*cw, h = w/2;
+    if(h > 0.90*ch){ h = 0.90*ch; w = 2*h; }
+    return {x:(cw - w)/2, y:(ch - h)/2, w, h};
+  }
+  // Homografía de la salida rectificada (normalizada, arriba-abajo) al
+  // video sin distorsión, en el espacio girado donde viven las
+  // esquinas calibradas.
+  function rectifiedOutputHomography(cw, ch){
+    const calib = videoReplay.calib;
+    if(!calib || !Array.isArray(calib.corners) || calib.corners.length < 4) return null;
+    const k1 = Number.isFinite(calib.k1) ? calib.k1 : 0;
+    const R = rectifiedClothRect(cw, ch);
+    const srcUV = [
+      {x:R.x/cw, y:R.y/ch}, {x:(R.x + R.w)/cw, y:R.y/ch},
+      {x:(R.x + R.w)/cw, y:(R.y + R.h)/ch}, {x:R.x/cw, y:(R.y + R.h)/ch}
+    ];
+    const dst = calib.corners.slice(0, 4).map(p => videoUndistortPoint(p, k1, cw/ch));
+    return homographyFromFourPoints(srcUV, dst);
+  }
+  // Referencia en CPU de la cadena completa del shader: de un punto de
+  // la salida rectificada al píxel crudo de la cámara. Sirve de juez
+  // para las pruebas y de documentación ejecutable del shader.
+  function videoRectifyMapPoint(outUV, cw, ch){
+    const calib = videoReplay.calib;
+    const Hh = rectifiedOutputHomography(cw, ch);
+    if(!Hh || !calib) return null;
+    const k1 = Number.isFinite(calib.k1) ? calib.k1 : 0;
+    const u = applyHomography(Hh, outUV);
+    if(!u) return null;
+    const d = videoDistortPoint(u, k1, cw/ch);
+    return {x: 1 - d.x, y: 1 - d.y};
+  }
+  function createVideoRectifier(){
+    try{
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl', {premultipliedAlpha:false, preserveDrawingBuffer:false})
+              || canvas.getContext('experimental-webgl');
+      if(!gl || typeof gl.createShader !== 'function') return {ok:false};
+      const compilar = (tipo, src) => {
+        const sh = gl.createShader(tipo);
+        gl.shaderSource(sh, src);
+        gl.compileShader(sh);
+        if(!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) throw new Error('shader');
+        return sh;
+      };
+      const vs = compilar(gl.VERTEX_SHADER,
+        'attribute vec2 aPos; varying vec2 vUv;\n' +
+        'void main(){ vUv = aPos*0.5 + 0.5; gl_Position = vec4(aPos, 0.0, 1.0); }');
+      const fs = compilar(gl.FRAGMENT_SHADER,
+        'precision mediump float; varying vec2 vUv;\n' +
+        'uniform sampler2D uTex; uniform float uK1; uniform vec2 uAxes; uniform mat3 uH;\n' +
+        'void main(){\n' +
+        '  vec2 outTD = vec2(vUv.x, 1.0 - vUv.y);\n' +
+        '  vec3 hh = uH * vec3(outTD, 1.0);\n' +
+        '  if(abs(hh.z) < 1e-9){ gl_FragColor = vec4(0.02, 0.027, 0.04, 1.0); return; }\n' +
+        '  vec2 u = hh.xy / hh.z;\n' +
+        '  vec2 c = vec2((u.x - 0.5)*uAxes.x, (u.y - 0.5)*uAxes.y);\n' +
+        '  float f = 1.0 + uK1*dot(c, c);\n' +
+        '  vec2 d = vec2(0.5 + c.x*f/uAxes.x, 0.5 + c.y*f/uAxes.y);\n' +
+        '  vec2 raw = vec2(1.0 - d.x, 1.0 - d.y);\n' +
+        '  if(raw.x < 0.0 || raw.x > 1.0 || raw.y < 0.0 || raw.y > 1.0){\n' +
+        '    gl_FragColor = vec4(0.02, 0.027, 0.04, 1.0);\n' +
+        '  } else { gl_FragColor = texture2D(uTex, vec2(raw.x, 1.0 - raw.y)); }\n' +
+        '}');
+      const prog = gl.createProgram();
+      gl.attachShader(prog, vs);
+      gl.attachShader(prog, fs);
+      gl.linkProgram(prog);
+      if(!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error('link');
+      gl.useProgram(prog);
+      const buf = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+      const aPos = gl.getAttribLocation(prog, 'aPos');
+      gl.enableVertexAttribArray(aPos);
+      gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+      const tex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+      const uK1 = gl.getUniformLocation(prog, 'uK1');
+      const uAxes = gl.getUniformLocation(prog, 'uAxes');
+      const uH = gl.getUniformLocation(prog, 'uH');
+      return {
+        ok: true,
+        canvas,
+        render(fuente, outW, outH, k1, aspect, Hrow){
+          if(canvas.width !== outW || canvas.height !== outH){
+            canvas.width = outW;
+            canvas.height = outH;
+          }
+          gl.viewport(0, 0, outW, outH);
+          gl.bindTexture(gl.TEXTURE_2D, tex);
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, fuente);
+          const {ax, ay} = videoLensAxes(aspect);
+          gl.uniform1f(uK1, k1);
+          gl.uniform2f(uAxes, ax, ay);
+          // homographyFromFourPoints entrega la matriz por filas; WebGL
+          // la recibe por columnas: se transpone al empacar.
+          gl.uniformMatrix3fv(uH, false, new Float32Array([
+            Hrow[0], Hrow[3], Hrow[6],
+            Hrow[1], Hrow[4], Hrow[7],
+            Hrow[2], Hrow[5], Hrow[8]
+          ]));
+          gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        }
+      };
+    }catch{
+      return {ok:false};
+    }
+  }
+  const videoRectifiers = {};
+  function getVideoRectifier(nombre){
+    if(!(nombre in videoRectifiers)) videoRectifiers[nombre] = createVideoRectifier();
+    return videoRectifiers[nombre];
+  }
+  function videoReplayRectifySupported(){
+    return getVideoRectifier('pantalla').ok;
+  }
+  function videoReplayRectifyActive(){
+    const c = videoReplay.calib;
+    return !!(c && c.rectified && Array.isArray(c.corners) && c.corners.length >= 4) &&
+           videoReplay.mode !== 'calibrate' && videoReplayRectifySupported();
+  }
+
+  function videoReplayDewarpActive(){
+    const c = videoReplay.calib;
+    return !!(c && c.dewarp && Number.isFinite(c.k1)) &&
+           videoReplay.mode !== 'calibrate' && videoReplayDewarpSupported();
+  }
+
   function videoReplayHomography(cw, ch){
     const corners = (videoReplay.mode === 'calibrate' && videoReplay.corners)
       ? videoReplay.corners
       : (videoReplay.calib && videoReplay.calib.corners);
-    if(!corners || corners.length !== 4) return null;
+    if(!corners || corners.length < 4) return null;
     const src = [{x:0,y:0},{x:TABLE.W,y:0},{x:TABLE.W,y:TABLE.H},{x:0,y:TABLE.H}];
-    const dst = corners.map(p => ({x:p.x*cw, y:p.y*ch}));
+    // En vista rectificada, el paño ES el rectángulo de salida: la
+    // superposición se tiende directa a él, exacta por construcción.
+    if(videoReplayRectifyActive()){
+      const R = rectifiedClothRect(cw, ch);
+      const dstR = [
+        {x:R.x, y:R.y}, {x:R.x + R.w, y:R.y},
+        {x:R.x + R.w, y:R.y + R.h}, {x:R.x, y:R.y + R.h}
+      ];
+      return homographyFromFourPoints(src, dstR);
+    }
+    // Con el enderezado activo, la imagen que se ve es la corregida:
+    // las esquinas guardadas (observadas en crudo) se enderezan antes
+    // de tender la homografía, y todo cae exacto por construcción.
+    const activo = videoReplayDewarpActive();
+    const k1 = activo ? videoReplay.calib.k1 : 0;
+    const dst = corners.slice(0, 4).map(p => {
+      const q = activo ? videoUndistortPoint(p, k1, cw/ch) : p;
+      return {x: q.x*cw, y: q.y*ch};
+    });
     return homographyFromFourPoints(src, dst);
   }
 
@@ -14927,9 +15306,10 @@ function drawStartMarks(){
       videoReplay.corners.forEach((p,i) => {
         const x = p.x*cw, y = p.y*ch;
         const sel = i === videoReplay.selCorner;
+        const esMedio = i >= 4;
         g.beginPath(); g.arc(x, y, sel ? 13 : 10, 0, Math.PI*2);
-        g.fillStyle = sel ? 'rgba(255,210,63,.30)' : 'rgba(98,215,255,.20)'; g.fill();
-        g.strokeStyle = sel ? '#ffd23f' : '#62d7ff'; g.lineWidth = 2.2; g.stroke();
+        g.fillStyle = sel ? 'rgba(255,210,63,.30)' : (esMedio ? 'rgba(63,185,80,.22)' : 'rgba(98,215,255,.20)'); g.fill();
+        g.strokeStyle = sel ? '#ffd23f' : (esMedio ? '#3fb950' : '#62d7ff'); g.lineWidth = 2.2; g.stroke();
         g.beginPath();
         g.moveTo(x-16, y); g.lineTo(x+16, y);
         g.moveTo(x, y-16); g.lineTo(x, y+16);
@@ -15000,12 +15380,42 @@ function drawStartMarks(){
     g.fillRect(0,0,cw,ch);
 
     if(vw && vh){
-      // Giro de 180°, igual que la captura cenital del detector automático.
-      g.save();
-      g.translate(cw, ch);
-      g.rotate(Math.PI);
-      g.drawImage(source, 0, 0, cw, ch);
-      g.restore();
+      let pintado = false;
+      // Vista rectificada: el shader aplica la cadena completa (lente +
+      // perspectiva) y entrega la mesa rectangular ya orientada; no
+      // lleva giro porque la homografía lo trae incorporado.
+      if(videoReplayRectifyActive()){
+        const rc = getVideoRectifier('pantalla');
+        const Hh = rectifiedOutputHomography(cw, ch);
+        if(rc.ok && Hh){
+          try{
+            const k1r = Number.isFinite(videoReplay.calib.k1) ? videoReplay.calib.k1 : 0;
+            rc.render(source, Math.max(2, Math.round(cw*dpr)), Math.max(2, Math.round(ch*dpr)), k1r, cw/ch, Hh);
+            g.drawImage(rc.canvas, 0, 0, cw, ch);
+            pintado = true;
+          }catch{}
+        }
+      }
+      if(!pintado){
+        // Con "Enderezar lente" activo, el cuadro visible es el corregido
+        // por el enderezador WebGL; si algo falla, se cae al crudo.
+        let cuadro = source;
+        if(videoReplayDewarpActive()){
+          const dw = getVideoDewarper('pantalla');
+          if(dw.ok){
+            try{
+              dw.render(source, Math.max(2, Math.round(cw*dpr)), Math.max(2, Math.round(ch*dpr)), videoReplay.calib.k1, vw/vh);
+              cuadro = dw.canvas;
+            }catch{}
+          }
+        }
+        // Giro de 180°, igual que la captura cenital del detector automático.
+        g.save();
+        g.translate(cw, ch);
+        g.rotate(Math.PI);
+        g.drawImage(cuadro, 0, 0, cw, ch);
+        g.restore();
+      }
     } else {
       g.fillStyle = 'rgba(255,255,255,.55)';
       g.font = '700 15px ui-sans-serif, system-ui';
@@ -15016,6 +15426,8 @@ function drawStartMarks(){
 
     if(videoReplay.mode === 'calibrate'){
       drawVideoReplayOverlay(g, cw, ch, {route:true, handles:true});
+      drawVideoReplayLoupe(g, cw, ch, canvasEl, dpr);
+      refreshVideoReplayDewarpMeter(false);
     } else if(videoReplay.mode === 'record'){
       const chk = ids('videoReplayShowGuideRec');
       if(!chk || chk.checked) drawVideoReplayOverlay(g, cw, ch, {route:true, handles:false});
@@ -15111,12 +15523,7 @@ function drawStartMarks(){
       setVideoReplayStatus('Antes de grabar hay que calibrar una sola vez las cuatro esquinas de la mesa en el video.');
     }
     if(startMode === 'calibrate'){
-      const base = (videoReplay.calib && videoReplay.calib.corners) || [
-        {x:.18, y:.16},{x:.82, y:.16},{x:.82, y:.84},{x:.18, y:.84}
-      ];
-      videoReplay.corners = base.map(p => ({x:p.x, y:p.y}));
-      videoReplay.selCorner = 0;
-      updateVideoReplayCornerButtons();
+      initVideoReplayCalibratePoints();
     }
     setVideoReplayMode(startMode);
     resetVideoReplayRecordButtons();
@@ -15128,6 +15535,7 @@ function drawStartMarks(){
       setVideoReplayStatus('Abriendo la cámara cenital en modo 1920 × 1080…');
       await openVideoReplayStream();
       await refreshVideoReplayCameraList();
+      refreshVideoReplayDewarpUi();
       const audioNote = videoReplay.hasAudio
         ? ' La grabación incluirá el audio del micrófono de la cámara.'
         : ' No fue posible activar el micrófono: la grabación quedará sin audio.';
@@ -15321,6 +15729,140 @@ function drawStartMarks(){
       x: clamp((e.clientX - rect.left) / Math.max(rect.width, 1), 0, 1),
       y: clamp((e.clientY - rect.top) / Math.max(rect.height, 1), 0, 1)
     };
+  }
+
+  function initVideoReplayCalibratePoints(){
+    const calib = videoReplay.calib;
+    const esquinas = (calib && calib.corners) || [
+      {x:.18, y:.16},{x:.82, y:.16},{x:.82, y:.84},{x:.18, y:.84}
+    ];
+    const mids = (calib && Array.isArray(calib.mids) && calib.mids.length === 2)
+      ? calib.mids : defaultVideoCalibMids(esquinas);
+    videoReplay.corners = esquinas.slice(0, 4).map(p => ({x:p.x, y:p.y}))
+      .concat(mids.map(p => ({x:p.x, y:p.y})));
+    videoReplay.selCorner = 0;
+    updateVideoReplayCornerButtons();
+    refreshVideoReplayDewarpMeter(true);
+  }
+  // Guardar la calibración de seis puntos: estima el coeficiente del
+  // lente y deja el medidor de rectitud cantado en el estado.
+  function commitVideoReplayCalibration(){
+    const pts = videoReplay.corners;
+    if(!pts || pts.length < 4) return null;
+    const {cw, ch} = videoReplay.fit || {};
+    const aspect = (cw && ch) ? cw/ch : 16/9;
+    let extra = null;
+    let resumen = '';
+    if(pts.length >= 6){
+      const est = estimateVideoDewarp(pts, aspect);
+      if(est && Number.isFinite(est.k1)){
+        extra = {mids:[pts[4], pts[5]], k1: est.k1};
+        resumen = ' Comba medida · banda larga: ' + est.combaLargaCm.toFixed(1) +
+          ' cm → ' + est.residLargaCm.toFixed(1) + ' cm al enderezar · banda corta: ' +
+          est.combaCortaCm.toFixed(1) + ' cm → ' + est.residCortaCm.toFixed(1) + ' cm.';
+        // Primera medición del lente: el enderezado se enciende solo
+        // (y se anuncia). Si el usuario ya había decidido, su decisión
+        // manda y no se toca.
+        const primeraMedicion = !(videoReplay.calib && Number.isFinite(videoReplay.calib.k1));
+        if(primeraMedicion && videoReplayDewarpSupported()){
+          extra.dewarp = true;
+          resumen += ' El enderezado quedó activado; puede apagarlo con el interruptor.';
+        }
+      }
+    }
+    const data = saveVideoCalibration(pts, 'manual', extra);
+    refreshVideoReplayDewarpUi();
+    setVideoReplayStatus('Calibración guardada. Se conservará mientras la cámara no se mueva. Pulse Iniciar grabación cuando vaya a ejecutar la tacada.' + resumen, 'good');
+    return data;
+  }
+  // El medidor de rectitud del paso de calibración, con respiración
+  // propia para no recalcular en cada cuadro.
+  // Lupa de la calibración: muestra el entorno del punto seleccionado
+  // aumentado, con cruz, para posarlo al píxel (los puntos 5 y 6 sobre
+  // el borde vivo lo agradecen). Se dibuja copiando el propio lienzo
+  // ya pintado, de modo que la manija y los diamantes se ven adentro.
+  function drawVideoReplayLoupe(g, cw, ch, canvasEl, dpr){
+    const pts = videoReplay.corners;
+    if(!pts || videoReplay.selCorner == null) return;
+    const p = pts[videoReplay.selCorner];
+    if(!p) return;
+    const px = p.x*cw, py = p.y*ch;
+    const zoom = 3.5;
+    const tam = Math.max(140, Math.round(Math.min(cw, ch)*0.26));
+    const src = tam/zoom;
+    // esquina opuesta al punto, para no taparlo
+    const dx = px < cw/2 ? cw - tam - 12 : 12;
+    const dy = py < ch/2 ? ch - tam - 12 : 12;
+    const sx = clamp(px - src/2, 0, cw - src);
+    const sy = clamp(py - src/2, 0, ch - src);
+    g.save();
+    g.beginPath();
+    g.rect(dx, dy, tam, tam);
+    g.clip();
+    try{
+      g.drawImage(canvasEl, sx*dpr, sy*dpr, src*dpr, src*dpr, dx, dy, tam, tam);
+    }catch{}
+    // cruz sobre la posición exacta del punto dentro de la lupa
+    const cx = dx + (px - sx)*zoom;
+    const cy = dy + (py - sy)*zoom;
+    g.beginPath();
+    g.moveTo(cx - 14, cy); g.lineTo(cx + 14, cy);
+    g.moveTo(cx, cy - 14); g.lineTo(cx, cy + 14);
+    g.strokeStyle = 'rgba(0,0,0,.85)';
+    g.lineWidth = 3;
+    g.stroke();
+    g.strokeStyle = '#ffd23f';
+    g.lineWidth = 1.4;
+    g.stroke();
+    g.restore();
+    g.strokeStyle = 'rgba(0,0,0,.8)';
+    g.lineWidth = 3;
+    g.strokeRect(dx, dy, tam, tam);
+    g.strokeStyle = 'rgba(255,255,255,.9)';
+    g.lineWidth = 1.4;
+    g.strokeRect(dx, dy, tam, tam);
+  }
+
+  function refreshVideoReplayDewarpMeter(forzar){
+    const el = ids('videoReplayDewarpMeter');
+    if(!el) return;
+    const ahora = Date.now();
+    if(!forzar && videoReplay.meterAt && ahora - videoReplay.meterAt < 450) return;
+    videoReplay.meterAt = ahora;
+    const pts = videoReplay.corners;
+    if(!pts || pts.length < 6){ el.textContent = '—'; return; }
+    const {cw, ch} = videoReplay.fit || {};
+    const est = estimateVideoDewarp(pts, (cw && ch) ? cw/ch : 16/9);
+    if(!est){ el.textContent = '—'; return; }
+    el.textContent = 'Curvatura medida · banda larga: ' + est.combaLargaCm.toFixed(1) +
+      ' cm → ' + est.residLargaCm.toFixed(1) + ' cm al enderezar · banda corta: ' +
+      est.combaCortaCm.toFixed(1) + ' cm → ' + est.residCortaCm.toFixed(1) + ' cm.';
+  }
+  // El interruptor del enderezado: disponible cuando hay coeficiente
+  // medido y el equipo ofrece WebGL.
+  function refreshVideoReplayDewarpUi(){
+    const chk = ids('videoReplayDewarpChk');
+    const nota = ids('videoReplayDewarpNote');
+    if(!chk) return;
+    const calib = videoReplay.calib;
+    const soporta = videoReplayDewarpSupported();
+    const medido = !!(calib && Number.isFinite(calib.k1));
+    chk.disabled = !soporta || !medido;
+    chk.checked = !!(calib && calib.dewarp && medido && soporta);
+    const rchk = ids('videoReplayRectifyChk');
+    if(rchk){
+      const rectOk = videoReplayRectifySupported();
+      const hayCalib = !!(calib && Array.isArray(calib.corners) && calib.corners.length >= 4);
+      rchk.disabled = !rectOk || !hayCalib;
+      rchk.checked = !!(calib && calib.rectified && rectOk && hayCalib);
+    }
+    if(nota){
+      nota.textContent = !soporta
+        ? 'Este equipo no ofrece WebGL: el enderezado no está disponible.'
+        : (!medido
+          ? 'Calibre los puntos 5 y 6 (centros de banda) para medir el lente.'
+          : 'Coeficiente del lente medido. La corrección aplica en vivo, en revisión y en el MP4 exportado.');
+    }
   }
 
   function updateVideoReplayCornerButtons(){
@@ -15533,11 +16075,36 @@ function drawStartMarks(){
       videoReplay.exportRaf = requestAnimationFrame(drawExportFrame);
       g.fillStyle = '#05070a';
       g.fillRect(0, 0, vw, vh);
-      g.save();
-      g.translate(vw, vh);
-      g.rotate(Math.PI);
-      g.drawImage(srcVideo, 0, 0, vw, vh);
-      g.restore();
+      let pintadoExp = false;
+      if(videoReplayRectifyActive()){
+        const rce = getVideoRectifier('exportacion');
+        const Hhe = rectifiedOutputHomography(vw, vh);
+        if(rce.ok && Hhe){
+          try{
+            const k1e = Number.isFinite(videoReplay.calib.k1) ? videoReplay.calib.k1 : 0;
+            rce.render(srcVideo, vw, vh, k1e, vw/vh, Hhe);
+            g.drawImage(rce.canvas, 0, 0, vw, vh);
+            pintadoExp = true;
+          }catch{}
+        }
+      }
+      if(!pintadoExp){
+        let cuadroExp = srcVideo;
+        if(videoReplayDewarpActive()){
+          const dwe = getVideoDewarper('exportacion');
+          if(dwe.ok){
+            try{
+              dwe.render(srcVideo, vw, vh, videoReplay.calib.k1, vw/vh);
+              cuadroExp = dwe.canvas;
+            }catch{}
+          }
+        }
+        g.save();
+        g.translate(vw, vh);
+        g.rotate(Math.PI);
+        g.drawImage(cuadroExp, 0, 0, vw, vh);
+        g.restore();
+      }
       drawVideoReplayOverlay(g, vw, vh, {route:true, handles:false});
       if(total){
         const pct = Math.min(100, Math.round((srcVideo.currentTime/total)*100));
@@ -15567,6 +16134,34 @@ function drawStartMarks(){
   function setupVideoReplay(){
     videoReplay.calib = loadVideoCalibration();
     updateVideoReplayModuleState();
+
+    const rectifyChk = ids('videoReplayRectifyChk');
+    if(rectifyChk){
+      rectifyChk.addEventListener('change', () => {
+        const calib = videoReplay.calib;
+        if(!calib || !Array.isArray(calib.corners) || calib.corners.length < 4){
+          refreshVideoReplayDewarpUi();
+          return;
+        }
+        calib.rectified = rectifyChk.checked;
+        try{ localStorage.setItem(VIDEO_CALIB_STORAGE_KEY, JSON.stringify(calib)); }catch{}
+        refreshVideoReplayDewarpUi();
+      });
+    }
+
+    const dewarpChk = ids('videoReplayDewarpChk');
+    if(dewarpChk){
+      dewarpChk.addEventListener('change', () => {
+        const calib = videoReplay.calib;
+        if(!calib || !Number.isFinite(calib.k1)){
+          refreshVideoReplayDewarpUi();
+          return;
+        }
+        calib.dewarp = dewarpChk.checked;
+        try{ localStorage.setItem(VIDEO_CALIB_STORAGE_KEY, JSON.stringify(calib)); }catch{}
+        refreshVideoReplayDewarpUi();
+      });
+    }
 
     const camSel = ids('videoReplayCameraSel');
     if(camSel){
@@ -15661,17 +16256,19 @@ function drawStartMarks(){
         setVideoReplayStatus('No hay esquinas confirmadas de una captura cenital del detector. Use Capturar mesa en el módulo de fotografía, confirme las cuatro esquinas y aplique las posiciones; la calibración se tomará de allí.', 'bad');
         return;
       }
-      videoReplay.corners = corners;
+      const midsPrevios = videoReplay.corners && videoReplay.corners.length >= 6
+        ? videoReplay.corners.slice(4) : null;
+      videoReplay.corners = corners.slice(0, 4).concat(
+        midsPrevios || defaultVideoCalibMids(corners));
       setVideoReplayStatus('Esquinas del detector cargadas. Verifique que los anillos de las bolas coincidan con el video y guarde la calibración.', 'good');
     });
 
     const saveCalibBtn = ids('videoReplaySaveCalibBtn');
     if(saveCalibBtn) saveCalibBtn.addEventListener('click', () => {
       if(!videoReplay.corners) return;
-      saveVideoCalibration(videoReplay.corners, 'manual');
+      commitVideoReplayCalibration();
       setVideoReplayMode('record');
       resetVideoReplayRecordButtons();
-      setVideoReplayStatus('Calibración guardada. Se conservará mientras la cámara no se mueva. Pulse Iniciar grabación cuando vaya a ejecutar la tacada.', 'good');
     });
 
     const startBtn = ids('videoReplayStartBtn');
