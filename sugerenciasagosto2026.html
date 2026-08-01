@@ -17036,11 +17036,13 @@ function drawStartMarks(){
       const base = { cueBall: cueKey, fifthRail:'none', sixthRail:'none' };
 
       // LKL / Base 50: tercera banda auto (opuesta del mismo tipo), cuarta opcional.
+      const esLarga = r => r === 'top' || r === 'bottom';
       for(const mode of ['ballFirst','cushionFirst'])
         for(const fb of legales)
           for(const r1 of RAILS4)
             for(const r2 of RAILS4){
               if(r2 === r1) continue;
+              if(esLarga(r1) === esLarga(r2)) continue; // LKL vive en larga-corta-larga y corta-larga-corta
               out.push({ sys:'lkl', mode, firstBall:fb, rails:null,
                 dom:{ ...base, systemMode:'lkl', mode, firstBall:fb, rail1:r1, rail2:r2, thirdRail:'none', fourthRail:'none' } });
             }
@@ -17140,6 +17142,8 @@ function drawStartMarks(){
           shot = computeMirrorShot(c);
           ok = shot && !shot.error;
           if(ok){
+            const textos = (shot.warnings || []).concat(shot.aviso ? [shot.aviso] : []).join(' · ');
+            if(/fuera de todo contrato|retroceso profundo|excede incluso la tangente/i.test(textos)) return null;
             avisos = (shot.warnings || []).length;
             rails = [c.rail1, c.rail2, c.thirdRail].filter(Boolean);
           }
@@ -17240,7 +17244,6 @@ function drawStartMarks(){
         const s = sondaMargen(inicio, ataque, bandasReales, objetivo);
         margen = s.margen; fallo = s.base;
         if(margen === null) margen = margenAnalitico(ruta, bandasReales.length);
-        rails = bandasReales;
       } else {
         margen = clamp(0.5 - avisos * 0.15, 0.12, 0.5);
         // Territorio propio de los módulos especiales, validado por su
@@ -17313,8 +17316,12 @@ function drawStartMarks(){
         c.mode = spec.mode;
         c.firstBall = spec.firstBall;
       }
+      if(spec.sys !== 'pasones' && spec.sys !== 'renverse'){
+        rails = [c.rail1, c.rail2, c.thirdRail].filter(v => v && v !== 'none');
+        if(c.fourthRail && c.fourthRail !== 'none') rails.push(c.fourthRail);
+      }
       const claveDedupe = [spec.sys, c.mode, c.firstBall,
-        (rails || [c.rail1, c.rail2, c.thirdRail]).join('>'), spec.strike || '', spec.variante || ''].join('·');
+        (rails || []).join('>'), spec.strike || '', spec.variante || ''].join('·');
       return {
         spec, claveDedupe,
         c:{ mode:c.mode, firstBall:c.firstBall, rail1:c.rail1, rail2:c.rail2, thirdRail:c.thirdRail, fourthRail:c.fourthRail },
