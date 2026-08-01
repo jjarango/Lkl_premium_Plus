@@ -16990,27 +16990,28 @@ function drawStartMarks(){
       return distSegPunto(tr.fin, B, objetivo);
     }
 
-    // Margen: fracción de perturbaciones angulares que siguen anotando.
-    // El acierto se mide contra el fallo nominal del propio sistema: si su
-    // aritmética corrige la llegada (LKL, Plus), la sonda respeta esa
-    // corrección y solo pregunta cuánto empeora la carambola al temblar.
+    // Margen por derivada: se compara el trazo perturbado contra el trazo
+    // nominal DE LA MISMA física (la del trazador), y solo se pregunta
+    // cuánto se desplaza la llegada al temblar el brazo. Así los sistemas
+    // cuya aritmética corrige llegadas (LKL, Plus) no pagan la diferencia
+    // entre su motor y mi espejo: esa diferencia es diseño, no fragilidad.
     function sondaMargen(p0, ataque, rails, objetivo){
       const k = mirrorCoefficient();
       const dir0 = { x: ataque.x - p0.x, y: ataque.y - p0.y };
       if(Math.hypot(dir0.x, dir0.y) < 1e-6) return { margen: 0, base: Infinity };
-      const base = falloFinal(trazar(p0, dir0, rails, k), objetivo);
-      if(base > 12) return { margen: 0, base }; // el trazador no reconoce esta ruta
+      const T0 = trazar(p0, dir0, rails, k);
+      const base = falloFinal(T0, objetivo);
+      if(!T0) return { margen: null, base }; // ni el nominal se deja trazar: decide el analítico
       const RADIO = BALL_R * 2.15;
-      const tol = Math.max(RADIO, Math.min(base, 8) + RADIO * 0.5);
       let aciertos = 0;
       const grados = [-1.6, -0.8, 0.8, 1.6];
       for(const g of grados){
         const f = falloFinal(trazar(p0, rot(dir0, g), rails, k), objetivo);
-        if(f <= tol) aciertos++;
+        if(f <= base + RADIO * 0.9) aciertos++;
       }
       let margen = aciertos / grados.length;
       if(base <= RADIO * 0.55) margen = Math.min(1, margen + 0.15);
-      else if(base > RADIO * 2.5) margen = Math.max(0, margen - 0.2); // corrección grande: confianza menor
+      if(base > 12) margen = Math.max(0, margen - 0.1); // desacuerdo grande con el trazador: confianza levemente menor
       return { margen, base };
     }
 
@@ -17238,7 +17239,7 @@ function drawStartMarks(){
         const ataque = ruta[1];
         const s = sondaMargen(inicio, ataque, bandasReales, objetivo);
         margen = s.margen; fallo = s.base;
-        if(fallo > 12) margen = margenAnalitico(ruta, bandasReales.length);
+        if(margen === null) margen = margenAnalitico(ruta, bandasReales.length);
         rails = bandasReales;
       } else {
         margen = clamp(0.5 - avisos * 0.15, 0.12, 0.5);
@@ -17338,6 +17339,16 @@ function drawStartMarks(){
         ocupado = false;
       }
       resultados.sort((a, b) => b.puntaje - a.puntaje);
+      try{
+        console.log('%cConsejero · finalistas', 'color:#8fd8ff;font-weight:bold');
+        for(const r of resultados.slice(0, 10))
+          console.log(r.puntaje.toFixed(1), r.spec.sys, r.c.mode, r.c.firstBall,
+            (r.rails || []).join('>'),
+            'm=' + r.partes.margen.toFixed(2), 'b=' + r.partes.blanco.toFixed(2),
+            'n=' + r.partes.natural.toFixed(2), 'c=' + r.partes.contacto.toFixed(2),
+            'e=' + r.partes.economia.toFixed(2), 'av=' + r.avisos,
+            r.zonaChoque ? 'CHOQUE:' + r.zonaChoque : '');
+      }catch(e){}
       // Una candidata por familia (sistema + salida + primera bola + tres bandas).
       const vistos = new Set(), finalistas = [];
       for(const r of resultados){
