@@ -2125,7 +2125,11 @@
 <select id="videoReplayCameraSel" style="width:100%"><option value="">Cámara que elija el navegador</option></select>
 <div id="videoReplayFocusBox" style="display:none; margin-top:10px;">
 <label class="small" for="videoReplayFocusSlider" style="display:block; margin:0 0 6px;">Enfoque manual · afine hasta ver las bolas nítidas</label>
-<input id="videoReplayFocusSlider" type="range" style="width:100%">
+<div style="display:flex; align-items:center; gap:8px;">
+<button id="videoReplayFocusMinus" title="Ajuste fino: un paso más cerca del extremo izquierdo" type="button" style="min-width:34px">−</button>
+<input id="videoReplayFocusSlider" type="range" style="flex:1">
+<button id="videoReplayFocusPlus" title="Ajuste fino: un paso hacia la derecha" type="button" style="min-width:34px">+</button>
+</div>
 <p class="small" id="videoReplayFocusNote" style="margin:6px 0 0;">—</p>
 </div>
 </div>
@@ -14647,35 +14651,47 @@ function drawStartMarks(){
       return;
     }
     const settings = track.getSettings ? track.getSettings() : {};
-    slider.min = caps.focusDistance.min;
-    slider.max = caps.focusDistance.max;
-    slider.step = caps.focusDistance.step || 0.01;
+    const fMin = caps.focusDistance.min, fMax = caps.focusDistance.max;
+    const fStep = caps.focusDistance.step || Math.max((fMax - fMin) / 200, 0.01);
+    // Escala cuadrática: con cámara cenital el punto útil vive junto al
+    // extremo izquierdo del rango; la curva regala a esa zona la mitad del
+    // recorrido físico del deslizador, con resolución fina de verdad.
+    const aDistancia = t => fMin + (fMax - fMin) * Math.pow(t / 1000, 2);
+    const aPosicion = v => Math.round(1000 * Math.sqrt(Math.max(0, (v - fMin) / Math.max(fMax - fMin, 1e-9))));
+    slider.min = 0; slider.max = 1000; slider.step = 1;
     const guardada = leerEnfoqueGuardado(settings.deviceId);
-    slider.value = Number.isFinite(settings.focusDistance) ? settings.focusDistance
-      : (guardada !== null ? guardada : caps.focusDistance.min);
-    nota.textContent = guardada !== null
-      ? 'Enfoque guardado y aplicado. Muévalo solo si cambió la cámara de altura.'
-      : 'Mueva el deslizador hasta que las bolas se vean nítidas; quedará guardado para siempre.';
+    let actual = Number.isFinite(settings.focusDistance) ? settings.focusDistance
+      : (guardada !== null ? guardada : fMin);
+    slider.value = aPosicion(actual);
+    const pinta = extra => { nota.textContent = 'Distancia de foco: ' + (Math.round(actual * 100) / 100) + (extra || ''); };
+    pinta(guardada !== null
+      ? ' · guardada y aplicada. Muévala solo si cambió la cámara de altura.'
+      : ' · mueva el deslizador o use − y + hasta ver las bolas nítidas; quedará guardada.');
     box.style.display = '';
     let aplicando = false, pendiente = null;
     async function aplicar(v){
+      v = Math.min(Math.max(v, fMin), fMax);
       if(aplicando){ pendiente = v; return; }
       aplicando = true;
       try{
         await track.applyConstraints({advanced:[{focusMode:'manual', focusDistance:v}]});
+        actual = v;
         guardarEnfoque(settings.deviceId, v);
         videoReplay.focusLocked = true;
         videoReplay.focusRespected = false;
         videoReplay.focusUsuario = true;
-        nota.textContent = 'Enfoque manual guardado: se aplicará automáticamente en cada sesión.';
+        pinta(' · guardada: se aplicará automáticamente en cada sesión.');
       }catch(e){
-        nota.textContent = 'La cámara rechazó ese ajuste de enfoque; pruebe otro punto del deslizador.';
+        pinta(' · la cámara rechazó ese punto; pruebe otro.');
       }finally{
         aplicando = false;
         if(pendiente !== null){ const p = pendiente; pendiente = null; aplicar(p); }
       }
     }
-    slider.oninput = () => aplicar(Number(slider.value));
+    slider.oninput = () => aplicar(aDistancia(Number(slider.value)));
+    const menos = ids('videoReplayFocusMinus'), mas = ids('videoReplayFocusPlus');
+    if(menos) menos.onclick = () => { const v = actual - fStep; slider.value = aPosicion(v); aplicar(v); };
+    if(mas) mas.onclick = () => { const v = actual + fStep; slider.value = aPosicion(v); aplicar(v); };
   }
 
   async function lockVideoReplayWhiteBalance(){
