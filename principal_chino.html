@@ -2123,6 +2123,16 @@
 <div class="videoReplayGroup" id="videoReplayCameraPanel">
 <label class="small" for="videoReplayCameraSel" style="display:block; margin:0 0 6px;">摄像头</label>
 <select id="videoReplayCameraSel" style="width:100%"><option value="">由浏览器选择的摄像头</option></select>
+
+<div id="videoReplayFocusBox" style="display:none; margin-top:10px;">
+<label class="small" for="videoReplayFocusSlider" style="display:block; margin:0 0 6px;">手动对焦 · 微调至台球清晰可见</label>
+<div style="display:flex; align-items:center; gap:8px;">
+<button id="videoReplayFocusMinus" title="微调:向左端移动一步" type="button" style="min-width:34px">−</button>
+<input id="videoReplayFocusSlider" type="range" style="flex:1">
+<button id="videoReplayFocusPlus" title="微调:向右移动一步" type="button" style="min-width:34px">+</button>
+</div>
+<p class="small" id="videoReplayFocusNote" style="margin:6px 0 0;">—</p>
+</div>
 </div>
 <div class="videoReplayGroup">
 <div aria-live="polite" class="videoReplayStatus" id="videoReplayStatus" role="status">—</div>
@@ -14542,6 +14552,7 @@ function drawStartMarks(){
     await waitForVideoReady(live, 12000);
     await lockVideoReplayFocus();
     await lockVideoReplayWhiteBalance();
+    configurarDeslizadorEnfoque();
   }
 
   // Bloqueo automático de enfoque: con una cámara cenital fija, la mesa
@@ -14559,6 +14570,16 @@ function drawStartMarks(){
       const caps = track.getCapabilities();
       if(!caps || !Array.isArray(caps.focusMode) || !caps.focusMode.includes('manual')) return false;
       const current = track.getSettings ? track.getSettings() : {};
+      const guardada = leerEnfoqueGuardado(current.deviceId);
+      if(guardada !== null && caps.focusDistance){
+        const v = Math.min(Math.max(guardada, caps.focusDistance.min), caps.focusDistance.max);
+        await track.applyConstraints({advanced:[{focusMode:'manual', focusDistance:v}]});
+        videoReplay.focusLocked = true;
+        videoReplay.focusRespected = false;
+        videoReplay.focusUsuario = true;
+        videoReplay.focusTouched = true;
+        return true;
+      }
       if(current.focusMode === 'manual'){
         // La cámara ya llegó en enfoque manual (configurado por el usuario,
         // p. ej. en Logi Capture o Logi Tune). Esa distancia calibrada es la
@@ -14589,12 +14610,79 @@ function drawStartMarks(){
   }
 
   function videoReplayFocusNote(){
+    if(videoReplay.focusLocked && videoReplay.focusUsuario){
+      return ' 已应用应用中保存的手动对焦(您用滑块微调的值)。';
+    }
     if(videoReplay.focusLocked && videoReplay.focusRespected){
       return ' 检测到固定对焦（您所设置）：将原样保留，不再重新对焦。';
     }
     return videoReplay.focusLocked
       ? ' 对焦已锁定：录制期间不会重新对焦。'
       : ' 此摄像头或浏览器不支持对焦锁定；自动对焦将保持开启（可用 Logi Tune 锁定）。';
+  }
+
+  const FOCUS_STORAGE_PREFIX = 'videoReplayFocus:';
+  function leerEnfoqueGuardado(deviceId){
+    try{
+      const v = localStorage.getItem(FOCUS_STORAGE_PREFIX + (deviceId || 'default'));
+      return v === null ? null : Number(v);
+    }catch{ return null; }
+  }
+  function guardarEnfoque(deviceId, valor){
+    try{ localStorage.setItem(FOCUS_STORAGE_PREFIX + (deviceId || 'default'), String(valor)); }catch{}
+  }
+
+  function configurarDeslizadorEnfoque(){
+    const box = ids('videoReplayFocusBox');
+    const slider = ids('videoReplayFocusSlider');
+    const nota = ids('videoReplayFocusNote');
+    if(!box || !slider) return;
+    const stream = videoReplay.stream;
+    const track = stream && stream.getVideoTracks()[0];
+    const caps = track && typeof track.getCapabilities === 'function' ? track.getCapabilities() : null;
+    if(!track || !caps || !caps.focusDistance || !Array.isArray(caps.focusMode) || !caps.focusMode.includes('manual')){
+      videoReplay.focusSliderDisponible = false;
+      box.style.display = 'none';
+      return;
+    }
+    videoReplay.focusSliderDisponible = true;
+    const settings = track.getSettings ? track.getSettings() : {};
+    const fMin = caps.focusDistance.min, fMax = caps.focusDistance.max;
+    const fStep = caps.focusDistance.step || Math.max((fMax - fMin) / 200, 0.01);
+    const aDistancia = tq => fMin + (fMax - fMin) * Math.pow(tq / 1000, 2);
+    const aPosicion = v => Math.round(1000 * Math.sqrt(Math.max(0, (v - fMin) / Math.max(fMax - fMin, 1e-9))));
+    slider.min = 0; slider.max = 1000; slider.step = 1;
+    const guardada = leerEnfoqueGuardado(settings.deviceId);
+    let actual = Number.isFinite(settings.focusDistance) ? settings.focusDistance
+      : (guardada !== null ? guardada : fMin);
+    slider.value = aPosicion(actual);
+    const pinta = extra => { nota.textContent = '对焦距离:' + (Math.round(actual * 100) / 100) + (extra || ''); };
+    pinta(guardada !== null ? ' · 已保存并应用。仅在摄像头高度变化时才需调整。' : ' · 移动滑块或使用 − 和 + 直到台球清晰;该值将被保存。');
+    box.style.display = videoReplay.mode === 'record' ? '' : 'none';
+    let aplicando = false, pendiente = null;
+    async function aplicar(v){
+      v = Math.min(Math.max(v, fMin), fMax);
+      if(aplicando){ pendiente = v; return; }
+      aplicando = true;
+      try{
+        await track.applyConstraints({advanced:[{focusMode:'manual', focusDistance:v}]});
+        actual = v;
+        guardarEnfoque(settings.deviceId, v);
+        videoReplay.focusLocked = true;
+        videoReplay.focusRespected = false;
+        videoReplay.focusUsuario = true;
+        pinta(' · 已保存:今后每次会话将自动应用。');
+      }catch(e){
+        pinta(' · 摄像头拒绝了该值;请尝试其他位置。');
+      }finally{
+        aplicando = false;
+        if(pendiente !== null){ const p = pendiente; pendiente = null; aplicar(p); }
+      }
+    }
+    slider.oninput = () => aplicar(aDistancia(Number(slider.value)));
+    const menos = ids('videoReplayFocusMinus'), mas = ids('videoReplayFocusPlus');
+    if(menos) menos.onclick = () => { const v = actual - fStep; slider.value = aPosicion(v); aplicar(v); };
+    if(mas) mas.onclick = () => { const v = actual + fStep; slider.value = aPosicion(v); aplicar(v); };
   }
 
   async function lockVideoReplayWhiteBalance(){
@@ -15557,6 +15645,8 @@ function drawStartMarks(){
       const el = ids(id);
       if(el) el.style.display = id === visible ? '' : 'none';
     });
+    const cajaEnfoque = ids('videoReplayFocusBox');
+    if(cajaEnfoque) cajaEnfoque.style.display = (mode === 'record' && videoReplay.focusSliderDisponible) ? '' : 'none';
     const step = ids('videoReplayStep');
     if(step){
       step.textContent = mode === 'calibrate'
