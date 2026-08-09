@@ -2123,6 +2123,16 @@
 <div class="videoReplayGroup" id="videoReplayCameraPanel">
 <label class="small" for="videoReplayCameraSel" style="display:block; margin:0 0 6px;">카메라</label>
 <select id="videoReplayCameraSel" style="width:100%"><option value="">브라우저가 고르는 카메라</option></select>
+
+<div id="videoReplayFocusBox" style="display:none; margin-top:10px;">
+<label class="small" for="videoReplayFocusSlider" style="display:block; margin:0 0 6px;">수동 초점 · 공이 선명하게 보일 때까지 미세 조정</label>
+<div style="display:flex; align-items:center; gap:8px;">
+<button id="videoReplayFocusMinus" title="미세 조정: 왼쪽 끝 방향으로 한 단계" type="button" style="min-width:34px">−</button>
+<input id="videoReplayFocusSlider" type="range" style="flex:1">
+<button id="videoReplayFocusPlus" title="미세 조정: 오른쪽으로 한 단계" type="button" style="min-width:34px">+</button>
+</div>
+<p class="small" id="videoReplayFocusNote" style="margin:6px 0 0;">—</p>
+</div>
 </div>
 <div class="videoReplayGroup">
 <div aria-live="polite" class="videoReplayStatus" id="videoReplayStatus" role="status">—</div>
@@ -14542,6 +14552,7 @@ function drawStartMarks(){
     await waitForVideoReady(live, 12000);
     await lockVideoReplayFocus();
     await lockVideoReplayWhiteBalance();
+    configurarDeslizadorEnfoque();
   }
 
   // Bloqueo automático de enfoque: con una cámara cenital fija, la mesa
@@ -14559,6 +14570,16 @@ function drawStartMarks(){
       const caps = track.getCapabilities();
       if(!caps || !Array.isArray(caps.focusMode) || !caps.focusMode.includes('manual')) return false;
       const current = track.getSettings ? track.getSettings() : {};
+      const guardada = leerEnfoqueGuardado(current.deviceId);
+      if(guardada !== null && caps.focusDistance){
+        const v = Math.min(Math.max(guardada, caps.focusDistance.min), caps.focusDistance.max);
+        await track.applyConstraints({advanced:[{focusMode:'manual', focusDistance:v}]});
+        videoReplay.focusLocked = true;
+        videoReplay.focusRespected = false;
+        videoReplay.focusUsuario = true;
+        videoReplay.focusTouched = true;
+        return true;
+      }
       if(current.focusMode === 'manual'){
         // La cámara ya llegó en enfoque manual (configurado por el usuario,
         // p. ej. en Logi Capture o Logi Tune). Esa distancia calibrada es la
@@ -14589,12 +14610,79 @@ function drawStartMarks(){
   }
 
   function videoReplayFocusNote(){
+    if(videoReplay.focusLocked && videoReplay.focusUsuario){
+      return ' 앱에서 저장한 수동 초점이 적용되었습니다(슬라이더로 맞춘 값).';
+    }
     if(videoReplay.focusLocked && videoReplay.focusRespected){
       return ' 고정 초점 감지(사용자 설정): 재초점 없이 그대로 존중합니다.';
     }
     return videoReplay.focusLocked
       ? ' 초점이 고정되어 녹화 중 재초점이 없습니다.'
       : ' 이 카메라나 브라우저에서는 초점 고정을 지원하지 않아 오토포커스가 계속 작동합니다(Logi Tune으로 고정할 수 있습니다).';
+  }
+
+  const FOCUS_STORAGE_PREFIX = 'videoReplayFocus:';
+  function leerEnfoqueGuardado(deviceId){
+    try{
+      const v = localStorage.getItem(FOCUS_STORAGE_PREFIX + (deviceId || 'default'));
+      return v === null ? null : Number(v);
+    }catch{ return null; }
+  }
+  function guardarEnfoque(deviceId, valor){
+    try{ localStorage.setItem(FOCUS_STORAGE_PREFIX + (deviceId || 'default'), String(valor)); }catch{}
+  }
+
+  function configurarDeslizadorEnfoque(){
+    const box = ids('videoReplayFocusBox');
+    const slider = ids('videoReplayFocusSlider');
+    const nota = ids('videoReplayFocusNote');
+    if(!box || !slider) return;
+    const stream = videoReplay.stream;
+    const track = stream && stream.getVideoTracks()[0];
+    const caps = track && typeof track.getCapabilities === 'function' ? track.getCapabilities() : null;
+    if(!track || !caps || !caps.focusDistance || !Array.isArray(caps.focusMode) || !caps.focusMode.includes('manual')){
+      videoReplay.focusSliderDisponible = false;
+      box.style.display = 'none';
+      return;
+    }
+    videoReplay.focusSliderDisponible = true;
+    const settings = track.getSettings ? track.getSettings() : {};
+    const fMin = caps.focusDistance.min, fMax = caps.focusDistance.max;
+    const fStep = caps.focusDistance.step || Math.max((fMax - fMin) / 200, 0.01);
+    const aDistancia = tq => fMin + (fMax - fMin) * Math.pow(tq / 1000, 2);
+    const aPosicion = v => Math.round(1000 * Math.sqrt(Math.max(0, (v - fMin) / Math.max(fMax - fMin, 1e-9))));
+    slider.min = 0; slider.max = 1000; slider.step = 1;
+    const guardada = leerEnfoqueGuardado(settings.deviceId);
+    let actual = Number.isFinite(settings.focusDistance) ? settings.focusDistance
+      : (guardada !== null ? guardada : fMin);
+    slider.value = aPosicion(actual);
+    const pinta = extra => { nota.textContent = '초점 거리: ' + (Math.round(actual * 100) / 100) + (extra || ''); };
+    pinta(guardada !== null ? ' · 저장되어 적용되었습니다. 카메라 높이가 바뀐 경우에만 조정하세요.' : ' · 공이 선명해질 때까지 슬라이더나 −/+ 버튼을 사용하세요. 값은 저장됩니다.');
+    box.style.display = videoReplay.mode === 'record' ? '' : 'none';
+    let aplicando = false, pendiente = null;
+    async function aplicar(v){
+      v = Math.min(Math.max(v, fMin), fMax);
+      if(aplicando){ pendiente = v; return; }
+      aplicando = true;
+      try{
+        await track.applyConstraints({advanced:[{focusMode:'manual', focusDistance:v}]});
+        actual = v;
+        guardarEnfoque(settings.deviceId, v);
+        videoReplay.focusLocked = true;
+        videoReplay.focusRespected = false;
+        videoReplay.focusUsuario = true;
+        pinta(' · 저장되었습니다: 앞으로 모든 세션에 자동으로 적용됩니다.');
+      }catch(e){
+        pinta(' · 카메라가 해당 값을 거부했습니다. 다른 지점을 시도해 보세요.');
+      }finally{
+        aplicando = false;
+        if(pendiente !== null){ const p = pendiente; pendiente = null; aplicar(p); }
+      }
+    }
+    slider.oninput = () => aplicar(aDistancia(Number(slider.value)));
+    const menos = ids('videoReplayFocusMinus'), mas = ids('videoReplayFocusPlus');
+    if(menos) menos.onclick = () => { const v = actual - fStep; slider.value = aPosicion(v); aplicar(v); };
+    if(mas) mas.onclick = () => { const v = actual + fStep; slider.value = aPosicion(v); aplicar(v); };
   }
 
   async function lockVideoReplayWhiteBalance(){
@@ -15557,6 +15645,8 @@ function drawStartMarks(){
       const el = ids(id);
       if(el) el.style.display = id === visible ? '' : 'none';
     });
+    const cajaEnfoque = ids('videoReplayFocusBox');
+    if(cajaEnfoque) cajaEnfoque.style.display = (mode === 'record' && videoReplay.focusSliderDisponible) ? '' : 'none';
     const step = ids('videoReplayStep');
     if(step){
       step.textContent = mode === 'calibrate'
