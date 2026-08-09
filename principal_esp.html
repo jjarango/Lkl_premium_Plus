@@ -14647,9 +14647,11 @@ function drawStartMarks(){
     const track = stream && stream.getVideoTracks()[0];
     const caps = track && typeof track.getCapabilities === 'function' ? track.getCapabilities() : null;
     if(!track || !caps || !caps.focusDistance || !Array.isArray(caps.focusMode) || !caps.focusMode.includes('manual')){
+      videoReplay.focusSliderDisponible = false;
       box.style.display = 'none';
       return;
     }
+    videoReplay.focusSliderDisponible = true;
     const settings = track.getSettings ? track.getSettings() : {};
     const fMin = caps.focusDistance.min, fMax = caps.focusDistance.max;
     const fStep = caps.focusDistance.step || Math.max((fMax - fMin) / 200, 0.01);
@@ -14667,7 +14669,10 @@ function drawStartMarks(){
     pinta(guardada !== null
       ? ' · guardada y aplicada. Muévala solo si cambió la cámara de altura.'
       : ' · mueva el deslizador o use − y + hasta ver las bolas nítidas; quedará guardada.');
-    box.style.display = '';
+    // El control vive solo en la pantalla de grabación: en la calibración
+    // de la superposición, las líneas estorban para juzgar el foco y el
+    // enfoque guardado se aplica igual sin necesidad del deslizador.
+    box.style.display = videoReplay.mode === 'record' ? '' : 'none';
     let aplicando = false, pendiente = null;
     async function aplicar(v){
       v = Math.min(Math.max(v, fMin), fMax);
@@ -15654,6 +15659,8 @@ function drawStartMarks(){
       const el = ids(id);
       if(el) el.style.display = id === visible ? '' : 'none';
     });
+    const cajaEnfoque = ids('videoReplayFocusBox');
+    if(cajaEnfoque) cajaEnfoque.style.display = (mode === 'record' && videoReplay.focusSliderDisponible) ? '' : 'none';
     const step = ids('videoReplayStep');
     if(step){
       step.textContent = mode === 'calibrate'
