@@ -2123,6 +2123,11 @@
 <div class="videoReplayGroup" id="videoReplayCameraPanel">
 <label class="small" for="videoReplayCameraSel" style="display:block; margin:0 0 6px;">Cámara</label>
 <select id="videoReplayCameraSel" style="width:100%"><option value="">Cámara que elija el navegador</option></select>
+<div id="videoReplayFocusBox" style="display:none; margin-top:10px;">
+<label class="small" for="videoReplayFocusSlider" style="display:block; margin:0 0 6px;">Enfoque manual · afine hasta ver las bolas nítidas</label>
+<input id="videoReplayFocusSlider" type="range" style="width:100%">
+<p class="small" id="videoReplayFocusNote" style="margin:6px 0 0;">—</p>
+</div>
 </div>
 <div class="videoReplayGroup">
 <div aria-live="polite" class="videoReplayStatus" id="videoReplayStatus" role="status">—</div>
@@ -14542,6 +14547,7 @@ function drawStartMarks(){
     await waitForVideoReady(live, 12000);
     await lockVideoReplayFocus();
     await lockVideoReplayWhiteBalance();
+    configurarDeslizadorEnfoque();
   }
 
   // Bloqueo automático de enfoque: con una cámara cenital fija, la mesa
@@ -14559,6 +14565,19 @@ function drawStartMarks(){
       const caps = track.getCapabilities();
       if(!caps || !Array.isArray(caps.focusMode) || !caps.focusMode.includes('manual')) return false;
       const current = track.getSettings ? track.getSettings() : {};
+      // Prioridad 1: la distancia que el usuario afinó con el deslizador de
+      // la app. Se aplica de inmediato, sin dejar cazar al autofoco: cero
+      // reenfoques al preparar y las bolas quedan como él las dejó.
+      const guardada = leerEnfoqueGuardado(current.deviceId);
+      if(guardada !== null && caps.focusDistance){
+        const v = Math.min(Math.max(guardada, caps.focusDistance.min), caps.focusDistance.max);
+        await track.applyConstraints({advanced:[{focusMode:'manual', focusDistance:v}]});
+        videoReplay.focusLocked = true;
+        videoReplay.focusRespected = false;
+        videoReplay.focusUsuario = true;
+        videoReplay.focusTouched = true;
+        return true;
+      }
       if(current.focusMode === 'manual'){
         // La cámara ya llegó en enfoque manual (configurado por el usuario,
         // p. ej. en Logi Capture o Logi Tune). Esa distancia calibrada es la
@@ -14589,12 +14608,74 @@ function drawStartMarks(){
   }
 
   function videoReplayFocusNote(){
+    if(videoReplay.focusLocked && videoReplay.focusUsuario){
+      return ' Enfoque manual de la app aplicado (el que usted afinó con el deslizador).';
+    }
     if(videoReplay.focusLocked && videoReplay.focusRespected){
       return ' Enfoque fijo detectado (configurado por usted): se respeta tal cual, sin reenfoques.';
     }
     return videoReplay.focusLocked
       ? ' El enfoque quedó bloqueado: no habrá reenfoques durante la grabación.'
       : ' El bloqueo de enfoque no está disponible en esta cámara o navegador; el autofoco seguirá activo (puede fijarlo con Logi Tune).';
+  }
+
+  const FOCUS_STORAGE_PREFIX = 'videoReplayFocus:';
+  function leerEnfoqueGuardado(deviceId){
+    try{
+      const v = localStorage.getItem(FOCUS_STORAGE_PREFIX + (deviceId || 'default'));
+      return v === null ? null : Number(v);
+    }catch{ return null; }
+  }
+  function guardarEnfoque(deviceId, valor){
+    try{ localStorage.setItem(FOCUS_STORAGE_PREFIX + (deviceId || 'default'), String(valor)); }catch{}
+  }
+
+  // Deslizador de enfoque manual: aparece cuando la cámara expone control
+  // de distancia de foco (la Brio lo hace en Chrome). El usuario afina una
+  // sola vez mirando las bolas en vivo; el valor queda guardado por cámara
+  // y se reaplica en cada sesión futura, sin cacería inicial de autofoco.
+  function configurarDeslizadorEnfoque(){
+    const box = ids('videoReplayFocusBox');
+    const slider = ids('videoReplayFocusSlider');
+    const nota = ids('videoReplayFocusNote');
+    if(!box || !slider) return;
+    const stream = videoReplay.stream;
+    const track = stream && stream.getVideoTracks()[0];
+    const caps = track && typeof track.getCapabilities === 'function' ? track.getCapabilities() : null;
+    if(!track || !caps || !caps.focusDistance || !Array.isArray(caps.focusMode) || !caps.focusMode.includes('manual')){
+      box.style.display = 'none';
+      return;
+    }
+    const settings = track.getSettings ? track.getSettings() : {};
+    slider.min = caps.focusDistance.min;
+    slider.max = caps.focusDistance.max;
+    slider.step = caps.focusDistance.step || 0.01;
+    const guardada = leerEnfoqueGuardado(settings.deviceId);
+    slider.value = Number.isFinite(settings.focusDistance) ? settings.focusDistance
+      : (guardada !== null ? guardada : caps.focusDistance.min);
+    nota.textContent = guardada !== null
+      ? 'Enfoque guardado y aplicado. Muévalo solo si cambió la cámara de altura.'
+      : 'Mueva el deslizador hasta que las bolas se vean nítidas; quedará guardado para siempre.';
+    box.style.display = '';
+    let aplicando = false, pendiente = null;
+    async function aplicar(v){
+      if(aplicando){ pendiente = v; return; }
+      aplicando = true;
+      try{
+        await track.applyConstraints({advanced:[{focusMode:'manual', focusDistance:v}]});
+        guardarEnfoque(settings.deviceId, v);
+        videoReplay.focusLocked = true;
+        videoReplay.focusRespected = false;
+        videoReplay.focusUsuario = true;
+        nota.textContent = 'Enfoque manual guardado: se aplicará automáticamente en cada sesión.';
+      }catch(e){
+        nota.textContent = 'La cámara rechazó ese ajuste de enfoque; pruebe otro punto del deslizador.';
+      }finally{
+        aplicando = false;
+        if(pendiente !== null){ const p = pendiente; pendiente = null; aplicar(p); }
+      }
+    }
+    slider.oninput = () => aplicar(Number(slider.value));
   }
 
   async function lockVideoReplayWhiteBalance(){
