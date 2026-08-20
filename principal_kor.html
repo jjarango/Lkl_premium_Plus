@@ -6911,6 +6911,57 @@
 
     study.connectorResult = selectNewLklArrivalByConnector(study);
     study.departureAttackResult = solveNewLklDepartureAttack(study);
+
+    // Rescate por paralelas alternativas (agosto 2026): si el ataque no
+    // tiene solución con la paralela del conector más cercano, se prueban
+    // las paralelas de los demás conectores de la carta, en orden de
+    // cercanía al blanco. Toda paralela por la bola toca el blanco por
+    // construcción; solo cambia la llegada, y alguna puede ser compatible
+    // con la posición de la blanca. Mismo mecanismo del módulo, sin
+    // física nueva.
+    if(study.departureAttackResult &&
+       study.departureAttackResult.status === 'no-solution' &&
+       study.connectorResult &&
+       Array.isArray(study.connectorResult.lines) &&
+       study.connectorResult.lines.length > 1){
+      const cr0 = study.connectorResult;
+      const target = cr0.target;
+      const ordenadas = cr0.lines
+        .map(line => ({line, fit: newLklPointLineProjection(target, line.a, line.b, true)}))
+        .filter(o => o.fit && Number.isFinite(o.fit.distance))
+        .sort((a,b) => a.fit.distance - b.fit.distance);
+      for(const o of ordenadas){
+        if(o.line.id === cr0.bestConnectorId) continue;
+        const dir = norm(sub(o.line.b, o.line.a));
+        const q = newLklIntersectLineWithArrivalRail(target, mul(dir,-1), study.arrivalRail) ||
+                  newLklIntersectLineWithArrivalRail(target, dir, study.arrivalRail);
+        if(!q) continue;
+        const arrivalValue = lklArrivalValueFromCoord(q.x, study.zeroSide);
+        if(!Number.isFinite(arrivalValue) || arrivalValue < 0 || arrivalValue > 100) continue;
+        const crAlt = {
+          ...cr0,
+          status:'parallel-adjusted',
+          adjusted:true,
+          arrivalValue,
+          arrivalPoint:q,
+          selectedLineStart:q,
+          selectedLineEnd:target,
+          bestConnectorId:o.line.id,
+          bestConnectorArrival:o.line.arrival,
+          bestDistance:o.fit.distance,
+          llegadaAjustadaPorBlanca:true
+        };
+        const previo = study.connectorResult;
+        study.connectorResult = crAlt;
+        const da = solveNewLklDepartureAttack(study);
+        if(da && da.status === 'ok'){
+          study.departureAttackResult = da;
+          break;
+        }
+        study.connectorResult = previo;
+      }
+    }
+
     study.postArrivalConnectorResult = buildVueltasPostArrivalConnectorRoute(study);
     return study;
   }
