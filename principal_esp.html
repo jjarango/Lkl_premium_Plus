@@ -17253,13 +17253,43 @@ function drawStartMarks(){
     });
   }
 
+  const YT_COLORES_BOLA = { white:'#ffffff', yellow:'#ffd34d', red:'#ff4d4d' };
+
+  // Plan de rótulos del diagrama: cada bola aporta dos números (largas y
+  // cortas), siempre por fuera del paño, en el color de su bola, y con
+  // esquivador de filas: si dos rótulos de la misma banda quedan a menos
+  // de un ancho, el segundo pasa a una fila más retirada de la baranda.
+  function ytPlanRotulos(inst, X, Y){
+    const rotulos = [];
+    for(const it of inst){
+      const b = balls[it.key];
+      const lado_v = it.dCorto.desde === 'la larga superior' ? 'top' : 'bottom';
+      const lado_h = it.dLargo.desde === 'la corta izquierda' ? 'left' : 'right';
+      rotulos.push({ side: lado_v, coord: X(b.x), texto: it.dLargo.valor.toFixed(1), color: YT_COLORES_BOLA[it.key], key: it.key });
+      rotulos.push({ side: lado_h, coord: Y(b.y), texto: it.dCorto.valor.toFixed(1), color: YT_COLORES_BOLA[it.key], key: it.key });
+    }
+    const porLado = {};
+    for(const r of rotulos) (porLado[r.side] = porLado[r.side] || []).push(r);
+    for(const side in porLado){
+      const arr = porLado[side].sort((a, b) => a.coord - b.coord);
+      const filas = [];
+      for(const r of arr){
+        let f = 0;
+        while(filas[f] !== undefined && Math.abs(r.coord - filas[f]) < 175) f++;
+        r.fila = f;
+        filas[f] = r.coord;
+      }
+    }
+    return rotulos;
+  }
+
   function ytPintarDiagramaColocacion(){
     const cv = ids('ytPlaceCanvas');
     if(!cv) return;
-    const W = 1160, H = 640;
+    const W = 1500, H = 900;
     cv.width = W; cv.height = H;
     const g = cv.getContext('2d');
-    const mx = 80, my = 60;
+    const mx = 190, my = 170;
     const cw = W - 2 * mx, ch = H - 2 * my;
     g.fillStyle = '#0b0e14'; g.fillRect(0, 0, W, H);
     g.fillStyle = '#5a3d1e'; g.fillRect(mx - 26, my - 26, cw + 52, ch + 52);
@@ -17269,43 +17299,66 @@ function drawStartMarks(){
     g.fillStyle = '#f5e6c8';
     for(let d = 1; d <= 7; d++){
       const x = X(d * 10);
-      g.beginPath(); g.arc(x, my - 13, 4, 0, Math.PI*2); g.fill();
-      g.beginPath(); g.arc(x, my + ch + 13, 4, 0, Math.PI*2); g.fill();
+      g.beginPath(); g.arc(x, my - 13, 4.5, 0, Math.PI*2); g.fill();
+      g.beginPath(); g.arc(x, my + ch + 13, 4.5, 0, Math.PI*2); g.fill();
     }
     for(let d = 1; d <= 3; d++){
       const y = Y(d * 10);
-      g.beginPath(); g.arc(mx - 13, y, 4, 0, Math.PI*2); g.fill();
-      g.beginPath(); g.arc(mx + cw + 13, y, 4, 0, Math.PI*2); g.fill();
+      g.beginPath(); g.arc(mx - 13, y, 4.5, 0, Math.PI*2); g.fill();
+      g.beginPath(); g.arc(mx + cw + 13, y, 4.5, 0, Math.PI*2); g.fill();
     }
     const inst = ytInstruccionesColocacion();
-    const colores = { white:'#ffffff', yellow:'#ffd34d', red:'#ff4d4d' };
-    const letras = { white:'B', yellow:'A', red:'R' };
-    g.setLineDash([7, 6]);
-    g.lineWidth = 2.2;
-    g.font = 'bold 22px system-ui';
+    // Líneas punteadas en el color de cada bola
+    g.setLineDash([9, 8]);
+    g.lineWidth = 3;
     for(const it of inst){
       const b = balls[it.key];
       const bx = X(b.x), by = Y(b.y);
       const xCorta = it.dLargo.desde === 'la corta izquierda' ? mx : mx + cw;
       const yLarga = it.dCorto.desde === 'la larga superior' ? my : my + ch;
-      g.strokeStyle = 'rgba(255,255,255,.75)';
+      g.strokeStyle = YT_COLORES_BOLA[it.key];
       g.beginPath(); g.moveTo(bx, by); g.lineTo(xCorta, by); g.stroke();
       g.beginPath(); g.moveTo(bx, by); g.lineTo(bx, yLarga); g.stroke();
-      g.fillStyle = '#ffffff';
-      g.fillText(it.dLargo.valor.toFixed(1), bx - 18, yLarga === my ? my - 26 : my + ch + 44);
-      g.fillText(it.dCorto.valor.toFixed(1), xCorta === mx ? mx - 62 : mx + cw + 20, by + 8);
     }
     g.setLineDash([]);
+    // Rótulos gigantes por fuera del paño, escalonados
+    const rotulos = ytPlanRotulos(inst, X, Y);
+    g.font = '900 66px system-ui';
+    g.lineWidth = 7;
+    g.strokeStyle = 'rgba(0,0,0,.85)';
+    for(const r of rotulos){
+      let x, y;
+      if(r.side === 'top'){
+        g.textAlign = 'center';
+        x = r.coord; y = my - 48 - r.fila * 74;
+      } else if(r.side === 'bottom'){
+        g.textAlign = 'center';
+        x = r.coord; y = my + ch + 92 + r.fila * 74;
+      } else if(r.side === 'left'){
+        g.textAlign = 'right';
+        x = mx - 44 - r.fila * 150; y = r.coord + 23;
+      } else {
+        g.textAlign = 'left';
+        x = mx + cw + 44 + r.fila * 150; y = r.coord + 23;
+      }
+      g.strokeText(r.texto, x, y);
+      g.fillStyle = r.color;
+      g.fillText(r.texto, x, y);
+    }
+    g.textAlign = 'start';
+    // Bolas encima de todo
+    const letras = { white:'B', yellow:'A', red:'R' };
     for(const it of inst){
       const b = balls[it.key];
       const bx = X(b.x), by = Y(b.y);
-      g.fillStyle = colores[it.key];
-      g.beginPath(); g.arc(bx, by, 17, 0, Math.PI*2); g.fill();
-      g.strokeStyle = 'rgba(0,0,0,.55)'; g.lineWidth = 2; g.stroke();
-      g.fillStyle = it.key === 'white' || it.key === 'yellow' ? '#333' : '#fff';
-      g.font = 'bold 18px system-ui';
-      g.fillText(letras[it.key], bx - 6, by + 6);
-      g.font = 'bold 22px system-ui';
+      g.fillStyle = YT_COLORES_BOLA[it.key];
+      g.beginPath(); g.arc(bx, by, 20, 0, Math.PI*2); g.fill();
+      g.strokeStyle = 'rgba(0,0,0,.55)'; g.lineWidth = 2.5; g.stroke();
+      g.fillStyle = it.key === 'red' ? '#fff' : '#333';
+      g.font = 'bold 21px system-ui';
+      g.textAlign = 'center';
+      g.fillText(letras[it.key], bx, by + 7);
+      g.textAlign = 'start';
     }
   }
 
