@@ -17232,8 +17232,7 @@ function drawStartMarks(){
     ytGuardarJugada();
     ids('ytMarkOverlay').style.display = 'none';
     ytStatus('Posición transferida a la mesa. Entrene la jugada; para la próxima, pause el video en la otra pestaña y vuelva a pulsar el botón.');
-    const fab = ids('ytPlaceFab');
-    if(fab) fab.style.display = '';
+    ytActualizarFab('primera');
   }
 
   async function ytCapturarPosicion(){
@@ -17464,23 +17463,54 @@ function drawStartMarks(){
     ytRefrescarRepetir();
   }
 
-  function ytRepetirJugada(){
+  function ytRestaurarJugada(){
     const j = ytLeerJugada();
-    if(!j) return;
+    if(!j) return false;
     for(const k of ['white','yellow','red']) balls[k] = clampBallToTable({ x: j[k].x, y: j[k].y });
     updatePositionInputs();
     recalculateAll('youtube-repeat');
-    const fab = ids('ytPlaceFab');
-    if(fab) fab.style.display = 'none';
+    return true;
+  }
+
+  function ytRepetirJugada(){
+    if(!ytRestaurarJugada()) return;
+    ytActualizarFab(null);
     ytAbrirColocacion();
+  }
+
+  // El camino rápido del ciclo: restaurar la jugada, abrir la
+  // colocación y encender de una vez la guía en vivo, todo en el
+  // mismo clic del botón morado.
+  function ytVolverAColocar(){
+    if(!ytRestaurarJugada()) return;
+    ytActualizarFab(null);
+    ytAbrirColocacion();
+    ytgIniciar();
+  }
+
+  // El botón morado inferior tiene dos vestidos: antes de la primera
+  // colocación invita a colocar (y abre el mapa); con una jugada viva
+  // ya cerrada, invita a volver a colocar y va directo a la guía en
+  // vivo. Sin modo, desaparece.
+  function ytActualizarFab(modo){
+    const fab = ids('ytPlaceFab');
+    if(!fab) return;
+    if(!modo){
+      fab.style.display = 'none';
+      fab.dataset.modo = '';
+      return;
+    }
+    fab.dataset.modo = modo;
+    fab.textContent = modo === 'volver'
+      ? '¿Volver a colocar las bolas en la misma posición?'
+      : '¿Colocar las bolas en la mesa real?';
+    fab.style.display = '';
   }
 
   function ytSalirJugada(){
     ytgDetener();
-    try{ window.speechSynthesis && window.speechSynthesis.cancel(); }catch{}
     ids('ytPlaceOverlay').style.display = 'none';
-    const fab = ids('ytPlaceFab');
-    if(fab) fab.style.display = 'none';
+    ytActualizarFab(null);
     ytBorrarJugada();
     ytStatus('Jugada cerrada. Capture otra cuando quiera.');
   }
@@ -17726,26 +17756,6 @@ function drawStartMarks(){
     ytgPintar();
   }
 
-  // Lectura en voz alta de las instrucciones, para colocar sin mirar
-  // la pantalla. Reutiliza los mismos textos del bloque de colocación.
-  function ytLeerColocacion(){
-    if(!('speechSynthesis' in window)){
-      ytgEstado('Este navegador no ofrece síntesis de voz.');
-      return;
-    }
-    try{ window.speechSynthesis.cancel(); }catch{}
-    const nombresVoz = { white:'Bola blanca', yellow:'Bola amarilla', red:'Bola roja' };
-    const frases = ytInstruccionesColocacion().map(it =>
-      nombresVoz[it.key] + ': diamante ' + it.dLargo.valor.toFixed(1).replace('.', ' coma ') +
-      ' de las largas, desde ' + it.dLargo.desde + '; y diamante ' +
-      it.dCorto.valor.toFixed(1).replace('.', ' coma ') + ' de las cortas, desde ' + it.dCorto.desde + '.'
-    );
-    const u = new SpeechSynthesisUtterance(frases.join(' '));
-    u.lang = 'es';
-    u.rate = 0.95;
-    window.speechSynthesis.speak(u);
-  }
-
   function ytEnlazar(){
     const btn = ids('ytCaptureBtn');
     if(!btn) return;
@@ -17790,7 +17800,10 @@ function drawStartMarks(){
     });
     const placeBtn = ids('ytPlaceBtn'), fab = ids('ytPlaceFab'), placeClose = ids('ytPlaceClose');
     if(placeBtn) placeBtn.addEventListener('click', ytAbrirColocacion);
-    if(fab) fab.addEventListener('click', ytAbrirColocacion);
+    if(fab) fab.addEventListener('click', () => {
+      if(fab.dataset.modo === 'volver') ytVolverAColocar();
+      else ytAbrirColocacion();
+    });
     const live = ids('ytPlaceLive');
     if(live) live.addEventListener('click', ytgIniciar);
     const rep = ids('ytRepeatBtn');
@@ -17798,12 +17811,11 @@ function drawStartMarks(){
     const salir = ids('ytExitPlay');
     if(salir) salir.addEventListener('click', ytSalirJugada);
     ytRefrescarRepetir();
-    const voz = ids('ytPlaceVoz');
-    if(voz) voz.addEventListener('click', ytLeerColocacion);
+    if(ytLeerJugada()) ytActualizarFab('volver');
     if(placeClose) placeClose.addEventListener('click', () => {
       ytgDetener();
-      try{ window.speechSynthesis && window.speechSynthesis.cancel(); }catch{}
       ids('ytPlaceOverlay').style.display = 'none';
+      ytActualizarFab(ytLeerJugada() ? 'volver' : null);
     });
   }
   // El velo de marcado vive al final del documento, después de este
@@ -17972,7 +17984,6 @@ function drawStartMarks(){
 <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
 <h2 style="flex:1; margin:0; color:#c9a4ff; font-size:clamp(20px,3vw,30px);">Colocación de las bolas en la mesa real</h2>
 <button id="ytPlaceLive" type="button" style="font-size:clamp(15px,2vw,20px); padding:10px 18px;">Guía en vivo</button>
-<button id="ytPlaceVoz" type="button" style="font-size:clamp(15px,2vw,20px); padding:10px 18px;">Leer en voz alta</button>
 <button id="ytExitPlay" type="button" style="font-size:clamp(15px,2vw,20px); padding:10px 18px; border:1px solid #ff8a8a; color:#ffb3b3; background:transparent; border-radius:8px;">Salir de esta jugada</button>
 <button id="ytPlaceClose" type="button" style="font-size:clamp(16px,2.2vw,22px); padding:10px 22px;">Cerrar</button>
 </div>
