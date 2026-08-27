@@ -1978,9 +1978,9 @@
             </div>
 </div><div class="photoFileWrap" data-tip="Se sugiere tomar la fotografía desde la mayor altura posible. Una silla ayuda mucho">
 <input accept="image/*" id="photoLocatorInput" type="file"/>
-</div><div class="photoStatus" id="photoLocatorStatus">建议先选择照片的拍摄方位。自动识别会给出初始点，并将四角向内修正 5 cm；最终比赛台面由确认后的四个角点定义。</div></div></details><details class="menuModule" id="moduleYoutube"><summary><span class="moduleTitle" style="color:#c9a4ff">从 YouTube 训练（顶置摄像头）</span><span class="moduleState" id="moduleYoutubeState">从任意视频捕捉球型</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody">
-<p class="small" style="margin:0 0 10px;"><b>本节的紫色标题就是按钮：</b>点击它，应用会直接开始捕捉（箭头 ⌄ 只用于打开本说明）。流程：在<b>另一个 Chrome 标签页</b>中打开顶置视角的转播（YouTube、Kozoom 或任意视频），并在想要取用的球型处<b>暂停</b>；点击紫色标题，Chrome 会请您选择该标签页（每次会话仅一次）。在捕捉到的画面上，第一次需标记<b>台呢的四个角</b>（会被保存；若更换视频或取景，请使用"重新校准四角"），随后<b>点击三次</b>：白球、黄球、红球。球会落到虚拟球台上，随时可以开始训练。</p>
-<button class="cameraCaptureBtn" id="ytCaptureBtn" type="button" style="width:100%;">从视频捕捉球型</button>
+</div><div class="photoStatus" id="photoLocatorStatus">建议先选择照片的拍摄方位。自动识别会给出初始点，并将四角向内修正 5 cm；最终比赛台面由确认后的四个角点定义。</div></div></details><details class="menuModule" id="moduleYoutube"><summary><span class="moduleTitle" style="color:#c9a4ff">从 YouTube 及其他来源训练</span><span class="moduleState" id="moduleYoutubeState">从视频、PDF 或图片捕捉球型</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody">
+<p class="small" style="margin:0 0 10px;"><b>本节的紫色标题就是按钮：</b>点击它，应用会直接开始捕捉（箭头 ⌄ 只用于打开本说明）。流程：在<b>另一个 Chrome 标签页或任意窗口</b>中打开顶置视角画面（已暂停的 YouTube 或 Kozoom、Acrobat 中的 PDF、照片应用中的图片），并让想要取用的球型<b>保持可见</b>；点击紫色标题，Chrome 会请您选择该标签页或窗口（每次会话仅一次）。在捕捉到的画面上，第一次需标记<b>台呢的四个角</b>（会被保存；若更换视频或取景，请使用"重新校准四角"），随后<b>点击三次</b>：白球、黄球、红球。球会落到虚拟球台上，随时可以开始训练。 <span style="opacity:.75">小字提示：窗口须处于还原状态而非最小化；若商店应用未出现在选择器中，请在 Chrome 标签页中打开该文件。</span></p>
+<button class="cameraCaptureBtn" id="ytCaptureBtn" type="button" style="width:100%;">从视频、PDF 或图片捕捉球型</button>
 <div aria-live="polite" class="cameraCaptureStatus" id="ytStatus" role="status" style="margin-top:10px;">尚未捕捉。</div>
 <button id="ytPlaceBtn" type="button" style="width:100%; margin-top:10px;">查看当前球型在真实球台上的摆放</button>
 <button id="ytRepeatBtn" type="button" style="width:100%; margin-top:10px; display:none;">重复上一个球型</button>
@@ -14409,6 +14409,12 @@ function drawStartMarks(){
     }
     updatePositionInputs();
     recalculateAll('photo-locator-apply');
+    // Boca nueva al ciclo de la jugada: la posición capturada de la mesa
+    // real queda como «la jugada», y el botón morado nace directamente
+    // vestido de «volver a colocar», porque la primera colocación ya la
+    // hizo la realidad; taque, disperse, y el ciclo lo espera abajo.
+    ytGuardarJugada();
+    ytActualizarFab('volver');
     const status = ids('photoLocatorStatus');
     if(status) status.textContent = '已从照片载入球位，请目视检查并按需手动调整。';
     rememberSessionCorners();
@@ -17074,7 +17080,7 @@ function drawStartMarks(){
       stream.getVideoTracks()[0].addEventListener('ended', () => { ytTrain.stream = null; });
       return true;
     }catch(e){
-      ytStatus('未授权捕捉。请选择视频所在的标签页并同意共享。');
+      ytStatus('未授权捕捉。请选择球型所在的标签页或窗口并同意共享。');
       return false;
     }
   }
@@ -17288,18 +17294,18 @@ function drawStartMarks(){
     recalculateAll('youtube-position');
     ytGuardarJugada();
     ids('ytMarkOverlay').style.display = 'none';
-    ytStatus('球型已传送到球台。请练习该球型；下一个球型请在另一标签页暂停视频后再次点击按钮。');
+    ytStatus('球型已传送到球台。请练习该球型；下一个球型请在标签页或窗口中保持可见，然后再次点击按钮。');
     ytActualizarFab('primera');
   }
 
   async function ytCapturarPosicion(){
-    ytStatus('请选择已暂停视频的标签页并同意共享。');
+    ytStatus('请选择球型可见的标签页或窗口并同意共享。');
     const ok = await ytAsegurarCaptura();
     if(!ok) return;
     await new Promise(res => setTimeout(res, 300));
     const frame = ytCapturarCuadro();
     if(!frame){
-      ytStatus('无法读取共享的标签页。请重试。');
+      ytStatus('无法读取共享的来源。请重试。');
       return;
     }
     ytStatus('画面已捕捉。');
@@ -17478,7 +17484,20 @@ function drawStartMarks(){
         '</div></div>';
       cont.appendChild(div);
     }
-    ytPintarDiagramaColocacion();
+    if(ytGuia.saltarMapa){
+      // Entrada directa a la guía en vivo desde el banner morado: nada
+      // de pintar primero el mapa que nadie pidió ver; el lienzo espera
+      // en negro el primer cuadro de la cámara.
+      ytGuia.saltarMapa = false;
+      const cv = ids('ytPlaceCanvas');
+      if(cv && cv.width){
+        const g = cv.getContext('2d');
+        g.fillStyle = '#000';
+        g.fillRect(0, 0, cv.width, cv.height);
+      }
+    } else {
+      ytPintarDiagramaColocacion();
+    }
     ids('ytPlaceOverlay').style.display = '';
     const fab = ids('ytPlaceFab');
     if(fab) fab.style.display = 'none';
@@ -17538,11 +17557,19 @@ function drawStartMarks(){
   // El camino rápido del ciclo: restaurar la jugada, abrir la
   // colocación y encender de una vez la guía en vivo, todo en el
   // mismo clic del botón morado.
+  // Colocar ES la guía en vivo: el mapa ya no es puerta de entrada
+  // sino plan B (falla de cámara o de calibración) y opción manual del
+  // botón «Volver al mapa».
+  function ytColocarEnVivo(){
+    ytGuia.saltarMapa = true;
+    ytAbrirColocacion();
+    ytgIniciar();
+  }
+
   function ytVolverAColocar(){
     if(!ytRestaurarJugada()) return;
     ytActualizarFab(null);
-    ytAbrirColocacion();
-    ytgIniciar();
+    ytColocarEnVivo();
   }
 
   // El botón morado inferior tiene dos vestidos: antes de la primera
@@ -17552,8 +17579,10 @@ function drawStartMarks(){
   function ytActualizarFab(modo){
     const fab = ids('ytPlaceFab');
     if(!fab) return;
+    const barra = ids('ytPlaceFabBar');
     if(!modo){
       fab.style.display = 'none';
+      if(barra) barra.style.display = 'none';
       fab.dataset.modo = '';
       return;
     }
@@ -17562,6 +17591,7 @@ function drawStartMarks(){
       ? '要把球重新摆回同一位置吗？'
       : '要在真实球台上摆放这些球吗？';
     fab.style.display = '';
+    if(barra) barra.style.display = 'flex';
   }
 
   function ytSalirJugada(){
@@ -17585,8 +17615,39 @@ function drawStartMarks(){
   const ytGuia = {
     activa:false, stream:null, video:null, raf:0, timer:0,
     lector:null, puestas:{}, firmes:{}, ausencias:{}, cerca:{}, desvios:{},
-    centroides:{}, cercaDesde:{}, audio:null
+    centroides:{}, cercaDesde:{}, cierre:0, audio:null
   };
+
+  // Sastrería de la cabecera del velo: con la guía en vivo activa, el
+  // título y los tres botones se encogen a una sola línea discreta para
+  // que el video de la mesa con los círculos quede arriba, grande y sin
+  // scroll. Al apagar la guía, la cabecera recupera su tamaño de siempre.
+  function ytgCompactarCabecera(on){
+    const head = ids('ytPlaceHead');
+    if(head){
+      head.style.gap = on ? '8px' : '12px';
+      head.style.flexWrap = on ? 'nowrap' : 'wrap';
+    }
+    const t = ids('ytPlaceTitle');
+    if(t){
+      t.style.fontSize = on ? '14px' : 'clamp(20px,3vw,30px)';
+      t.style.whiteSpace = on ? 'nowrap' : 'normal';
+      t.style.opacity = on ? '.75' : '';
+    }
+    const botones = [
+      ['ytPlaceLive', 'clamp(15px,2vw,20px)', '10px 18px'],
+      ['ytExitPlay', 'clamp(15px,2vw,20px)', '10px 18px'],
+      ['ytPlaceClose', 'clamp(16px,2.2vw,22px)', '10px 22px']
+    ];
+    for(const [id, fsNormal, padNormal] of botones){
+      const b = ids(id);
+      if(!b) continue;
+      b.style.fontSize = on ? '13px' : fsNormal;
+      b.style.padding = on ? '4px 12px' : padNormal;
+      b.style.width = on ? 'auto' : '';
+      b.style.flex = on ? '0 0 auto' : '';
+    }
+  }
 
   function ytgEstado(msg){
     const el = ids('ytPlaceEstado');
@@ -17765,12 +17826,30 @@ function drawStartMarks(){
           ytGuia.firmes[o.key] = 0;
           ytGuia.ausencias[o.key] = 0;
           ytGuia.desvios[o.key] = 0;
+          // Una bola perdió el verde: si el regreso automático estaba en
+          // camino, se cancela y la guía sigue acompañando.
+          if(ytGuia.cierre){
+            clearTimeout(ytGuia.cierre);
+            ytGuia.cierre = 0;
+            ytgEstado('把每颗球放进对应的圆圈：琥珀色表示接近（再微调一下），绿色伴随提示音表示精确。');
+          }
         }
       }
     }
     if(recienPuestas && ytGuia.puestas.white && ytGuia.puestas.yellow && ytGuia.puestas.red){
       ytgAcorde();
-      ytgEstado('三颗球都已精确到位。开始训练吧。');
+      ytgEstado('三颗球都已精确到位。3 秒后返回应用…');
+      // Regreso automático: tras el acorde, el velo se cierra solo y la
+      // app queda lista para estudiar y tacar, sin viaje hasta el PC.
+      // El botón morado de «volver» queda abajo para la siguiente vuelta.
+      if(ytGuia.cierre) clearTimeout(ytGuia.cierre);
+      ytGuia.cierre = setTimeout(() => {
+        ytGuia.cierre = 0;
+        if(!(ytGuia.activa && ytGuia.puestas.white && ytGuia.puestas.yellow && ytGuia.puestas.red)) return;
+        ytgDetener();
+        ids('ytPlaceOverlay').style.display = 'none';
+        ytActualizarFab(ytLeerJugada() ? 'volver' : null);
+      }, 3000);
     }
   }
 
@@ -17906,6 +17985,24 @@ function drawStartMarks(){
     g.strokeText(letras[o.key], box.x + 10, box.y + Math.max(22, bw / 8));
     g.fillStyle = YT_COLORES_BOLA[o.key];
     g.fillText(letras[o.key], box.x + 10, box.y + Math.max(22, bw / 8));
+    // Letrero anunciador: el nombre completo de la bola, pintado de su
+    // color con borde oscuro grueso, pegado al recuadro (debajo si cabe
+    // en el lienzo; si no, encima), con tamaño para leerse desde la
+    // mesa. Doble seguridad: aunque no alcance a leer el texto, el
+    // color del letrero ya dice cuál bola es.
+    const anuncios = { white:'白球', yellow:'黄球', red:'红球' };
+    const tam = Math.max(26, Math.round(bw / 7));
+    g.font = '900 ' + tam + 'px system-ui';
+    g.textAlign = 'center';
+    const ax = box.x + bw / 2;
+    // Debajo del recuadro si cabe en el lienzo; si no, encima. Así el
+    // letrero jamás se sale de la pantalla.
+    const ay = (box.y + bh + tam + 12 <= ch) ? box.y + bh + tam + 8 : box.y - 14;
+    g.lineWidth = Math.max(5, Math.round(tam / 5));
+    g.strokeStyle = 'rgba(0,0,0,.9)';
+    g.strokeText(anuncios[o.key], ax, ay);
+    g.fillStyle = YT_COLORES_BOLA[o.key];
+    g.fillText(anuncios[o.key], ax, ay);
     g.textAlign = 'start';
   }
 
@@ -17914,12 +18011,14 @@ function drawStartMarks(){
     ytGuia.activa = false;
     if(ytGuia.raf){ cancelAnimationFrame(ytGuia.raf); ytGuia.raf = 0; }
     if(ytGuia.timer){ clearInterval(ytGuia.timer); ytGuia.timer = 0; }
+    if(ytGuia.cierre){ clearTimeout(ytGuia.cierre); ytGuia.cierre = 0; }
     try{ if(ytGuia.stream) ytGuia.stream.getTracks().forEach(t => t.stop()); }catch{}
     ytGuia.stream = null; ytGuia.video = null;
     ytGuia.puestas = {}; ytGuia.firmes = {}; ytGuia.ausencias = {}; ytGuia.cerca = {}; ytGuia.desvios = {};
     ytGuia.centroides = {}; ytGuia.cercaDesde = {};
     const btn = ids('ytPlaceLive');
     if(btn) btn.textContent = '实时引导';
+    ytgCompactarCabecera(false);
     if(estaba){
       ytgEstado('');
       ytPintarDiagramaColocacion();
@@ -17930,6 +18029,9 @@ function drawStartMarks(){
     if(ytGuia.activa){ ytgDetener(); return; }
     if(!loadVideoCalibration()){
       ytgEstado('要使用实时引导，请先在击球视频模块中校准叠加层：还是那四个角，只需校准一次。');
+      // Plan B: sin calibración no hay guía, pero nadie queda mirando
+      // un lienzo negro: el mapa dibujado toma el relevo.
+      ytPintarDiagramaColocacion();
       return;
     }
     ytgEstado('正在打开顶置摄像头…');
@@ -17941,6 +18043,7 @@ function drawStartMarks(){
       await ytgAbrirCamara();
     }catch(e){
       ytgEstado('无法打开顶置摄像头。请检查摄像头权限，或关闭正在占用它的程序。');
+      ytPintarDiagramaColocacion();
       return;
     }
     ytGuia.activa = true;
@@ -17948,6 +18051,7 @@ function drawStartMarks(){
     ytGuia.centroides = {}; ytGuia.cercaDesde = {};
     const btn = ids('ytPlaceLive');
     if(btn) btn.textContent = '返回示意图';
+    ytgCompactarCabecera(true);
     ytgEstado('把每颗球放进对应的圆圈：琥珀色表示接近（再微调一下），绿色伴随提示音表示精确。');
     ytGuia.timer = setInterval(ytgMuestrear, 450);
     ytgPintar();
@@ -17998,9 +18102,12 @@ function drawStartMarks(){
     const placeBtn = ids('ytPlaceBtn'), fab = ids('ytPlaceFab'), placeClose = ids('ytPlaceClose');
     if(placeBtn) placeBtn.addEventListener('click', ytAbrirColocacion);
     if(fab) fab.addEventListener('click', () => {
-      if(fab.dataset.modo === 'volver') ytVolverAColocar();
-      else ytAbrirColocacion();
+      if(fab.dataset.modo === 'volver'){ ytVolverAColocar(); return; }
+      ytActualizarFab(null);
+      ytColocarEnVivo();
     });
+    const cambiar = ids('ytChangePlay');
+    if(cambiar) cambiar.addEventListener('click', ytSalirJugada);
     const live = ids('ytPlaceLive');
     if(live) live.addEventListener('click', ytgIniciar);
     const rep = ids('ytRepeatBtn');
@@ -18008,7 +18115,10 @@ function drawStartMarks(){
     const salir = ids('ytExitPlay');
     if(salir) salir.addEventListener('click', ytSalirJugada);
     ytRefrescarRepetir();
-    if(ytLeerJugada()) ytActualizarFab('volver');
+    // El botón morado no renace al cargar la app: debe ganarse su
+    // aparición con una captura (de YouTube o de la fotografía) en la
+    // sesión presente. La jugada de sesiones pasadas sigue a la mano,
+    // discreta, en «Repetir la jugada anterior» dentro del módulo.
     if(placeClose) placeClose.addEventListener('click', () => {
       ytgDetener();
       ids('ytPlaceOverlay').style.display = 'none';
@@ -18175,11 +18285,14 @@ function drawStartMarks(){
 </div>
 </div>
 
-<button id="ytPlaceFab" type="button" style="display:none; position:fixed; bottom:18px; right:18px; z-index:9400; background:#2a1d4d; color:#e6d8ff; border:1px solid #c9a4ff; border-radius:14px; padding:14px 18px; font-size:16px; font-weight:700; box-shadow:0 6px 24px rgba(0,0,0,.5);">要在真实球台上摆放这些球吗？</button>
+<div id="ytPlaceFabBar" style="display:none; position:fixed; bottom:18px; right:18px; z-index:9400; gap:10px; align-items:stretch;">
+<button id="ytPlaceFab" type="button" style="background:#2a1d4d; color:#e6d8ff; border:1px solid #c9a4ff; border-radius:14px; padding:14px 18px; font-size:16px; font-weight:700; box-shadow:0 6px 24px rgba(0,0,0,.5);">要在真实球台上摆放这些球吗？</button>
+<button id="ytChangePlay" type="button" style="background:#1a1420; color:#ffb3b3; border:1px solid #ff8a8a; border-radius:14px; padding:14px 14px; font-size:14px; font-weight:700; box-shadow:0 6px 24px rgba(0,0,0,.5);">更换球型</button>
+</div>
 <div id="ytPlaceOverlay" style="display:none; position:fixed; inset:0; z-index:9600; background:#0b0e14; overflow:auto;">
 <div style="max-width:1200px; margin:0 auto; padding:18px 16px 28px; display:flex; flex-direction:column; gap:14px; align-items:stretch;">
-<div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-<h2 style="flex:1; margin:0; color:#c9a4ff; font-size:clamp(20px,3vw,30px);">在真实球台上摆放球</h2>
+<div id="ytPlaceHead" style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+<h2 id="ytPlaceTitle" style="flex:1; margin:0; color:#c9a4ff; font-size:clamp(20px,3vw,30px); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:normal;">在真实球台上摆放球</h2>
 <button id="ytPlaceLive" type="button" style="font-size:clamp(15px,2vw,20px); padding:10px 18px;">实时引导</button>
 <button id="ytExitPlay" type="button" style="font-size:clamp(15px,2vw,20px); padding:10px 18px; border:1px solid #ff8a8a; color:#ffb3b3; background:transparent; border-radius:8px;">结束此球型</button>
 <button id="ytPlaceClose" type="button" style="font-size:clamp(16px,2.2vw,22px); padding:10px 22px;">关闭</button>
