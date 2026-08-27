@@ -1978,9 +1978,9 @@
             </div>
 </div><div class="photoFileWrap" data-tip="Se sugiere tomar la fotografía desde la mayor altura posible. Una silla ayuda mucho">
 <input accept="image/*" id="photoLocatorInput" type="file"/>
-</div><div class="photoStatus" id="photoLocatorStatus">Recommendation: first choose the side from which the photo was taken. Automatic detection proposes initial points and offsets the corners 5 cm inward; the final playing surface is defined by the four confirmed points.</div></div></details><details class="menuModule" id="moduleYoutube"><summary><span class="moduleTitle" style="color:#c9a4ff">Train from YouTube (overhead camera)</span><span class="moduleState" id="moduleYoutubeState">Capture positions from any video</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody">
-<p class="small" style="margin:0 0 10px;"><b>The purple title of this section is the button:</b> tap it and the app goes straight to capture (this arrow ⌄ only opens this help). The ritual: open the overhead broadcast (YouTube, Kozoom or any video) in <b>another Chrome tab</b> and <b>pause it</b> on the position you want to steal; tap the purple title; Chrome will ask you to pick that tab (once per session). On the captured frame, the first time you will mark the <b>four corners of the cloth</b> (they are saved; use "Recalibrate corners" if you changed video or framing) and then <b>three clicks</b>: white, yellow and red. The balls land on the virtual table, ready for training.</p>
-<button class="cameraCaptureBtn" id="ytCaptureBtn" type="button" style="width:100%;">Capture a position from a video</button>
+</div><div class="photoStatus" id="photoLocatorStatus">Recommendation: first choose the side from which the photo was taken. Automatic detection proposes initial points and offsets the corners 5 cm inward; the final playing surface is defined by the four confirmed points.</div></div></details><details class="menuModule" id="moduleYoutube"><summary><span class="moduleTitle" style="color:#c9a4ff">Train from YouTube and other sources</span><span class="moduleState" id="moduleYoutubeState">Capture positions from videos, PDFs or images</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody">
+<p class="small" style="margin:0 0 10px;"><b>The purple title of this section is the button:</b> tap it and the app goes straight to capture (this arrow ⌄ only opens this help). The ritual: open the overhead view in <b>another Chrome tab or in any window</b> (YouTube or Kozoom paused, a PDF in Acrobat, an image in Photos) and leave it <b>in view</b> on the position you want to steal; tap the purple title; Chrome will ask you to pick that tab or window (once per session). On the captured frame, the first time you will mark the <b>four corners of the cloth</b> (they are saved; use "Recalibrate corners" if you changed video or framing) and then <b>three clicks</b>: white, yellow and red. The balls land on the virtual table, ready for training. <span style="opacity:.75">Fine print: windows must be restored, not minimized; if a Store app does not appear in the picker, open the file in a Chrome tab.</span></p>
+<button class="cameraCaptureBtn" id="ytCaptureBtn" type="button" style="width:100%;">Capture a position from a video, PDF or image</button>
 <div aria-live="polite" class="cameraCaptureStatus" id="ytStatus" role="status" style="margin-top:10px;">No capture yet.</div>
 <button id="ytPlaceBtn" type="button" style="width:100%; margin-top:10px;">Show real-table placement of the current position</button>
 <button id="ytRepeatBtn" type="button" style="width:100%; margin-top:10px; display:none;">Repeat the previous position</button>
@@ -14409,6 +14409,12 @@ function drawStartMarks(){
     }
     updatePositionInputs();
     recalculateAll('photo-locator-apply');
+    // Boca nueva al ciclo de la jugada: la posición capturada de la mesa
+    // real queda como «la jugada», y el botón morado nace directamente
+    // vestido de «volver a colocar», porque la primera colocación ya la
+    // hizo la realidad; taque, disperse, y el ciclo lo espera abajo.
+    ytGuardarJugada();
+    ytActualizarFab('volver');
     const status = ids('photoLocatorStatus');
     if(status) status.textContent = 'Positions loaded from the photo. Review them visually and adjust manually if necessary.';
     rememberSessionCorners();
@@ -17074,7 +17080,7 @@ function drawStartMarks(){
       stream.getVideoTracks()[0].addEventListener('ended', () => { ytTrain.stream = null; });
       return true;
     }catch(e){
-      ytStatus('Capture was not authorised. Choose the video tab and accept sharing it.');
+      ytStatus('Capture was not authorised. Choose the tab or window with the position and accept sharing it.');
       return false;
     }
   }
@@ -17288,18 +17294,18 @@ function drawStartMarks(){
     recalculateAll('youtube-position');
     ytGuardarJugada();
     ids('ytMarkOverlay').style.display = 'none';
-    ytStatus('Position transferred to the table. Train the shot; for the next one, pause the video in the other tab and press the button again.');
+    ytStatus('Position transferred to the table. Train the shot; for the next one, leave the next position in view in your tab or window and press the button again.');
     ytActualizarFab('primera');
   }
 
   async function ytCapturarPosicion(){
-    ytStatus('Choose the tab with the paused video and accept sharing it.');
+    ytStatus('Choose the tab or window with the position in view and accept sharing it.');
     const ok = await ytAsegurarCaptura();
     if(!ok) return;
     await new Promise(res => setTimeout(res, 300));
     const frame = ytCapturarCuadro();
     if(!frame){
-      ytStatus('The shared tab could not be read. Try again.');
+      ytStatus('The shared source could not be read. Try again.');
       return;
     }
     ytStatus('Frame captured.');
@@ -17478,7 +17484,20 @@ function drawStartMarks(){
         '</div></div>';
       cont.appendChild(div);
     }
-    ytPintarDiagramaColocacion();
+    if(ytGuia.saltarMapa){
+      // Entrada directa a la guía en vivo desde el banner morado: nada
+      // de pintar primero el mapa que nadie pidió ver; el lienzo espera
+      // en negro el primer cuadro de la cámara.
+      ytGuia.saltarMapa = false;
+      const cv = ids('ytPlaceCanvas');
+      if(cv && cv.width){
+        const g = cv.getContext('2d');
+        g.fillStyle = '#000';
+        g.fillRect(0, 0, cv.width, cv.height);
+      }
+    } else {
+      ytPintarDiagramaColocacion();
+    }
     ids('ytPlaceOverlay').style.display = '';
     const fab = ids('ytPlaceFab');
     if(fab) fab.style.display = 'none';
@@ -17538,11 +17557,19 @@ function drawStartMarks(){
   // El camino rápido del ciclo: restaurar la jugada, abrir la
   // colocación y encender de una vez la guía en vivo, todo en el
   // mismo clic del botón morado.
+  // Colocar ES la guía en vivo: el mapa ya no es puerta de entrada
+  // sino plan B (falla de cámara o de calibración) y opción manual del
+  // botón «Volver al mapa».
+  function ytColocarEnVivo(){
+    ytGuia.saltarMapa = true;
+    ytAbrirColocacion();
+    ytgIniciar();
+  }
+
   function ytVolverAColocar(){
     if(!ytRestaurarJugada()) return;
     ytActualizarFab(null);
-    ytAbrirColocacion();
-    ytgIniciar();
+    ytColocarEnVivo();
   }
 
   // El botón morado inferior tiene dos vestidos: antes de la primera
@@ -17552,8 +17579,10 @@ function drawStartMarks(){
   function ytActualizarFab(modo){
     const fab = ids('ytPlaceFab');
     if(!fab) return;
+    const barra = ids('ytPlaceFabBar');
     if(!modo){
       fab.style.display = 'none';
+      if(barra) barra.style.display = 'none';
       fab.dataset.modo = '';
       return;
     }
@@ -17562,6 +17591,7 @@ function drawStartMarks(){
       ? 'Put the balls back in the same position?'
       : 'Place the balls on the real table?';
     fab.style.display = '';
+    if(barra) barra.style.display = 'flex';
   }
 
   function ytSalirJugada(){
@@ -17585,8 +17615,39 @@ function drawStartMarks(){
   const ytGuia = {
     activa:false, stream:null, video:null, raf:0, timer:0,
     lector:null, puestas:{}, firmes:{}, ausencias:{}, cerca:{}, desvios:{},
-    centroides:{}, cercaDesde:{}, audio:null
+    centroides:{}, cercaDesde:{}, cierre:0, audio:null
   };
+
+  // Sastrería de la cabecera del velo: con la guía en vivo activa, el
+  // título y los tres botones se encogen a una sola línea discreta para
+  // que el video de la mesa con los círculos quede arriba, grande y sin
+  // scroll. Al apagar la guía, la cabecera recupera su tamaño de siempre.
+  function ytgCompactarCabecera(on){
+    const head = ids('ytPlaceHead');
+    if(head){
+      head.style.gap = on ? '8px' : '12px';
+      head.style.flexWrap = on ? 'nowrap' : 'wrap';
+    }
+    const t = ids('ytPlaceTitle');
+    if(t){
+      t.style.fontSize = on ? '14px' : 'clamp(20px,3vw,30px)';
+      t.style.whiteSpace = on ? 'nowrap' : 'normal';
+      t.style.opacity = on ? '.75' : '';
+    }
+    const botones = [
+      ['ytPlaceLive', 'clamp(15px,2vw,20px)', '10px 18px'],
+      ['ytExitPlay', 'clamp(15px,2vw,20px)', '10px 18px'],
+      ['ytPlaceClose', 'clamp(16px,2.2vw,22px)', '10px 22px']
+    ];
+    for(const [id, fsNormal, padNormal] of botones){
+      const b = ids(id);
+      if(!b) continue;
+      b.style.fontSize = on ? '13px' : fsNormal;
+      b.style.padding = on ? '4px 12px' : padNormal;
+      b.style.width = on ? 'auto' : '';
+      b.style.flex = on ? '0 0 auto' : '';
+    }
+  }
 
   function ytgEstado(msg){
     const el = ids('ytPlaceEstado');
@@ -17765,12 +17826,30 @@ function drawStartMarks(){
           ytGuia.firmes[o.key] = 0;
           ytGuia.ausencias[o.key] = 0;
           ytGuia.desvios[o.key] = 0;
+          // Una bola perdió el verde: si el regreso automático estaba en
+          // camino, se cancela y la guía sigue acompañando.
+          if(ytGuia.cierre){
+            clearTimeout(ytGuia.cierre);
+            ytGuia.cierre = 0;
+            ytgEstado('Place each ball in its circle: amber means almost (fine-tune a little), green with its beep means exact.');
+          }
         }
       }
     }
     if(recienPuestas && ytGuia.puestas.white && ytGuia.puestas.yellow && ytGuia.puestas.red){
       ytgAcorde();
-      ytgEstado('All three balls are exact. Time to train.');
+      ytgEstado('All three balls are exact. Returning to the app in 3 seconds…');
+      // Regreso automático: tras el acorde, el velo se cierra solo y la
+      // app queda lista para estudiar y tacar, sin viaje hasta el PC.
+      // El botón morado de «volver» queda abajo para la siguiente vuelta.
+      if(ytGuia.cierre) clearTimeout(ytGuia.cierre);
+      ytGuia.cierre = setTimeout(() => {
+        ytGuia.cierre = 0;
+        if(!(ytGuia.activa && ytGuia.puestas.white && ytGuia.puestas.yellow && ytGuia.puestas.red)) return;
+        ytgDetener();
+        ids('ytPlaceOverlay').style.display = 'none';
+        ytActualizarFab(ytLeerJugada() ? 'volver' : null);
+      }, 3000);
     }
   }
 
@@ -17906,6 +17985,24 @@ function drawStartMarks(){
     g.strokeText(letras[o.key], box.x + 10, box.y + Math.max(22, bw / 8));
     g.fillStyle = YT_COLORES_BOLA[o.key];
     g.fillText(letras[o.key], box.x + 10, box.y + Math.max(22, bw / 8));
+    // Letrero anunciador: el nombre completo de la bola, pintado de su
+    // color con borde oscuro grueso, pegado al recuadro (debajo si cabe
+    // en el lienzo; si no, encima), con tamaño para leerse desde la
+    // mesa. Doble seguridad: aunque no alcance a leer el texto, el
+    // color del letrero ya dice cuál bola es.
+    const anuncios = { white:'WHITE BALL', yellow:'YELLOW BALL', red:'RED BALL' };
+    const tam = Math.max(26, Math.round(bw / 7));
+    g.font = '900 ' + tam + 'px system-ui';
+    g.textAlign = 'center';
+    const ax = box.x + bw / 2;
+    // Debajo del recuadro si cabe en el lienzo; si no, encima. Así el
+    // letrero jamás se sale de la pantalla.
+    const ay = (box.y + bh + tam + 12 <= ch) ? box.y + bh + tam + 8 : box.y - 14;
+    g.lineWidth = Math.max(5, Math.round(tam / 5));
+    g.strokeStyle = 'rgba(0,0,0,.9)';
+    g.strokeText(anuncios[o.key], ax, ay);
+    g.fillStyle = YT_COLORES_BOLA[o.key];
+    g.fillText(anuncios[o.key], ax, ay);
     g.textAlign = 'start';
   }
 
@@ -17914,12 +18011,14 @@ function drawStartMarks(){
     ytGuia.activa = false;
     if(ytGuia.raf){ cancelAnimationFrame(ytGuia.raf); ytGuia.raf = 0; }
     if(ytGuia.timer){ clearInterval(ytGuia.timer); ytGuia.timer = 0; }
+    if(ytGuia.cierre){ clearTimeout(ytGuia.cierre); ytGuia.cierre = 0; }
     try{ if(ytGuia.stream) ytGuia.stream.getTracks().forEach(t => t.stop()); }catch{}
     ytGuia.stream = null; ytGuia.video = null;
     ytGuia.puestas = {}; ytGuia.firmes = {}; ytGuia.ausencias = {}; ytGuia.cerca = {}; ytGuia.desvios = {};
     ytGuia.centroides = {}; ytGuia.cercaDesde = {};
     const btn = ids('ytPlaceLive');
     if(btn) btn.textContent = 'Live guide';
+    ytgCompactarCabecera(false);
     if(estaba){
       ytgEstado('');
       ytPintarDiagramaColocacion();
@@ -17930,6 +18029,9 @@ function drawStartMarks(){
     if(ytGuia.activa){ ytgDetener(); return; }
     if(!loadVideoCalibration()){
       ytgEstado('For the live guide, first calibrate the overlay in the shot-video module: the same four corners as always, done only once.');
+      // Plan B: sin calibración no hay guía, pero nadie queda mirando
+      // un lienzo negro: el mapa dibujado toma el relevo.
+      ytPintarDiagramaColocacion();
       return;
     }
     ytgEstado('Opening the overhead camera…');
@@ -17941,6 +18043,7 @@ function drawStartMarks(){
       await ytgAbrirCamara();
     }catch(e){
       ytgEstado('The overhead camera could not be opened. Check the camera permission or close the program that is using it.');
+      ytPintarDiagramaColocacion();
       return;
     }
     ytGuia.activa = true;
@@ -17948,6 +18051,7 @@ function drawStartMarks(){
     ytGuia.centroides = {}; ytGuia.cercaDesde = {};
     const btn = ids('ytPlaceLive');
     if(btn) btn.textContent = 'Back to the map';
+    ytgCompactarCabecera(true);
     ytgEstado('Place each ball in its circle: amber means almost (fine-tune a little), green with its beep means exact.');
     ytGuia.timer = setInterval(ytgMuestrear, 450);
     ytgPintar();
@@ -17998,9 +18102,12 @@ function drawStartMarks(){
     const placeBtn = ids('ytPlaceBtn'), fab = ids('ytPlaceFab'), placeClose = ids('ytPlaceClose');
     if(placeBtn) placeBtn.addEventListener('click', ytAbrirColocacion);
     if(fab) fab.addEventListener('click', () => {
-      if(fab.dataset.modo === 'volver') ytVolverAColocar();
-      else ytAbrirColocacion();
+      if(fab.dataset.modo === 'volver'){ ytVolverAColocar(); return; }
+      ytActualizarFab(null);
+      ytColocarEnVivo();
     });
+    const cambiar = ids('ytChangePlay');
+    if(cambiar) cambiar.addEventListener('click', ytSalirJugada);
     const live = ids('ytPlaceLive');
     if(live) live.addEventListener('click', ytgIniciar);
     const rep = ids('ytRepeatBtn');
@@ -18008,7 +18115,10 @@ function drawStartMarks(){
     const salir = ids('ytExitPlay');
     if(salir) salir.addEventListener('click', ytSalirJugada);
     ytRefrescarRepetir();
-    if(ytLeerJugada()) ytActualizarFab('volver');
+    // El botón morado no renace al cargar la app: debe ganarse su
+    // aparición con una captura (de YouTube o de la fotografía) en la
+    // sesión presente. La jugada de sesiones pasadas sigue a la mano,
+    // discreta, en «Repetir la jugada anterior» dentro del módulo.
     if(placeClose) placeClose.addEventListener('click', () => {
       ytgDetener();
       ids('ytPlaceOverlay').style.display = 'none';
@@ -18175,11 +18285,14 @@ function drawStartMarks(){
 </div>
 </div>
 
-<button id="ytPlaceFab" type="button" style="display:none; position:fixed; bottom:18px; right:18px; z-index:9400; background:#2a1d4d; color:#e6d8ff; border:1px solid #c9a4ff; border-radius:14px; padding:14px 18px; font-size:16px; font-weight:700; box-shadow:0 6px 24px rgba(0,0,0,.5);">Place the balls on the real table?</button>
+<div id="ytPlaceFabBar" style="display:none; position:fixed; bottom:18px; right:18px; z-index:9400; gap:10px; align-items:stretch;">
+<button id="ytPlaceFab" type="button" style="background:#2a1d4d; color:#e6d8ff; border:1px solid #c9a4ff; border-radius:14px; padding:14px 18px; font-size:16px; font-weight:700; box-shadow:0 6px 24px rgba(0,0,0,.5);">Place the balls on the real table?</button>
+<button id="ytChangePlay" type="button" style="background:#1a1420; color:#ffb3b3; border:1px solid #ff8a8a; border-radius:14px; padding:14px 14px; font-size:14px; font-weight:700; box-shadow:0 6px 24px rgba(0,0,0,.5);">Change position</button>
+</div>
 <div id="ytPlaceOverlay" style="display:none; position:fixed; inset:0; z-index:9600; background:#0b0e14; overflow:auto;">
 <div style="max-width:1200px; margin:0 auto; padding:18px 16px 28px; display:flex; flex-direction:column; gap:14px; align-items:stretch;">
-<div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-<h2 style="flex:1; margin:0; color:#c9a4ff; font-size:clamp(20px,3vw,30px);">Placing the balls on the real table</h2>
+<div id="ytPlaceHead" style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+<h2 id="ytPlaceTitle" style="flex:1; margin:0; color:#c9a4ff; font-size:clamp(20px,3vw,30px); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:normal;">Placing the balls on the real table</h2>
 <button id="ytPlaceLive" type="button" style="font-size:clamp(15px,2vw,20px); padding:10px 18px;">Live guide</button>
 <button id="ytExitPlay" type="button" style="font-size:clamp(15px,2vw,20px); padding:10px 18px; border:1px solid #ff8a8a; color:#ffb3b3; background:transparent; border-radius:8px;">Leave this position</button>
 <button id="ytPlaceClose" type="button" style="font-size:clamp(16px,2.2vw,22px); padding:10px 22px;">Close</button>
