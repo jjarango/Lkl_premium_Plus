@@ -18031,7 +18031,10 @@ function drawStartMarks(){
     const salir = ids('ytExitPlay');
     if(salir) salir.addEventListener('click', ytSalirJugada);
     ytRefrescarRepetir();
-    if(ytLeerJugada()) ytActualizarFab('volver');
+    // El botón morado no renace al cargar la app: debe ganarse su
+    // aparición con una captura (de YouTube o de la fotografía) en la
+    // sesión presente. La jugada de sesiones pasadas sigue a la mano,
+    // discreta, en «Repetir la jugada anterior» dentro del módulo.
     if(placeClose) placeClose.addEventListener('click', () => {
       ytgDetener();
       ids('ytPlaceOverlay').style.display = 'none';
