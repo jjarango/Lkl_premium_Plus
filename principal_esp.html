@@ -1979,7 +1979,7 @@
 </div><div class="photoFileWrap" data-tip="Se sugiere tomar la fotografía desde la mayor altura posible. Una silla ayuda mucho">
 <input accept="image/*" id="photoLocatorInput" type="file"/>
 </div><div class="photoStatus" id="photoLocatorStatus">Recomendación: escoja primero desde qué lado tomó la foto. La detección automática propone puntos iniciales y corrige las esquinas 5 cm hacia adentro; la superficie jugable final será la definida por los cuatro puntos confirmados.</div></div></details><details class="menuModule" id="moduleYoutube"><summary><span class="moduleTitle" style="color:#c9a4ff">Entrenar desde YouTube y otras fuentes</span><span class="moduleState" id="moduleYoutubeState">Capture jugadas de videos, PDF o imágenes</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody">
-<p class="small" style="margin:0 0 10px;"><b>El título morado de esta sección es el botón:</b> tóquelo y la app va directo a capturar (esta flecha ⌄ solo abre esta ayuda). El ritual: abra la vista cenital en <b>otra pestaña de Chrome o en cualquier ventana</b> (YouTube o Kozoom pausados, un PDF en Acrobat, una imagen en Fotos) y déjela <b>a la vista</b> en la jugada que quiera robarse; toque el título morado; Chrome le pedirá elegir esa pestaña o ventana (una sola vez por sesión). Sobre el cuadro capturado, la primera vez marcará las <b>cuatro esquinas del paño</b> (quedan guardadas; use "Recalibrar esquinas" si cambió de video o de encuadre) y después <b>tres clics</b>: blanca, amarilla y roja. Las bolas aterrizan en la mesa virtual, listas para entrenar.</p>
+<p class="small" style="margin:0 0 10px;"><b>El título morado de esta sección es el botón:</b> tóquelo y la app va directo a capturar (esta flecha ⌄ solo abre esta ayuda). El ritual: abra la vista cenital en <b>otra pestaña de Chrome o en cualquier ventana</b> (YouTube o Kozoom pausados, un PDF en Acrobat, una imagen en Fotos) y déjela <b>a la vista</b> en la jugada que quiera robarse; toque el título morado; Chrome le pedirá elegir esa pestaña o ventana (una sola vez por sesión). Sobre el cuadro capturado, la primera vez marcará las <b>cuatro esquinas del paño</b> (quedan guardadas; use "Recalibrar esquinas" si cambió de video o de encuadre) y después <b>tres clics</b>: blanca, amarilla y roja. Las bolas aterrizan en la mesa virtual, listas para entrenar. <span style="opacity:.75">Letra pequeña: las ventanas deben estar restauradas, no minimizadas; si una app de la tienda no aparece en el selector, abra el archivo en una pestaña de Chrome.</span></p>
 <button class="cameraCaptureBtn" id="ytCaptureBtn" type="button" style="width:100%;">Capturar posición desde video, PDF o imagen</button>
 <div aria-live="polite" class="cameraCaptureStatus" id="ytStatus" role="status" style="margin-top:10px;">Sin captura todavía.</div>
 <button id="ytPlaceBtn" type="button" style="width:100%; margin-top:10px;">Ver colocación en mesa real de la posición actual</button>
@@ -17590,7 +17590,7 @@ function drawStartMarks(){
   const ytGuia = {
     activa:false, stream:null, video:null, raf:0, timer:0,
     lector:null, puestas:{}, firmes:{}, ausencias:{}, cerca:{}, desvios:{},
-    centroides:{}, cercaDesde:{}, audio:null
+    centroides:{}, cercaDesde:{}, cierre:0, audio:null
   };
 
   function ytgEstado(msg){
@@ -17770,12 +17770,30 @@ function drawStartMarks(){
           ytGuia.firmes[o.key] = 0;
           ytGuia.ausencias[o.key] = 0;
           ytGuia.desvios[o.key] = 0;
+          // Una bola perdió el verde: si el regreso automático estaba en
+          // camino, se cancela y la guía sigue acompañando.
+          if(ytGuia.cierre){
+            clearTimeout(ytGuia.cierre);
+            ytGuia.cierre = 0;
+            ytgEstado('Coloque cada bola en su círculo: ámbar significa casi (afine un poquito), verde con su pip significa exacta.');
+          }
         }
       }
     }
     if(recienPuestas && ytGuia.puestas.white && ytGuia.puestas.yellow && ytGuia.puestas.red){
       ytgAcorde();
-      ytgEstado('Las tres bolas están exactas. A entrenar.');
+      ytgEstado('Las tres bolas están exactas. Volviendo a la app en 3 segundos…');
+      // Regreso automático: tras el acorde, el velo se cierra solo y la
+      // app queda lista para estudiar y tacar, sin viaje hasta el PC.
+      // El botón morado de «volver» queda abajo para la siguiente vuelta.
+      if(ytGuia.cierre) clearTimeout(ytGuia.cierre);
+      ytGuia.cierre = setTimeout(() => {
+        ytGuia.cierre = 0;
+        if(!(ytGuia.activa && ytGuia.puestas.white && ytGuia.puestas.yellow && ytGuia.puestas.red)) return;
+        ytgDetener();
+        ids('ytPlaceOverlay').style.display = 'none';
+        ytActualizarFab(ytLeerJugada() ? 'volver' : null);
+      }, 3000);
     }
   }
 
@@ -17937,6 +17955,7 @@ function drawStartMarks(){
     ytGuia.activa = false;
     if(ytGuia.raf){ cancelAnimationFrame(ytGuia.raf); ytGuia.raf = 0; }
     if(ytGuia.timer){ clearInterval(ytGuia.timer); ytGuia.timer = 0; }
+    if(ytGuia.cierre){ clearTimeout(ytGuia.cierre); ytGuia.cierre = 0; }
     try{ if(ytGuia.stream) ytGuia.stream.getTracks().forEach(t => t.stop()); }catch{}
     ytGuia.stream = null; ytGuia.video = null;
     ytGuia.puestas = {}; ytGuia.firmes = {}; ytGuia.ausencias = {}; ytGuia.cerca = {}; ytGuia.desvios = {};
