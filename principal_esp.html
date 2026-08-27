@@ -17087,18 +17087,49 @@ function drawStartMarks(){
     return c;
   }
 
+  // Ordenamiento canónico de las cuatro esquinas por geometría pura:
+  // arriba-izquierda es la de menor x+y, abajo-derecha la de mayor x+y,
+  // arriba-derecha la de mayor x-y, abajo-izquierda la de menor x-y.
+  // Da igual en qué orden se hayan tocado: el cuadrilátero queda
+  // orientado como la mesa, y la familia entera de espejos y
+  // rotaciones queda extinta.
+  function ytOrdenarEsquinas(pts){
+    const porSuma = pts.slice().sort((a, b) => (a.x + a.y) - (b.x + b.y));
+    const porResta = pts.slice().sort((a, b) => (a.x - a.y) - (b.x - b.y));
+    return [porSuma[0], porResta[porResta.length - 1], porSuma[porSuma.length - 1], porResta[0]];
+  }
+
   function ytLeerCalibracion(clave){
     try{
       const raw = localStorage.getItem(clave);
       if(!raw) return null;
-      const pts = JSON.parse(raw);
-      if(Array.isArray(pts) && pts.length === 4) return pts;
+      const d = JSON.parse(raw);
+      // Formato viejo: lista pelada de cuatro puntos, sin dimensiones.
+      // Se acepta y se ordena al leer, de modo que una calibración
+      // envenenada por el orden se corrige sola, sin recalibrar.
+      if(Array.isArray(d) && d.length === 4 && d.every(p => p && Number.isFinite(p.x) && Number.isFinite(p.y)))
+        return { pts: ytOrdenarEsquinas(d), w: null, h: null };
+      if(d && Array.isArray(d.pts) && d.pts.length === 4 && d.pts.every(p => p && Number.isFinite(p.x) && Number.isFinite(p.y)))
+        return { pts: ytOrdenarEsquinas(d.pts), w: Number.isFinite(d.w) ? d.w : null, h: Number.isFinite(d.h) ? d.h : null };
     }catch{}
     return null;
   }
 
-  function ytGuardarCalibracion(clave, esquinasNorm){
-    try{ localStorage.setItem(clave, JSON.stringify(esquinasNorm)); }catch{}
+  function ytGuardarCalibracion(clave, esquinasNorm, w, h){
+    try{ localStorage.setItem(clave, JSON.stringify({ v: 2, w, h, pts: ytOrdenarEsquinas(esquinasNorm) })); }catch{}
+  }
+
+  // ¿El punto cae dentro del cuadrilátero calibrado? Prueba de signos
+  // contra los cuatro lados: signos mezclados significan afuera.
+  function ytDentroDelCuadrilatero(p, esquinas){
+    let neg = 0, pos = 0;
+    for(let i = 0; i < 4; i++){
+      const a = esquinas[i], b = esquinas[(i + 1) % 4];
+      const cruz = (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x);
+      if(cruz < 0) neg++;
+      if(cruz > 0) pos++;
+    }
+    return !(neg && pos);
   }
 
   const YT_PASOS_ESQUINAS = [
@@ -17117,10 +17148,18 @@ function drawStartMarks(){
     ytTrain.frameCanvas = frameCanvas;
     ytTrain.bolas = [];
     const calGuardada = ytLeerCalibracion(ytTrain.claveCal);
-    if(calGuardada){
-      ytTrain.esquinas = calGuardada.map(p => ({ x: p.x * frameCanvas.width, y: p.y * frameCanvas.height }));
+    const dimsCambiaron = !!calGuardada && calGuardada.w !== null &&
+      (calGuardada.w !== frameCanvas.width || calGuardada.h !== frameCanvas.height);
+    if(calGuardada && !dimsCambiaron){
+      ytTrain.esquinas = calGuardada.pts.map(p => ({ x: p.x * frameCanvas.width, y: p.y * frameCanvas.height }));
       ytTrain.modo = 'balls';
     } else {
+      if(dimsCambiaron){
+        // La calibración vieja pertenece a otro tamaño de cuadro: usarla
+        // sembraría basura en silencio. Mejor cuatro toques honestos.
+        try{ localStorage.removeItem(ytTrain.claveCal); }catch{}
+        ytStatus('El encuadre del video cambió de tamaño desde la última calibración: marque de nuevo las cuatro esquinas.');
+      }
       ytTrain.esquinas = [];
       ytTrain.modo = 'corners';
     }
@@ -17193,8 +17232,10 @@ function drawStartMarks(){
       ytTrain.esquinas.push({x, y});
       if(ytTrain.esquinas.length === 4){
         const fc = ytTrain.frameCanvas;
+        ytTrain.esquinas = ytOrdenarEsquinas(ytTrain.esquinas);
         ytGuardarCalibracion(ytTrain.claveCal,
-          ytTrain.esquinas.map(p => ({ x: p.x / fc.width, y: p.y / fc.height })));
+          ytTrain.esquinas.map(p => ({ x: p.x / fc.width, y: p.y / fc.height })),
+          fc.width, fc.height);
         ytTrain.modo = 'balls';
       }
     } else {
@@ -17207,7 +17248,22 @@ function drawStartMarks(){
     ytPintarMarcado();
   }
 
+  function ytRecalibrarPorEncuadre(mensaje){
+    ytStatus(mensaje);
+    ytTrain.esquinas = []; ytTrain.modo = 'corners'; ytTrain.bolas = [];
+    try{ localStorage.removeItem(ytTrain.claveCal); }catch{}
+    ytPintarMarcado();
+  }
+
   function ytAplicarPosicionDesdeMarcas(){
+    // Cordura previa: los tres clics deben caer dentro del cuadrilátero
+    // calibrado. Un clic afuera es la firma de un encuadre cambiado.
+    for(let i = 0; i < 3; i++){
+      if(!ytDentroDelCuadrilatero(ytTrain.bolas[i], ytTrain.esquinas)){
+        ytRecalibrarPorEncuadre('Uno de los clics cae fuera del paño calibrado: el encuadre cambió. Marque de nuevo las cuatro esquinas.');
+        return;
+      }
+    }
     const dst = [{x:0,y:0},{x:TABLE.W,y:0},{x:TABLE.W,y:TABLE.H},{x:0,y:TABLE.H}];
     const H = homographyFromFourPoints(ytTrain.esquinas, dst);
     if(!H){
@@ -17219,10 +17275,10 @@ function drawStartMarks(){
     }
     for(let i = 0; i < 3; i++){
       const p = applyHomography(H, ytTrain.bolas[i]);
-      if(!p || !Number.isFinite(p.x) || !Number.isFinite(p.y)){
-        ytStatus('No fue posible proyectar una de las bolas. Intente de nuevo.');
-        ytTrain.bolas = [];
-        ytPintarMarcado();
+      const margen = TABLE.W * 0.08;
+      if(!p || !Number.isFinite(p.x) || !Number.isFinite(p.y) ||
+         p.x < -margen || p.x > TABLE.W + margen || p.y < -margen || p.y > TABLE.H + margen){
+        ytRecalibrarPorEncuadre('La proyección cae fuera de la mesa: la calibración no corresponde al encuadre actual. Marque de nuevo las cuatro esquinas.');
         return;
       }
       balls[YT_PASOS_BOLAS[i].key] = clampBallToTable(p);
@@ -17527,7 +17583,7 @@ function drawStartMarks(){
   // ============================================================
   const ytGuia = {
     activa:false, stream:null, video:null, raf:0, timer:0,
-    lector:null, puestas:{}, firmes:{}, ausencias:{}, audio:null
+    lector:null, puestas:{}, firmes:{}, ausencias:{}, cerca:{}, desvios:{}, audio:null
   };
 
   function ytgEstado(msg){
@@ -17626,6 +17682,11 @@ function drawStartMarks(){
     return r >= 140 && g <= 95 && b <= 95 && r >= g + 55;
   }
 
+  // Tolerancia de exactitud: fracción del radio de bola. Con 0.4, el
+  // centro de gravedad del color debe quedar a menos de ~12 mm del
+  // punto exacto sobre el paño para que el pip suene.
+  const YTG_TOL_RADIO = 0.4;
+
   function ytgMuestrear(){
     if(!ytGuia.activa || !ytGuia.video || !ytGuia.video.videoWidth) return;
     const v = ytGuia.video, cw = v.videoWidth, ch = v.videoHeight;
@@ -17641,40 +17702,60 @@ function drawStartMarks(){
     g2.drawImage(v, 0, 0);
     let recienPuestas = 0;
     for(const o of objetivos){
-      const rr = Math.max(6, Math.round(o.r * 0.75));
-      const x0 = Math.max(0, Math.round(o.x - rr)), y0 = Math.max(0, Math.round(o.y - rr));
-      const w = Math.min(cw - x0, rr * 2), hh = Math.min(ch - y0, rr * 2);
+      // Ventana de búsqueda de 1.6 radios alrededor del destino. El juez
+      // ya no cuenta color a secas: calcula el centro de gravedad de los
+      // píxeles del color de la bola y separa dos veredictos, presencia
+      // (hay área de bola de verdad) y exactitud (el centroide queda a
+      // menos de la tolerancia del punto exacto).
+      const rBusca = Math.max(8, Math.round(o.r * 1.6));
+      const x0 = Math.max(0, Math.round(o.x - rBusca)), y0 = Math.max(0, Math.round(o.y - rBusca));
+      const w = Math.min(cw - x0, rBusca * 2), hh = Math.min(ch - y0, rBusca * 2);
       if(w <= 2 || hh <= 2) continue;
-      let dentro = 0, acierto = 0;
+      let acierto = 0, sx = 0, sy = 0;
       const datos = g2.getImageData(x0, y0, w, hh).data;
       for(let py = 0; py < hh; py += 2){
         for(let px = 0; px < w; px += 2){
           const dx = px + x0 - o.x, dy = py + y0 - o.y;
-          if(dx * dx + dy * dy > rr * rr) continue;
-          dentro++;
+          if(dx * dx + dy * dy > rBusca * rBusca) continue;
           const i4 = (py * w + px) * 4;
-          if(ytgClasifica(o.key, datos[i4], datos[i4 + 1], datos[i4 + 2])) acierto++;
+          if(ytgClasifica(o.key, datos[i4], datos[i4 + 1], datos[i4 + 2])){
+            acierto++; sx += px + x0; sy += py + y0;
+          }
         }
       }
-      const fr = dentro ? acierto / dentro : 0;
+      // Área esperada de una bola completa, en muestras (paso de 2 px).
+      const esperada = Math.PI * o.r * o.r / 4;
+      const presencia = acierto >= esperada * 0.30;
+      const perdida = acierto < esperada * 0.12;
+      const desvio = presencia ? Math.hypot(sx / acierto - o.x, sy / acierto - o.y) : Infinity;
+      const tol = o.r * YTG_TOL_RADIO;
+      const exacta = presencia && desvio <= tol;
+      ytGuia.cerca[o.key] = presencia && !exacta && !ytGuia.puestas[o.key];
       if(!ytGuia.puestas[o.key]){
-        ytGuia.firmes[o.key] = fr >= 0.30 ? (ytGuia.firmes[o.key] || 0) + 1 : 0;
+        ytGuia.firmes[o.key] = exacta ? (ytGuia.firmes[o.key] || 0) + 1 : 0;
         if(ytGuia.firmes[o.key] >= 2){
           ytGuia.puestas[o.key] = true;
+          ytGuia.cerca[o.key] = false;
           ytgPip(o.key);
           recienPuestas++;
         }
       } else {
-        ytGuia.ausencias[o.key] = fr < 0.12 ? (ytGuia.ausencias[o.key] || 0) + 1 : 0;
-        if(ytGuia.ausencias[o.key] >= 2){
+        // Se suelta si la bola desapareció o si sigue presente pero se
+        // corrió más de la tolerancia (con histéresis de 1.4 para no
+        // parpadear); dos lecturas seguidas en ambos casos.
+        ytGuia.ausencias[o.key] = perdida ? (ytGuia.ausencias[o.key] || 0) + 1 : 0;
+        ytGuia.desvios[o.key] = (presencia && desvio > tol * 1.4) ? (ytGuia.desvios[o.key] || 0) + 1 : 0;
+        if(ytGuia.ausencias[o.key] >= 2 || ytGuia.desvios[o.key] >= 2){
           ytGuia.puestas[o.key] = false;
           ytGuia.firmes[o.key] = 0;
+          ytGuia.ausencias[o.key] = 0;
+          ytGuia.desvios[o.key] = 0;
         }
       }
     }
     if(recienPuestas && ytGuia.puestas.white && ytGuia.puestas.yellow && ytGuia.puestas.red){
       ytgAcorde();
-      ytgEstado('Las tres bolas están en su sitio. A entrenar.');
+      ytgEstado('Las tres bolas están exactas. A entrenar.');
     }
   }
 
@@ -17692,11 +17773,16 @@ function drawStartMarks(){
         const letras = { white:'B', yellow:'A', red:'R' };
         for(const o of objetivos){
           const puesta = !!ytGuia.puestas[o.key];
+          const cerca = !puesta && !!ytGuia.cerca[o.key];
+          // Semáforo del círculo: punteado en el color de la bola cuando
+          // falta, ámbar sólido cuando está casi, verde sólido y pip
+          // cuando quedó exacta.
+          const tinte = puesta ? '#37e37c' : (cerca ? '#ffb347' : YT_COLORES_BOLA[o.key]);
           g.lineWidth = Math.max(4, cw / 260);
-          g.setLineDash(puesta ? [] : [14, 10]);
+          g.setLineDash(puesta || cerca ? [] : [14, 10]);
           g.strokeStyle = 'rgba(0,0,0,.65)';
           g.beginPath(); g.arc(o.x, o.y, o.r * 1.5, 0, Math.PI * 2); g.stroke();
-          g.strokeStyle = puesta ? '#37e37c' : YT_COLORES_BOLA[o.key];
+          g.strokeStyle = tinte;
           g.beginPath(); g.arc(o.x, o.y, o.r * 1.5 - 1.5, 0, Math.PI * 2); g.stroke();
           g.setLineDash([]);
           g.font = '900 ' + Math.max(20, Math.round(cw / 42)) + 'px system-ui';
@@ -17705,7 +17791,7 @@ function drawStartMarks(){
           g.strokeStyle = 'rgba(0,0,0,.85)';
           const ty = o.y - o.r * 1.5 - 12;
           g.strokeText(letras[o.key], o.x, ty);
-          g.fillStyle = puesta ? '#37e37c' : YT_COLORES_BOLA[o.key];
+          g.fillStyle = tinte;
           g.fillText(letras[o.key], o.x, ty);
           g.textAlign = 'start';
         }
@@ -17721,7 +17807,7 @@ function drawStartMarks(){
     if(ytGuia.timer){ clearInterval(ytGuia.timer); ytGuia.timer = 0; }
     try{ if(ytGuia.stream) ytGuia.stream.getTracks().forEach(t => t.stop()); }catch{}
     ytGuia.stream = null; ytGuia.video = null;
-    ytGuia.puestas = {}; ytGuia.firmes = {}; ytGuia.ausencias = {};
+    ytGuia.puestas = {}; ytGuia.firmes = {}; ytGuia.ausencias = {}; ytGuia.cerca = {}; ytGuia.desvios = {};
     const btn = ids('ytPlaceLive');
     if(btn) btn.textContent = 'Guía en vivo';
     if(estaba){
@@ -17748,10 +17834,10 @@ function drawStartMarks(){
       return;
     }
     ytGuia.activa = true;
-    ytGuia.puestas = {}; ytGuia.firmes = {}; ytGuia.ausencias = {};
+    ytGuia.puestas = {}; ytGuia.firmes = {}; ytGuia.ausencias = {}; ytGuia.cerca = {}; ytGuia.desvios = {};
     const btn = ids('ytPlaceLive');
     if(btn) btn.textContent = 'Volver al mapa';
-    ytgEstado('Coloque cada bola dentro de su círculo: un pip la confirma, y el acorde final celebra las tres.');
+    ytgEstado('Coloque cada bola en su círculo: ámbar significa casi (afine un poquito), verde con su pip significa exacta.');
     ytGuia.timer = setInterval(ytgMuestrear, 450);
     ytgPintar();
   }
