@@ -14408,6 +14408,12 @@ function drawStartMarks(){
     }
     updatePositionInputs();
     recalculateAll('photo-locator-apply');
+    // Boca nueva al ciclo de la jugada: la posición capturada de la mesa
+    // real queda como «la jugada», y el botón morado nace directamente
+    // vestido de «volver a colocar», porque la primera colocación ya la
+    // hizo la realidad; taque, disperse, y el ciclo lo espera abajo.
+    ytGuardarJugada();
+    ytActualizarFab('volver');
     const status = ids('photoLocatorStatus');
     if(status) status.textContent = 'Posiciones cargadas desde la fotografía. Revise visualmente y ajuste a mano si hace falta.';
     rememberSessionCorners();
@@ -17905,6 +17911,24 @@ function drawStartMarks(){
     g.strokeText(letras[o.key], box.x + 10, box.y + Math.max(22, bw / 8));
     g.fillStyle = YT_COLORES_BOLA[o.key];
     g.fillText(letras[o.key], box.x + 10, box.y + Math.max(22, bw / 8));
+    // Letrero anunciador: el nombre completo de la bola, pintado de su
+    // color con borde oscuro grueso, pegado al recuadro (debajo si la
+    // lupa quedó arriba del lienzo, encima si quedó abajo), con tamaño
+    // para leerse desde la mesa. Doble seguridad: aunque no alcance a
+    // leer el texto, el color del letrero ya dice cuál bola es.
+    const anuncios = { white:'BOLA BLANCA', yellow:'BOLA AMARILLA', red:'BOLA ROJA' };
+    const tam = Math.max(26, Math.round(bw / 7));
+    g.font = '900 ' + tam + 'px system-ui';
+    g.textAlign = 'center';
+    const ax = box.x + bw / 2;
+    // Debajo del recuadro si cabe en el lienzo; si no, encima. Así el
+    // letrero jamás se sale de la pantalla.
+    const ay = (box.y + bh + tam + 12 <= ch) ? box.y + bh + tam + 8 : box.y - 14;
+    g.lineWidth = Math.max(5, Math.round(tam / 5));
+    g.strokeStyle = 'rgba(0,0,0,.9)';
+    g.strokeText(anuncios[o.key], ax, ay);
+    g.fillStyle = YT_COLORES_BOLA[o.key];
+    g.fillText(anuncios[o.key], ax, ay);
     g.textAlign = 'start';
   }
 
