@@ -17578,8 +17578,10 @@ function drawStartMarks(){
   function ytActualizarFab(modo){
     const fab = ids('ytPlaceFab');
     if(!fab) return;
+    const barra = ids('ytPlaceFabBar');
     if(!modo){
       fab.style.display = 'none';
+      if(barra) barra.style.display = 'none';
       fab.dataset.modo = '';
       return;
     }
@@ -17588,6 +17590,7 @@ function drawStartMarks(){
       ? '¿Volver a colocar las bolas en la misma posición?'
       : '¿Colocar las bolas en la mesa real?';
     fab.style.display = '';
+    if(barra) barra.style.display = 'flex';
   }
 
   function ytSalirJugada(){
@@ -18102,6 +18105,8 @@ function drawStartMarks(){
       ytActualizarFab(null);
       ytColocarEnVivo();
     });
+    const cambiar = ids('ytChangePlay');
+    if(cambiar) cambiar.addEventListener('click', ytSalirJugada);
     const live = ids('ytPlaceLive');
     if(live) live.addEventListener('click', ytgIniciar);
     const rep = ids('ytRepeatBtn');
@@ -18279,7 +18284,10 @@ function drawStartMarks(){
 </div>
 </div>
 
-<button id="ytPlaceFab" type="button" style="display:none; position:fixed; bottom:18px; right:18px; z-index:9400; background:#2a1d4d; color:#e6d8ff; border:1px solid #c9a4ff; border-radius:14px; padding:14px 18px; font-size:16px; font-weight:700; box-shadow:0 6px 24px rgba(0,0,0,.5);">¿Colocar las bolas en la mesa real?</button>
+<div id="ytPlaceFabBar" style="display:none; position:fixed; bottom:18px; right:18px; z-index:9400; gap:10px; align-items:stretch;">
+<button id="ytPlaceFab" type="button" style="background:#2a1d4d; color:#e6d8ff; border:1px solid #c9a4ff; border-radius:14px; padding:14px 18px; font-size:16px; font-weight:700; box-shadow:0 6px 24px rgba(0,0,0,.5);">¿Colocar las bolas en la mesa real?</button>
+<button id="ytChangePlay" type="button" style="background:#1a1420; color:#ffb3b3; border:1px solid #ff8a8a; border-radius:14px; padding:14px 14px; font-size:14px; font-weight:700; box-shadow:0 6px 24px rgba(0,0,0,.5);">Cambiar de jugada</button>
+</div>
 <div id="ytPlaceOverlay" style="display:none; position:fixed; inset:0; z-index:9600; background:#0b0e14; overflow:auto;">
 <div style="max-width:1200px; margin:0 auto; padding:18px 16px 28px; display:flex; flex-direction:column; gap:14px; align-items:stretch;">
 <div id="ytPlaceHead" style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
