@@ -17583,7 +17583,8 @@ function drawStartMarks(){
   // ============================================================
   const ytGuia = {
     activa:false, stream:null, video:null, raf:0, timer:0,
-    lector:null, puestas:{}, firmes:{}, ausencias:{}, cerca:{}, desvios:{}, audio:null
+    lector:null, puestas:{}, firmes:{}, ausencias:{}, cerca:{}, desvios:{},
+    centroides:{}, cercaDesde:{}, audio:null
   };
 
   function ytgEstado(msg){
@@ -17699,7 +17700,13 @@ function drawStartMarks(){
     const lc = ytGuia.lector;
     lc.width = cw; lc.height = ch;
     const g2 = lc.getContext('2d', { willReadFrequently:true });
+    // Giro de 180°, igual que toda la tubería de cámara de la casa: la
+    // calibración de la superposición vive en el mundo girado.
+    g2.save();
+    g2.translate(cw, ch);
+    g2.rotate(Math.PI);
     g2.drawImage(v, 0, 0);
+    g2.restore();
     let recienPuestas = 0;
     for(const o of objetivos){
       // Ventana de búsqueda de 1.6 radios alrededor del destino. El juez
@@ -17730,7 +17737,14 @@ function drawStartMarks(){
       const desvio = presencia ? Math.hypot(sx / acierto - o.x, sy / acierto - o.y) : Infinity;
       const tol = o.r * YTG_TOL_RADIO;
       const exacta = presencia && desvio <= tol;
+      if(presencia){
+        ytGuia.centroides[o.key] = { x: sx / acierto, y: sy / acierto };
+      } else {
+        delete ytGuia.centroides[o.key];
+      }
+      const antesCerca = !!ytGuia.cerca[o.key];
       ytGuia.cerca[o.key] = presencia && !exacta && !ytGuia.puestas[o.key];
+      if(ytGuia.cerca[o.key] && !antesCerca) ytGuia.cercaDesde[o.key] = Date.now();
       if(!ytGuia.puestas[o.key]){
         ytGuia.firmes[o.key] = exacta ? (ytGuia.firmes[o.key] || 0) + 1 : 0;
         if(ytGuia.firmes[o.key] >= 2){
@@ -17766,7 +17780,12 @@ function drawStartMarks(){
       const cw = v.videoWidth, ch = v.videoHeight;
       if(cv.width !== cw){ cv.width = cw; cv.height = ch; }
       const g = cv.getContext('2d');
+      // Giro de 180°, igual que toda la tubería de cámara de la casa.
+      g.save();
+      g.translate(cw, ch);
+      g.rotate(Math.PI);
       g.drawImage(v, 0, 0);
+      g.restore();
       const H = ytgHomografia(cw, ch);
       const objetivos = H && ytgObjetivos(H, cw, ch);
       if(objetivos){
@@ -17795,9 +17814,98 @@ function drawStartMarks(){
           g.fillText(letras[o.key], o.x, ty);
           g.textAlign = 'start';
         }
+        ytgPintarLupa(g, v, cw, ch, objetivos);
       }
     }
     ytGuia.raf = requestAnimationFrame(ytgPintar);
+  }
+
+  // Lupa en vivo: cuando una bola está en ámbar (presente pero no
+  // exacta), un recuadro de un tercio del lienzo amplía esa zona a unos
+  // 3 aumentos: círculo de destino, anillo punteado de tolerancia, el
+  // punto donde el juez ve la bola y una flecha que dice hacia dónde
+  // moverla. Se acomoda solo en la esquina más alejada del destino para
+  // no tapar la faena, sigue a la bola que usted esté colocando y se
+  // despide sola cuando la bola queda verde.
+  function ytgElegirLupa(objetivos){
+    let mejor = null;
+    for(const o of objetivos){
+      if(!ytGuia.cerca[o.key]) continue;
+      const t = ytGuia.cercaDesde[o.key] || 0;
+      if(!mejor || t > mejor.t) mejor = { o, t };
+    }
+    return mejor && mejor.o;
+  }
+
+  function ytgPintarLupa(g, v, cw, ch, objetivos){
+    const o = ytgElegirLupa(objetivos);
+    if(!o) return;
+    const zr = Math.max(20, o.r * 3);
+    const bw = Math.round(cw / 3), bh = bw;
+    const m = Math.round(cw / 90);
+    const rincones = [
+      { x: m, y: m }, { x: cw - bw - m, y: m },
+      { x: m, y: ch - bh - m }, { x: cw - bw - m, y: ch - bh - m }
+    ];
+    let box = rincones[0], dMax = -1;
+    for(const e of rincones){
+      const d = Math.hypot(e.x + bw / 2 - o.x, e.y + bh / 2 - o.y);
+      if(d > dMax){ dMax = d; box = e; }
+    }
+    const rx0 = o.x - zr, ry0 = o.y - zr;
+    const escala = bw / (2 * zr);
+    // El video ampliado, con el giro de 180° de la casa: el recorte se
+    // toma del cuadro crudo en las coordenadas espejadas.
+    g.save();
+    g.beginPath(); g.rect(box.x, box.y, bw, bh); g.clip();
+    g.fillStyle = '#000'; g.fillRect(box.x, box.y, bw, bh);
+    g.translate(box.x + bw, box.y + bh);
+    g.rotate(Math.PI);
+    g.drawImage(v, cw - (rx0 + 2 * zr), ch - (ry0 + 2 * zr), 2 * zr, 2 * zr, 0, 0, bw, bh);
+    g.restore();
+    const EN = p => ({ x: box.x + (p.x - rx0) * escala, y: box.y + (p.y - ry0) * escala });
+    const c = EN(o), rL = o.r * escala, tolL = o.r * YTG_TOL_RADIO * escala;
+    g.lineWidth = 3;
+    g.strokeStyle = 'rgba(0,0,0,.7)';
+    g.beginPath(); g.arc(c.x, c.y, rL, 0, Math.PI * 2); g.stroke();
+    g.strokeStyle = YT_COLORES_BOLA[o.key];
+    g.beginPath(); g.arc(c.x, c.y, rL - 1, 0, Math.PI * 2); g.stroke();
+    g.setLineDash([6, 5]);
+    g.strokeStyle = '#ffb347';
+    g.beginPath(); g.arc(c.x, c.y, tolL, 0, Math.PI * 2); g.stroke();
+    g.setLineDash([]);
+    const cen = ytGuia.centroides[o.key];
+    if(cen){
+      const p = EN(cen);
+      g.fillStyle = '#ffb347';
+      g.strokeStyle = 'rgba(0,0,0,.8)'; g.lineWidth = 2;
+      g.beginPath(); g.arc(p.x, p.y, Math.max(4, rL * .16), 0, Math.PI * 2); g.fill(); g.stroke();
+      const dx = c.x - p.x, dy = c.y - p.y, L = Math.hypot(dx, dy);
+      if(L > 6){
+        const ux = dx / L, uy = dy / L;
+        const fin = { x: c.x - ux * Math.max(2, tolL * .4), y: c.y - uy * Math.max(2, tolL * .4) };
+        g.strokeStyle = '#fff'; g.lineWidth = Math.max(3, rL * .12);
+        g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(fin.x, fin.y); g.stroke();
+        const a = Math.atan2(uy, ux), fl = Math.max(8, rL * .3);
+        g.beginPath();
+        g.moveTo(fin.x, fin.y);
+        g.lineTo(fin.x - fl * Math.cos(a - .5), fin.y - fl * Math.sin(a - .5));
+        g.moveTo(fin.x, fin.y);
+        g.lineTo(fin.x - fl * Math.cos(a + .5), fin.y - fl * Math.sin(a + .5));
+        g.stroke();
+      }
+    }
+    g.lineWidth = 4;
+    g.strokeStyle = YT_COLORES_BOLA[o.key];
+    g.strokeRect(box.x, box.y, bw, bh);
+    const letras = { white:'B', yellow:'A', red:'R' };
+    g.font = '900 ' + Math.max(18, Math.round(bw / 9)) + 'px system-ui';
+    g.textAlign = 'left';
+    g.lineWidth = 4; g.strokeStyle = 'rgba(0,0,0,.85)';
+    g.strokeText(letras[o.key], box.x + 10, box.y + Math.max(22, bw / 8));
+    g.fillStyle = YT_COLORES_BOLA[o.key];
+    g.fillText(letras[o.key], box.x + 10, box.y + Math.max(22, bw / 8));
+    g.textAlign = 'start';
   }
 
   function ytgDetener(){
@@ -17808,6 +17916,7 @@ function drawStartMarks(){
     try{ if(ytGuia.stream) ytGuia.stream.getTracks().forEach(t => t.stop()); }catch{}
     ytGuia.stream = null; ytGuia.video = null;
     ytGuia.puestas = {}; ytGuia.firmes = {}; ytGuia.ausencias = {}; ytGuia.cerca = {}; ytGuia.desvios = {};
+    ytGuia.centroides = {}; ytGuia.cercaDesde = {};
     const btn = ids('ytPlaceLive');
     if(btn) btn.textContent = 'Guía en vivo';
     if(estaba){
@@ -17835,6 +17944,7 @@ function drawStartMarks(){
     }
     ytGuia.activa = true;
     ytGuia.puestas = {}; ytGuia.firmes = {}; ytGuia.ausencias = {}; ytGuia.cerca = {}; ytGuia.desvios = {};
+    ytGuia.centroides = {}; ytGuia.cercaDesde = {};
     const btn = ids('ytPlaceLive');
     if(btn) btn.textContent = 'Volver al mapa';
     ytgEstado('Coloque cada bola en su círculo: ámbar significa casi (afine un poquito), verde con su pip significa exacta.');
