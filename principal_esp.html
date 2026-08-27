@@ -17556,12 +17556,19 @@ function drawStartMarks(){
   // El camino rápido del ciclo: restaurar la jugada, abrir la
   // colocación y encender de una vez la guía en vivo, todo en el
   // mismo clic del botón morado.
-  function ytVolverAColocar(){
-    if(!ytRestaurarJugada()) return;
-    ytActualizarFab(null);
+  // Colocar ES la guía en vivo: el mapa ya no es puerta de entrada
+  // sino plan B (falla de cámara o de calibración) y opción manual del
+  // botón «Volver al mapa».
+  function ytColocarEnVivo(){
     ytGuia.saltarMapa = true;
     ytAbrirColocacion();
     ytgIniciar();
+  }
+
+  function ytVolverAColocar(){
+    if(!ytRestaurarJugada()) return;
+    ytActualizarFab(null);
+    ytColocarEnVivo();
   }
 
   // El botón morado inferior tiene dos vestidos: antes de la primera
@@ -18018,6 +18025,9 @@ function drawStartMarks(){
     if(ytGuia.activa){ ytgDetener(); return; }
     if(!loadVideoCalibration()){
       ytgEstado('Para la guía en vivo calibre primero la superposición en el módulo del video de la jugada: son las mismas cuatro esquinas de siempre, y se hace una sola vez.');
+      // Plan B: sin calibración no hay guía, pero nadie queda mirando
+      // un lienzo negro: el mapa dibujado toma el relevo.
+      ytPintarDiagramaColocacion();
       return;
     }
     ytgEstado('Abriendo la cámara cenital…');
@@ -18029,6 +18039,7 @@ function drawStartMarks(){
       await ytgAbrirCamara();
     }catch(e){
       ytgEstado('No fue posible abrir la cámara cenital. Revise el permiso de cámara o cierre el programa que la esté usando.');
+      ytPintarDiagramaColocacion();
       return;
     }
     ytGuia.activa = true;
@@ -18087,8 +18098,9 @@ function drawStartMarks(){
     const placeBtn = ids('ytPlaceBtn'), fab = ids('ytPlaceFab'), placeClose = ids('ytPlaceClose');
     if(placeBtn) placeBtn.addEventListener('click', ytAbrirColocacion);
     if(fab) fab.addEventListener('click', () => {
-      if(fab.dataset.modo === 'volver') ytVolverAColocar();
-      else ytAbrirColocacion();
+      if(fab.dataset.modo === 'volver'){ ytVolverAColocar(); return; }
+      ytActualizarFab(null);
+      ytColocarEnVivo();
     });
     const live = ids('ytPlaceLive');
     if(live) live.addEventListener('click', ytgIniciar);
