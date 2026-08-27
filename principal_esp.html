@@ -1978,9 +1978,9 @@
             </div>
 </div><div class="photoFileWrap" data-tip="Se sugiere tomar la fotografía desde la mayor altura posible. Una silla ayuda mucho">
 <input accept="image/*" id="photoLocatorInput" type="file"/>
-</div><div class="photoStatus" id="photoLocatorStatus">Recomendación: escoja primero desde qué lado tomó la foto. La detección automática propone puntos iniciales y corrige las esquinas 5 cm hacia adentro; la superficie jugable final será la definida por los cuatro puntos confirmados.</div></div></details><details class="menuModule" id="moduleYoutube"><summary><span class="moduleTitle" style="color:#c9a4ff">Entrenar desde YouTube (cámara cenital)</span><span class="moduleState" id="moduleYoutubeState">Capture jugadas de cualquier video</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody">
-<p class="small" style="margin:0 0 10px;"><b>El título morado de esta sección es el botón:</b> tóquelo y la app va directo a capturar (esta flecha ⌄ solo abre esta ayuda). El ritual: abra en <b>otra pestaña de Chrome</b> la transmisión cenital (YouTube, Kozoom o cualquier video) y <b>páusela</b> en la jugada que quiera robarse; toque el título morado; Chrome le pedirá elegir esa pestaña (una sola vez por sesión). Sobre el cuadro capturado, la primera vez marcará las <b>cuatro esquinas del paño</b> (quedan guardadas; use "Recalibrar esquinas" si cambió de video o de encuadre) y después <b>tres clics</b>: blanca, amarilla y roja. Las bolas aterrizan en la mesa virtual, listas para entrenar.</p>
-<button class="cameraCaptureBtn" id="ytCaptureBtn" type="button" style="width:100%;">Capturar posición a partir de un video</button>
+</div><div class="photoStatus" id="photoLocatorStatus">Recomendación: escoja primero desde qué lado tomó la foto. La detección automática propone puntos iniciales y corrige las esquinas 5 cm hacia adentro; la superficie jugable final será la definida por los cuatro puntos confirmados.</div></div></details><details class="menuModule" id="moduleYoutube"><summary><span class="moduleTitle" style="color:#c9a4ff">Entrenar desde YouTube y otras fuentes</span><span class="moduleState" id="moduleYoutubeState">Capture jugadas de videos, PDF o imágenes</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody">
+<p class="small" style="margin:0 0 10px;"><b>El título morado de esta sección es el botón:</b> tóquelo y la app va directo a capturar (esta flecha ⌄ solo abre esta ayuda). El ritual: abra la vista cenital en <b>otra pestaña de Chrome o en cualquier ventana</b> (YouTube o Kozoom pausados, un PDF en Acrobat, una imagen en Fotos) y déjela <b>a la vista</b> en la jugada que quiera robarse; toque el título morado; Chrome le pedirá elegir esa pestaña o ventana (una sola vez por sesión). Sobre el cuadro capturado, la primera vez marcará las <b>cuatro esquinas del paño</b> (quedan guardadas; use "Recalibrar esquinas" si cambió de video o de encuadre) y después <b>tres clics</b>: blanca, amarilla y roja. Las bolas aterrizan en la mesa virtual, listas para entrenar.</p>
+<button class="cameraCaptureBtn" id="ytCaptureBtn" type="button" style="width:100%;">Capturar posición desde video, PDF o imagen</button>
 <div aria-live="polite" class="cameraCaptureStatus" id="ytStatus" role="status" style="margin-top:10px;">Sin captura todavía.</div>
 <button id="ytPlaceBtn" type="button" style="width:100%; margin-top:10px;">Ver colocación en mesa real de la posición actual</button>
 <button id="ytRepeatBtn" type="button" style="width:100%; margin-top:10px; display:none;">Repetir la jugada anterior</button>
@@ -17079,7 +17079,7 @@ function drawStartMarks(){
       stream.getVideoTracks()[0].addEventListener('ended', () => { ytTrain.stream = null; });
       return true;
     }catch(e){
-      ytStatus('No se autorizó la captura. Elija la pestaña del video y acepte compartirla.');
+      ytStatus('No se autorizó la captura. Elija la pestaña o la ventana de la jugada y acepte compartirla.');
       return false;
     }
   }
@@ -17293,18 +17293,18 @@ function drawStartMarks(){
     recalculateAll('youtube-position');
     ytGuardarJugada();
     ids('ytMarkOverlay').style.display = 'none';
-    ytStatus('Posición transferida a la mesa. Entrene la jugada; para la próxima, pause el video en la otra pestaña y vuelva a pulsar el botón.');
+    ytStatus('Posición transferida a la mesa. Entrene la jugada; para la próxima, deje la siguiente a la vista en su pestaña o ventana y vuelva a pulsar el botón.');
     ytActualizarFab('primera');
   }
 
   async function ytCapturarPosicion(){
-    ytStatus('Elija la pestaña donde tiene el video pausado y acepte compartirla.');
+    ytStatus('Elija la pestaña o la ventana donde tiene la jugada a la vista y acepte compartirla.');
     const ok = await ytAsegurarCaptura();
     if(!ok) return;
     await new Promise(res => setTimeout(res, 300));
     const frame = ytCapturarCuadro();
     if(!frame){
-      ytStatus('No fue posible leer la pestaña compartida. Intente de nuevo.');
+      ytStatus('No fue posible leer la fuente compartida. Intente de nuevo.');
       return;
     }
     ytStatus('Cuadro capturado.');
