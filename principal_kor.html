@@ -1978,9 +1978,9 @@
             </div>
 </div><div class="photoFileWrap" data-tip="Se sugiere tomar la fotografía desde la mayor altura posible. Una silla ayuda mucho">
 <input accept="image/*" id="photoLocatorInput" type="file"/>
-</div><div class="photoStatus" id="photoLocatorStatus">먼저 어느 쪽에서 촬영했는지 선택하십시오. 자동 인식은 초기 점을 제안하고 모서리를 안쪽으로 5 cm 보정합니다. 최종 경기면은 확인한 네 점으로 정해집니다.</div></div></details><details class="menuModule" id="moduleYoutube"><summary><span class="moduleTitle" style="color:#c9a4ff">YouTube 영상으로 훈련 (천장 카메라)</span><span class="moduleState" id="moduleYoutubeState">어떤 영상에서든 배치를 캡처</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody">
-<p class="small" style="margin:0 0 10px;"><b>이 섹션의 보라색 제목이 곧 버튼입니다:</b> 제목을 터치하면 앱이 바로 캡처를 시작합니다(화살표 ⌄는 이 도움말만 엽니다). 절차: <b>다른 Chrome 탭</b>에서 천장 카메라 중계(YouTube, Kozoom 또는 임의의 영상)를 열고, 가져오고 싶은 배치에서 <b>일시정지</b>하십시오. 그다음 보라색 제목을 터치하면 Chrome이 해당 탭을 선택하라고 요청합니다(세션당 한 번). 캡처된 화면에서 처음 한 번은 <b>경기면 네 모서리</b>를 표시하며(저장됩니다. 영상이나 구도가 바뀌면 "모서리 재보정"을 사용하십시오), 이후 <b>세 번의 클릭</b>으로 흰 공, 노란 공, 빨간 공을 표시합니다. 공이 가상 테이블에 배치되어 바로 훈련할 수 있습니다.</p>
-<button class="cameraCaptureBtn" id="ytCaptureBtn" type="button" style="width:100%;">영상에서 배치 캡처</button>
+</div><div class="photoStatus" id="photoLocatorStatus">먼저 어느 쪽에서 촬영했는지 선택하십시오. 자동 인식은 초기 점을 제안하고 모서리를 안쪽으로 5 cm 보정합니다. 최종 경기면은 확인한 네 점으로 정해집니다.</div></div></details><details class="menuModule" id="moduleYoutube"><summary><span class="moduleTitle" style="color:#c9a4ff">YouTube와 기타 소스로 훈련</span><span class="moduleState" id="moduleYoutubeState">영상·PDF·이미지에서 배치를 캡처</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody">
+<p class="small" style="margin:0 0 10px;"><b>이 섹션의 보라색 제목이 곧 버튼입니다:</b> 제목을 터치하면 앱이 바로 캡처를 시작합니다(화살표 ⌄는 이 도움말만 엽니다). 절차: <b>다른 Chrome 탭 또는 아무 창</b>에서 천장 시점 화면(일시정지한 YouTube나 Kozoom, Acrobat의 PDF, 사진 앱의 이미지)을 열고, 가져오고 싶은 배치가 <b>화면에 보이게</b> 하십시오. 그다음 보라색 제목을 터치하면 Chrome이 해당 탭 또는 창을 선택하라고 요청합니다(세션당 한 번). 캡처된 화면에서 처음 한 번은 <b>경기면 네 모서리</b>를 표시하며(저장됩니다. 영상이나 구도가 바뀌면 "모서리 재보정"을 사용하십시오), 이후 <b>세 번의 클릭</b>으로 흰 공, 노란 공, 빨간 공을 표시합니다. 공이 가상 테이블에 배치되어 바로 훈련할 수 있습니다. <span style="opacity:.75">참고: 창은 최소화가 아니라 복원된 상태여야 합니다. 스토어 앱이 선택기에 나타나지 않으면 해당 파일을 Chrome 탭에서 여십시오.</span></p>
+<button class="cameraCaptureBtn" id="ytCaptureBtn" type="button" style="width:100%;">영상·PDF·이미지에서 배치 캡처하기</button>
 <div aria-live="polite" class="cameraCaptureStatus" id="ytStatus" role="status" style="margin-top:10px;">아직 캡처가 없습니다.</div>
 <button id="ytPlaceBtn" type="button" style="width:100%; margin-top:10px;">현재 배치의 실제 테이블 배치 보기</button>
 <button id="ytRepeatBtn" type="button" style="width:100%; margin-top:10px; display:none;">이전 배치 반복</button>
@@ -14409,6 +14409,12 @@ function drawStartMarks(){
     }
     updatePositionInputs();
     recalculateAll('photo-locator-apply');
+    // Boca nueva al ciclo de la jugada: la posición capturada de la mesa
+    // real queda como «la jugada», y el botón morado nace directamente
+    // vestido de «volver a colocar», porque la primera colocación ya la
+    // hizo la realidad; taque, disperse, y el ciclo lo espera abajo.
+    ytGuardarJugada();
+    ytActualizarFab('volver');
     const status = ids('photoLocatorStatus');
     if(status) status.textContent = '사진에서 공 위치를 불러왔습니다. 화면으로 확인하고 필요하면 수동 조정하십시오.';
     rememberSessionCorners();
@@ -17074,7 +17080,7 @@ function drawStartMarks(){
       stream.getVideoTracks()[0].addEventListener('ended', () => { ytTrain.stream = null; });
       return true;
     }catch(e){
-      ytStatus('화면 캡처가 허용되지 않았습니다. 영상이 있는 탭을 선택하고 공유를 수락하십시오.');
+      ytStatus('화면 캡처가 허용되지 않았습니다. 배치가 있는 탭 또는 창을 선택하고 공유를 수락하십시오.');
       return false;
     }
   }
@@ -17288,18 +17294,18 @@ function drawStartMarks(){
     recalculateAll('youtube-position');
     ytGuardarJugada();
     ids('ytMarkOverlay').style.display = 'none';
-    ytStatus('배치가 테이블로 전송되었습니다. 이 배치를 연습하십시오. 다음 배치는 다른 탭에서 영상을 일시정지한 뒤 버튼을 다시 누르십시오.');
+    ytStatus('배치가 테이블로 전송되었습니다. 이 배치를 연습하십시오. 다음 배치는 탭 또는 창에 보이게 해 두고 버튼을 다시 누르십시오.');
     ytActualizarFab('primera');
   }
 
   async function ytCapturarPosicion(){
-    ytStatus('영상을 일시정지해 둔 탭을 선택하고 공유를 수락하십시오.');
+    ytStatus('배치가 보이는 탭 또는 창을 선택하고 공유를 수락하십시오.');
     const ok = await ytAsegurarCaptura();
     if(!ok) return;
     await new Promise(res => setTimeout(res, 300));
     const frame = ytCapturarCuadro();
     if(!frame){
-      ytStatus('공유된 탭을 읽을 수 없습니다. 다시 시도하십시오.');
+      ytStatus('공유된 소스를 읽을 수 없습니다. 다시 시도하십시오.');
       return;
     }
     ytStatus('화면을 캡처했습니다.');
@@ -17478,7 +17484,20 @@ function drawStartMarks(){
         '</div></div>';
       cont.appendChild(div);
     }
-    ytPintarDiagramaColocacion();
+    if(ytGuia.saltarMapa){
+      // Entrada directa a la guía en vivo desde el banner morado: nada
+      // de pintar primero el mapa que nadie pidió ver; el lienzo espera
+      // en negro el primer cuadro de la cámara.
+      ytGuia.saltarMapa = false;
+      const cv = ids('ytPlaceCanvas');
+      if(cv && cv.width){
+        const g = cv.getContext('2d');
+        g.fillStyle = '#000';
+        g.fillRect(0, 0, cv.width, cv.height);
+      }
+    } else {
+      ytPintarDiagramaColocacion();
+    }
     ids('ytPlaceOverlay').style.display = '';
     const fab = ids('ytPlaceFab');
     if(fab) fab.style.display = 'none';
@@ -17538,11 +17557,19 @@ function drawStartMarks(){
   // El camino rápido del ciclo: restaurar la jugada, abrir la
   // colocación y encender de una vez la guía en vivo, todo en el
   // mismo clic del botón morado.
+  // Colocar ES la guía en vivo: el mapa ya no es puerta de entrada
+  // sino plan B (falla de cámara o de calibración) y opción manual del
+  // botón «Volver al mapa».
+  function ytColocarEnVivo(){
+    ytGuia.saltarMapa = true;
+    ytAbrirColocacion();
+    ytgIniciar();
+  }
+
   function ytVolverAColocar(){
     if(!ytRestaurarJugada()) return;
     ytActualizarFab(null);
-    ytAbrirColocacion();
-    ytgIniciar();
+    ytColocarEnVivo();
   }
 
   // El botón morado inferior tiene dos vestidos: antes de la primera
@@ -17552,8 +17579,10 @@ function drawStartMarks(){
   function ytActualizarFab(modo){
     const fab = ids('ytPlaceFab');
     if(!fab) return;
+    const barra = ids('ytPlaceFabBar');
     if(!modo){
       fab.style.display = 'none';
+      if(barra) barra.style.display = 'none';
       fab.dataset.modo = '';
       return;
     }
@@ -17562,6 +17591,7 @@ function drawStartMarks(){
       ? '공을 같은 배치로 다시 놓을까요?'
       : '실제 테이블에 공을 배치할까요?';
     fab.style.display = '';
+    if(barra) barra.style.display = 'flex';
   }
 
   function ytSalirJugada(){
@@ -17585,8 +17615,39 @@ function drawStartMarks(){
   const ytGuia = {
     activa:false, stream:null, video:null, raf:0, timer:0,
     lector:null, puestas:{}, firmes:{}, ausencias:{}, cerca:{}, desvios:{},
-    centroides:{}, cercaDesde:{}, audio:null
+    centroides:{}, cercaDesde:{}, cierre:0, audio:null
   };
+
+  // Sastrería de la cabecera del velo: con la guía en vivo activa, el
+  // título y los tres botones se encogen a una sola línea discreta para
+  // que el video de la mesa con los círculos quede arriba, grande y sin
+  // scroll. Al apagar la guía, la cabecera recupera su tamaño de siempre.
+  function ytgCompactarCabecera(on){
+    const head = ids('ytPlaceHead');
+    if(head){
+      head.style.gap = on ? '8px' : '12px';
+      head.style.flexWrap = on ? 'nowrap' : 'wrap';
+    }
+    const t = ids('ytPlaceTitle');
+    if(t){
+      t.style.fontSize = on ? '14px' : 'clamp(20px,3vw,30px)';
+      t.style.whiteSpace = on ? 'nowrap' : 'normal';
+      t.style.opacity = on ? '.75' : '';
+    }
+    const botones = [
+      ['ytPlaceLive', 'clamp(15px,2vw,20px)', '10px 18px'],
+      ['ytExitPlay', 'clamp(15px,2vw,20px)', '10px 18px'],
+      ['ytPlaceClose', 'clamp(16px,2.2vw,22px)', '10px 22px']
+    ];
+    for(const [id, fsNormal, padNormal] of botones){
+      const b = ids(id);
+      if(!b) continue;
+      b.style.fontSize = on ? '13px' : fsNormal;
+      b.style.padding = on ? '4px 12px' : padNormal;
+      b.style.width = on ? 'auto' : '';
+      b.style.flex = on ? '0 0 auto' : '';
+    }
+  }
 
   function ytgEstado(msg){
     const el = ids('ytPlaceEstado');
@@ -17765,12 +17826,30 @@ function drawStartMarks(){
           ytGuia.firmes[o.key] = 0;
           ytGuia.ausencias[o.key] = 0;
           ytGuia.desvios[o.key] = 0;
+          // Una bola perdió el verde: si el regreso automático estaba en
+          // camino, se cancela y la guía sigue acompañando.
+          if(ytGuia.cierre){
+            clearTimeout(ytGuia.cierre);
+            ytGuia.cierre = 0;
+            ytgEstado('각 공을 해당 원 안에 놓으십시오. 주황은 거의 다 되었다는 뜻이고(조금만 다듬으십시오), 삐 소리와 함께 초록이 되면 정확합니다.');
+          }
         }
       }
     }
     if(recienPuestas && ytGuia.puestas.white && ytGuia.puestas.yellow && ytGuia.puestas.red){
       ytgAcorde();
-      ytgEstado('세 공이 모두 정확합니다. 훈련을 시작하십시오.');
+      ytgEstado('세 공이 모두 정확합니다. 3초 후 앱으로 돌아갑니다…');
+      // Regreso automático: tras el acorde, el velo se cierra solo y la
+      // app queda lista para estudiar y tacar, sin viaje hasta el PC.
+      // El botón morado de «volver» queda abajo para la siguiente vuelta.
+      if(ytGuia.cierre) clearTimeout(ytGuia.cierre);
+      ytGuia.cierre = setTimeout(() => {
+        ytGuia.cierre = 0;
+        if(!(ytGuia.activa && ytGuia.puestas.white && ytGuia.puestas.yellow && ytGuia.puestas.red)) return;
+        ytgDetener();
+        ids('ytPlaceOverlay').style.display = 'none';
+        ytActualizarFab(ytLeerJugada() ? 'volver' : null);
+      }, 3000);
     }
   }
 
@@ -17906,6 +17985,24 @@ function drawStartMarks(){
     g.strokeText(letras[o.key], box.x + 10, box.y + Math.max(22, bw / 8));
     g.fillStyle = YT_COLORES_BOLA[o.key];
     g.fillText(letras[o.key], box.x + 10, box.y + Math.max(22, bw / 8));
+    // Letrero anunciador: el nombre completo de la bola, pintado de su
+    // color con borde oscuro grueso, pegado al recuadro (debajo si cabe
+    // en el lienzo; si no, encima), con tamaño para leerse desde la
+    // mesa. Doble seguridad: aunque no alcance a leer el texto, el
+    // color del letrero ya dice cuál bola es.
+    const anuncios = { white:'흰 공', yellow:'노란 공', red:'빨간 공' };
+    const tam = Math.max(26, Math.round(bw / 7));
+    g.font = '900 ' + tam + 'px system-ui';
+    g.textAlign = 'center';
+    const ax = box.x + bw / 2;
+    // Debajo del recuadro si cabe en el lienzo; si no, encima. Así el
+    // letrero jamás se sale de la pantalla.
+    const ay = (box.y + bh + tam + 12 <= ch) ? box.y + bh + tam + 8 : box.y - 14;
+    g.lineWidth = Math.max(5, Math.round(tam / 5));
+    g.strokeStyle = 'rgba(0,0,0,.9)';
+    g.strokeText(anuncios[o.key], ax, ay);
+    g.fillStyle = YT_COLORES_BOLA[o.key];
+    g.fillText(anuncios[o.key], ax, ay);
     g.textAlign = 'start';
   }
 
@@ -17914,12 +18011,14 @@ function drawStartMarks(){
     ytGuia.activa = false;
     if(ytGuia.raf){ cancelAnimationFrame(ytGuia.raf); ytGuia.raf = 0; }
     if(ytGuia.timer){ clearInterval(ytGuia.timer); ytGuia.timer = 0; }
+    if(ytGuia.cierre){ clearTimeout(ytGuia.cierre); ytGuia.cierre = 0; }
     try{ if(ytGuia.stream) ytGuia.stream.getTracks().forEach(t => t.stop()); }catch{}
     ytGuia.stream = null; ytGuia.video = null;
     ytGuia.puestas = {}; ytGuia.firmes = {}; ytGuia.ausencias = {}; ytGuia.cerca = {}; ytGuia.desvios = {};
     ytGuia.centroides = {}; ytGuia.cercaDesde = {};
     const btn = ids('ytPlaceLive');
     if(btn) btn.textContent = '실시간 가이드';
+    ytgCompactarCabecera(false);
     if(estaba){
       ytgEstado('');
       ytPintarDiagramaColocacion();
@@ -17930,6 +18029,9 @@ function drawStartMarks(){
     if(ytGuia.activa){ ytgDetener(); return; }
     if(!loadVideoCalibration()){
       ytgEstado('실시간 가이드를 쓰려면 먼저 샷 영상 모듈에서 오버레이를 보정하십시오. 늘 쓰던 그 네 모서리이며, 한 번만 하면 됩니다.');
+      // Plan B: sin calibración no hay guía, pero nadie queda mirando
+      // un lienzo negro: el mapa dibujado toma el relevo.
+      ytPintarDiagramaColocacion();
       return;
     }
     ytgEstado('천장 카메라를 여는 중…');
@@ -17941,6 +18043,7 @@ function drawStartMarks(){
       await ytgAbrirCamara();
     }catch(e){
       ytgEstado('천장 카메라를 열 수 없습니다. 카메라 권한을 확인하거나 카메라를 사용 중인 프로그램을 종료하십시오.');
+      ytPintarDiagramaColocacion();
       return;
     }
     ytGuia.activa = true;
@@ -17948,6 +18051,7 @@ function drawStartMarks(){
     ytGuia.centroides = {}; ytGuia.cercaDesde = {};
     const btn = ids('ytPlaceLive');
     if(btn) btn.textContent = '지도로 돌아가기';
+    ytgCompactarCabecera(true);
     ytgEstado('각 공을 해당 원 안에 놓으십시오. 주황은 거의 다 되었다는 뜻이고(조금만 다듬으십시오), 삐 소리와 함께 초록이 되면 정확합니다.');
     ytGuia.timer = setInterval(ytgMuestrear, 450);
     ytgPintar();
@@ -17998,9 +18102,12 @@ function drawStartMarks(){
     const placeBtn = ids('ytPlaceBtn'), fab = ids('ytPlaceFab'), placeClose = ids('ytPlaceClose');
     if(placeBtn) placeBtn.addEventListener('click', ytAbrirColocacion);
     if(fab) fab.addEventListener('click', () => {
-      if(fab.dataset.modo === 'volver') ytVolverAColocar();
-      else ytAbrirColocacion();
+      if(fab.dataset.modo === 'volver'){ ytVolverAColocar(); return; }
+      ytActualizarFab(null);
+      ytColocarEnVivo();
     });
+    const cambiar = ids('ytChangePlay');
+    if(cambiar) cambiar.addEventListener('click', ytSalirJugada);
     const live = ids('ytPlaceLive');
     if(live) live.addEventListener('click', ytgIniciar);
     const rep = ids('ytRepeatBtn');
@@ -18008,7 +18115,10 @@ function drawStartMarks(){
     const salir = ids('ytExitPlay');
     if(salir) salir.addEventListener('click', ytSalirJugada);
     ytRefrescarRepetir();
-    if(ytLeerJugada()) ytActualizarFab('volver');
+    // El botón morado no renace al cargar la app: debe ganarse su
+    // aparición con una captura (de YouTube o de la fotografía) en la
+    // sesión presente. La jugada de sesiones pasadas sigue a la mano,
+    // discreta, en «Repetir la jugada anterior» dentro del módulo.
     if(placeClose) placeClose.addEventListener('click', () => {
       ytgDetener();
       ids('ytPlaceOverlay').style.display = 'none';
@@ -18175,11 +18285,14 @@ function drawStartMarks(){
 </div>
 </div>
 
-<button id="ytPlaceFab" type="button" style="display:none; position:fixed; bottom:18px; right:18px; z-index:9400; background:#2a1d4d; color:#e6d8ff; border:1px solid #c9a4ff; border-radius:14px; padding:14px 18px; font-size:16px; font-weight:700; box-shadow:0 6px 24px rgba(0,0,0,.5);">실제 테이블에 공을 배치할까요?</button>
+<div id="ytPlaceFabBar" style="display:none; position:fixed; bottom:18px; right:18px; z-index:9400; gap:10px; align-items:stretch;">
+<button id="ytPlaceFab" type="button" style="background:#2a1d4d; color:#e6d8ff; border:1px solid #c9a4ff; border-radius:14px; padding:14px 18px; font-size:16px; font-weight:700; box-shadow:0 6px 24px rgba(0,0,0,.5);">실제 테이블에 공을 배치할까요?</button>
+<button id="ytChangePlay" type="button" style="background:#1a1420; color:#ffb3b3; border:1px solid #ff8a8a; border-radius:14px; padding:14px 14px; font-size:14px; font-weight:700; box-shadow:0 6px 24px rgba(0,0,0,.5);">배치 바꾸기</button>
+</div>
 <div id="ytPlaceOverlay" style="display:none; position:fixed; inset:0; z-index:9600; background:#0b0e14; overflow:auto;">
 <div style="max-width:1200px; margin:0 auto; padding:18px 16px 28px; display:flex; flex-direction:column; gap:14px; align-items:stretch;">
-<div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-<h2 style="flex:1; margin:0; color:#c9a4ff; font-size:clamp(20px,3vw,30px);">실제 테이블에 공 배치</h2>
+<div id="ytPlaceHead" style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+<h2 id="ytPlaceTitle" style="flex:1; margin:0; color:#c9a4ff; font-size:clamp(20px,3vw,30px); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:normal;">실제 테이블에 공 배치</h2>
 <button id="ytPlaceLive" type="button" style="font-size:clamp(15px,2vw,20px); padding:10px 18px;">실시간 가이드</button>
 <button id="ytExitPlay" type="button" style="font-size:clamp(15px,2vw,20px); padding:10px 18px; border:1px solid #ff8a8a; color:#ffb3b3; background:transparent; border-radius:8px;">이 배치 종료</button>
 <button id="ytPlaceClose" type="button" style="font-size:clamp(16px,2.2vw,22px); padding:10px 22px;">닫기</button>
