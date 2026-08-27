@@ -17483,7 +17483,20 @@ function drawStartMarks(){
         '</div></div>';
       cont.appendChild(div);
     }
-    ytPintarDiagramaColocacion();
+    if(ytGuia.saltarMapa){
+      // Entrada directa a la guía en vivo desde el banner morado: nada
+      // de pintar primero el mapa que nadie pidió ver; el lienzo espera
+      // en negro el primer cuadro de la cámara.
+      ytGuia.saltarMapa = false;
+      const cv = ids('ytPlaceCanvas');
+      if(cv && cv.width){
+        const g = cv.getContext('2d');
+        g.fillStyle = '#000';
+        g.fillRect(0, 0, cv.width, cv.height);
+      }
+    } else {
+      ytPintarDiagramaColocacion();
+    }
     ids('ytPlaceOverlay').style.display = '';
     const fab = ids('ytPlaceFab');
     if(fab) fab.style.display = 'none';
@@ -17546,6 +17559,7 @@ function drawStartMarks(){
   function ytVolverAColocar(){
     if(!ytRestaurarJugada()) return;
     ytActualizarFab(null);
+    ytGuia.saltarMapa = true;
     ytAbrirColocacion();
     ytgIniciar();
   }
@@ -17592,6 +17606,37 @@ function drawStartMarks(){
     lector:null, puestas:{}, firmes:{}, ausencias:{}, cerca:{}, desvios:{},
     centroides:{}, cercaDesde:{}, cierre:0, audio:null
   };
+
+  // Sastrería de la cabecera del velo: con la guía en vivo activa, el
+  // título y los tres botones se encogen a una sola línea discreta para
+  // que el video de la mesa con los círculos quede arriba, grande y sin
+  // scroll. Al apagar la guía, la cabecera recupera su tamaño de siempre.
+  function ytgCompactarCabecera(on){
+    const head = ids('ytPlaceHead');
+    if(head){
+      head.style.gap = on ? '8px' : '12px';
+      head.style.flexWrap = on ? 'nowrap' : 'wrap';
+    }
+    const t = ids('ytPlaceTitle');
+    if(t){
+      t.style.fontSize = on ? '14px' : 'clamp(20px,3vw,30px)';
+      t.style.whiteSpace = on ? 'nowrap' : 'normal';
+      t.style.opacity = on ? '.75' : '';
+    }
+    const botones = [
+      ['ytPlaceLive', 'clamp(15px,2vw,20px)', '10px 18px'],
+      ['ytExitPlay', 'clamp(15px,2vw,20px)', '10px 18px'],
+      ['ytPlaceClose', 'clamp(16px,2.2vw,22px)', '10px 22px']
+    ];
+    for(const [id, fsNormal, padNormal] of botones){
+      const b = ids(id);
+      if(!b) continue;
+      b.style.fontSize = on ? '13px' : fsNormal;
+      b.style.padding = on ? '4px 12px' : padNormal;
+      b.style.width = on ? 'auto' : '';
+      b.style.flex = on ? '0 0 auto' : '';
+    }
+  }
 
   function ytgEstado(msg){
     const el = ids('ytPlaceEstado');
@@ -17962,6 +18007,7 @@ function drawStartMarks(){
     ytGuia.centroides = {}; ytGuia.cercaDesde = {};
     const btn = ids('ytPlaceLive');
     if(btn) btn.textContent = 'Guía en vivo';
+    ytgCompactarCabecera(false);
     if(estaba){
       ytgEstado('');
       ytPintarDiagramaColocacion();
@@ -17990,6 +18036,7 @@ function drawStartMarks(){
     ytGuia.centroides = {}; ytGuia.cercaDesde = {};
     const btn = ids('ytPlaceLive');
     if(btn) btn.textContent = 'Volver al mapa';
+    ytgCompactarCabecera(true);
     ytgEstado('Coloque cada bola en su círculo: ámbar significa casi (afine un poquito), verde con su pip significa exacta.');
     ytGuia.timer = setInterval(ytgMuestrear, 450);
     ytgPintar();
@@ -18223,8 +18270,8 @@ function drawStartMarks(){
 <button id="ytPlaceFab" type="button" style="display:none; position:fixed; bottom:18px; right:18px; z-index:9400; background:#2a1d4d; color:#e6d8ff; border:1px solid #c9a4ff; border-radius:14px; padding:14px 18px; font-size:16px; font-weight:700; box-shadow:0 6px 24px rgba(0,0,0,.5);">¿Colocar las bolas en la mesa real?</button>
 <div id="ytPlaceOverlay" style="display:none; position:fixed; inset:0; z-index:9600; background:#0b0e14; overflow:auto;">
 <div style="max-width:1200px; margin:0 auto; padding:18px 16px 28px; display:flex; flex-direction:column; gap:14px; align-items:stretch;">
-<div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-<h2 style="flex:1; margin:0; color:#c9a4ff; font-size:clamp(20px,3vw,30px);">Colocación de las bolas en la mesa real</h2>
+<div id="ytPlaceHead" style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+<h2 id="ytPlaceTitle" style="flex:1; margin:0; color:#c9a4ff; font-size:clamp(20px,3vw,30px); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:normal;">Colocación de las bolas en la mesa real</h2>
 <button id="ytPlaceLive" type="button" style="font-size:clamp(15px,2vw,20px); padding:10px 18px;">Guía en vivo</button>
 <button id="ytExitPlay" type="button" style="font-size:clamp(15px,2vw,20px); padding:10px 18px; border:1px solid #ff8a8a; color:#ffb3b3; background:transparent; border-radius:8px;">Salir de esta jugada</button>
 <button id="ytPlaceClose" type="button" style="font-size:clamp(16px,2.2vw,22px); padding:10px 22px;">Cerrar</button>
