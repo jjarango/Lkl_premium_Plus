@@ -13417,7 +13417,28 @@ function drawStartMarks(){
     let ux = punto.x - centro.x, uy = punto.y - centro.y;
     const L = Math.hypot(ux, uy) || 1;
     ux /= L; uy /= L;
-    const verdes = [];
+    // Nivel 1: verde franco (sticker nítido). Nivel 2: detector
+    // relativo al vecindario, que pesca el sticker aun desenfocado: no
+    // pregunta si el píxel es verde de verdad, sino si es notablemente
+    // más verde que el paño que lo rodea (canal G contra el mayor de R
+    // y B, comparado con la mediana de la ventana), excluyendo píxeles
+    // blancuzcos como las marcas de la baranda. El desenfoque convierte
+    // el verde en turquesa desvaído, pero no puede evitar que siga
+    // siendo lo más verde de su vecindario.
+    const totalPx = w * h;
+    const verdor = new Float32Array(totalPx);
+    const cromatico = new Uint8Array(totalPx);
+    for(let p = 0, i4 = 0; p < totalPx; p++, i4 += 4){
+      const r0 = datos[i4], g0 = datos[i4 + 1], b0 = datos[i4 + 2];
+      verdor[p] = g0 - Math.max(r0, b0);
+      cromatico[p] = (Math.max(r0, g0, b0) - Math.min(r0, g0, b0)) > 25 ? 1 : 0;
+    }
+    const muestra = [];
+    for(let p = 0; p < totalPx; p += 7) muestra.push(verdor[p]);
+    muestra.sort((a, b) => a - b);
+    const mediana = muestra[muestra.length >> 1];
+    const p98 = muestra[Math.min(muestra.length - 1, Math.round(muestra.length * 0.98))];
+    let verdes = [];
     for(let py = 0; py < h; py++){
       for(let px = 0; px < w; px++){
         const i4 = (py * w + px) * 4;
@@ -13427,14 +13448,27 @@ function drawStartMarks(){
         }
       }
     }
+    if(verdes.length < 25 && (p98 - mediana) >= 18){
+      const umbral = mediana + Math.max(14, (p98 - mediana) * 0.5);
+      verdes = [];
+      for(let py = 0; py < h; py++){
+        for(let px = 0; px < w; px++){
+          const p = py * w + px;
+          if(cromatico[p] && verdor[p] >= umbral){
+            const X = x0 + px, Y = y0 + py;
+            verdes.push({ x: X, y: Y, s: X * ux + Y * uy });
+          }
+        }
+      }
+    }
     // Área mínima para no dejarse engañar por un reflejo o una pelusa.
     if(verdes.length < 25) return null;
     // El ángulo recto del sticker apunta hacia adentro de la mesa: el
-    // vértice es el extremo de la mancha verde en la dirección del
-    // centro. Se promedian los más extremos para que el ruido de un
-    // borde no lo corra.
+    // vértice es el extremo de la mancha en la dirección del centro. Se
+    // promedian los más extremos, con mano un poco más generosa cuando
+    // la mancha viene borrosa, para que el ruido no lo corra.
     verdes.sort((a, b) => a.s - b.s);
-    const n = Math.max(4, Math.round(verdes.length * 0.02));
+    const n = Math.max(4, Math.round(verdes.length * 0.03));
     let sx = 0, sy = 0;
     for(let k = 0; k < n; k++){ sx += verdes[k].x; sy += verdes[k].y; }
     return { x: sx / n, y: sy / n };
@@ -13772,6 +13806,32 @@ function drawStartMarks(){
     }
   }
 
+  // El disparo fotográfico hereda el enfoque manual de la Brio: si el
+  // deslizador del módulo de video guardó una distancia para esta
+  // cámara, se aplica antes de disparar; si no hay valor guardado, se
+  // deja asentar el autofoco un momento y se congela donde quedó, para
+  // que las esquinas no salgan retratadas a medio viaje de foco.
+  async function aplicarEnfoqueGuardadoCaptura(track){
+    try{
+      if(!track || !track.getCapabilities) return;
+      const caps = track.getCapabilities() || {};
+      if(!caps.focusDistance || !(caps.focusMode || []).includes('manual')) return;
+      const current = track.getSettings ? track.getSettings() : {};
+      const guardada = leerEnfoqueGuardado(current.deviceId);
+      if(guardada !== null && Number.isFinite(guardada)){
+        await track.applyConstraints({ advanced: [{ focusMode:'manual', focusDistance: guardada }] });
+        await waitCamera(200);
+        return;
+      }
+      await waitCamera(900);
+      const s = track.getSettings ? track.getSettings() : {};
+      if(Number.isFinite(s.focusDistance)){
+        await track.applyConstraints({ advanced: [{ focusMode:'manual', focusDistance: s.focusDistance }] });
+        await waitCamera(150);
+      }
+    }catch{}
+  }
+
   async function openBrioForCapture(){
     if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
       throw new Error('Este navegador no ofrece acceso directo a cámaras. Abra el archivo con una versión reciente de Chrome o Edge.');
@@ -13796,6 +13856,7 @@ function drawStartMarks(){
     await video.play();
     await waitForVideoReady(video, 12000);
     await waitCamera(450);
+    await aplicarEnfoqueGuardadoCaptura(track);
 
     const settings = track && track.getSettings ? track.getSettings() : {};
     const actualWidth = Number(video.videoWidth || settings.width || 0);
