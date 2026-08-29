@@ -2066,7 +2066,7 @@
 <button class="videoReplayClose" id="videoReplayClose" type="button">关闭</button>
 </div>
 <div class="videoReplayBody">
-<div class="videoReplayPane"><canvas id="videoReplayCanvas"></canvas></div>
+<div class="videoReplayPane"><div id="videoReplayMuteRow" style="display:none; position:absolute; top:14px; left:14px; z-index:5;"><button id="videoReplayMuteBtn" title="将视频静音" type="button" style="width:64px; height:64px; border-radius:50%; font-size:30px; line-height:1; background:rgba(10,14,22,.85); border:2px solid #3a4a63; color:#fff; cursor:pointer; box-shadow:0 4px 16px rgba(0,0,0,.5);">🔊</button></div><canvas id="videoReplayCanvas"></canvas></div>
 <div class="videoReplaySide">
 <div class="videoReplayGroup" id="videoReplayCalibPanel" style="display:none">
 <h3>四角校准</h3>
@@ -15571,6 +15571,33 @@ function drawStartMarks(){
     g.restore();
   }
 
+  // Silencio del reproductor de revisión, con memoria por navegador:
+  // quien practica con música en la sala lo deja en silencio una vez y
+  // las grabaciones siguientes nacen calladas. Gobierna SOLO la
+  // reproducción en pantalla: las descargas conservan siempre su audio.
+  const REPLAY_MUTE_KEY = 'videoReplaySilencioV1';
+
+  function replaySilencioGuardado(){
+    try{ return localStorage.getItem(REPLAY_MUTE_KEY) === '1'; }catch{ return false; }
+  }
+
+  function aplicarSilencioReplay(){
+    const m = replaySilencioGuardado();
+    const v = ids('videoReplayPlayback');
+    if(v){ v.muted = m; v.volume = m ? 0 : 1; }
+    const b = ids('videoReplayMuteBtn');
+    if(b){
+      b.textContent = m ? '🔇' : '🔊';
+      b.title = m ? '视频已静音：点击恢复声音' : '视频有声：点击静音';
+      b.style.borderColor = m ? '#ff8a8a' : '#3a4a63';
+    }
+  }
+
+  function alternarSilencioReplay(){
+    try{ localStorage.setItem(REPLAY_MUTE_KEY, replaySilencioGuardado() ? '0' : '1'); }catch{}
+    aplicarSilencioReplay();
+  }
+
   function videoReplayDuration(){
     const v = ids('videoReplayPlayback');
     if(videoReplay.duration && Number.isFinite(videoReplay.duration) && videoReplay.duration > 0) return videoReplay.duration;
@@ -15723,6 +15750,9 @@ function drawStartMarks(){
       const el = ids(id);
       if(el) el.style.display = id === visible ? '' : 'none';
     });
+    const muteRow = ids('videoReplayMuteRow');
+    if(muteRow) muteRow.style.display = mode === 'replay' ? '' : 'none';
+    if(mode === 'replay') aplicarSilencioReplay();
     const cajaEnfoque = ids('videoReplayFocusBox');
     if(cajaEnfoque) cajaEnfoque.style.display = (mode === 'record' && videoReplay.focusSliderDisponible) ? '' : 'none';
     const step = ids('videoReplayStep');
@@ -15949,6 +15979,7 @@ function drawStartMarks(){
     const playback = ids('videoReplayPlayback');
     const speedSel = ids('videoReplaySpeed');
     playback.src = videoReplay.blobUrl;
+    aplicarSilencioReplay();
     playback.playbackRate = speedSel ? (parseFloat(speedSel.value) || 1) : 1;
     playback.onloadedmetadata = () => {
       if(!Number.isFinite(playback.duration) || playback.duration <= 0){
@@ -16194,6 +16225,12 @@ function drawStartMarks(){
     srcVideo.src = videoReplay.blobUrl;
     srcVideo.playsInline = true;
     srcVideo.preload = 'auto';
+    // Blindaje del audio exportado: el silencio del botón es cosa de la
+    // pantalla; la exportación trabaja con su propio reproductor y aquí
+    // se fija a volumen pleno, de modo que el archivo descargado con
+    // datos incluye SIEMPRE el sonido, sin importar el botón.
+    srcVideo.muted = false;
+    srcVideo.volume = 1;
 
     const failExport = message => {
       videoReplay.exporting = false;
@@ -16531,6 +16568,9 @@ function drawStartMarks(){
 
     const playback = ids('videoReplayPlayback');
     const playBtn = ids('videoReplayPlayBtn');
+    const muteBtn = ids('videoReplayMuteBtn');
+    if(muteBtn) muteBtn.addEventListener('click', alternarSilencioReplay);
+    aplicarSilencioReplay();
     if(playBtn && playback) playBtn.addEventListener('click', () => {
       if(playback.paused){
         const speedSel = ids('videoReplaySpeed');
