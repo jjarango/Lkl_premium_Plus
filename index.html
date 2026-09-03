@@ -204,6 +204,11 @@
       grid-template-columns:repeat(2,minmax(0,1fr));
       gap:18px;
     }
+    /* La quinta caja (ruso) ocupa la fila completa y se centra con el
+       ancho exacto de una columna; en pantallas angostas vuelve a
+       ancho pleno como las demás. */
+    .languageCard.centrada{grid-column:1 / -1; width:calc(50% - 9px); justify-self:center;}
+    @media(max-width:760px){.languageCard.centrada{width:100%}}
     @media(max-width:760px){.languageGrid{grid-template-columns:1fr}}
 
     .languageCard{
@@ -538,7 +543,7 @@
 <section aria-labelledby="language-title" class="languages wrap">
 <div class="sectionIntro">
 <h2 id="language-title">Seleccione su idioma</h2>
-<p>Español · English · 한국어 · 简体中文</p>
+<p>Español · English · 한국어 · 简体中文 · Русский</p>
 </div>
 <div class="languageGrid">
 <article class="languageCard" data-lang="es" lang="es"><div aria-label="Colombia" class="flagGroup">
@@ -648,12 +653,32 @@
 <a class="action" href="dequevaesto_chi.html" rel="noopener" target="_blank"><span>这是什么？</span><span class="arrow">→</span></a>
 </div>
 </article>
+<article class="languageCard centrada" data-lang="ru" lang="ru"><div aria-label="Russia" class="flagGroup">
+<span aria-label="Bandera de Rusia" class="flag" role="img">
+<svg aria-hidden="true" viewbox="0 0 60 40" xmlns="http://www.w3.org/2000/svg">
+<rect fill="#FFFFFF" height="13.34" width="60"></rect>
+<rect fill="#0039A6" height="13.33" width="60" y="13.34"></rect>
+<rect fill="#D52B1E" height="13.33" width="60" y="26.67"></rect>
+</svg>
+</span>
+</div>
+<span class="suggested">Рекомендуем</span>
+<div class="langNumber">05 · RU</div><div class="countryLabel">Russia</div>
+<div class="languageHeading"><h3>Русский</h3></div>
+<p class="nativeTitle">Цифровой ассистент для трёхбортного карамболя</p>
+<p class="description">Рассчитывайте, визуализируйте и отрабатывайте системы прицеливания на профессиональном столе.</p>
+<div class="buttonStack">
+<a class="action primary" href="principal_ruso.html" rel="noopener" target="_blank"><span>Открыть приложение</span><span class="arrow">→</span></a>
+<a class="action" href="dequevaesto_ru.html" rel="noopener" target="_blank"><span>Что это такое?</span><span class="arrow">→</span></a>
+</div>
+</article>
 </div>
 <aside aria-label="Nota sobre el proyecto de código abierto" class="projectNote">
 <p lang="es"><strong>Proyecto de código abierto.</strong> Herramienta gratuita para estudio y entrenamiento; sus resultados requieren calibración y criterio del jugador.</p>
 <p lang="en"><strong>Open-source project.</strong> A free study and training tool; its results require calibration and player judgment.</p>
 <p lang="ko"><strong>오픈 소스 프로젝트.</strong> 무료 학습·훈련 도구이며, 결과에는 보정과 플레이어의 판단이 필요합니다.</p>
 <p lang="zh-CN"><strong>开源项目。</strong> 本工具免费用于学习与训练；结果仍需校准并结合球员判断。</p>
+<p lang="ru"><strong>Проект с открытым кодом.</strong> Бесплатный инструмент для изучения и тренировки; его результаты требуют калибровки и суждения игрока.</p>
 </aside>
 </section>
 </main>
@@ -661,7 +686,7 @@
 <div class="dia">◆ ◆ ◆</div>
 <div class="author">Juan José Arango Escobar</div>
 <div>Cali, Colombia · BILLAR 3 BANDAS, ASISTENTE DIGITAL POTENCIADO POR IA</div>
-<div class="meta">Versión pública · Junio de 2026 · Public release · 2026년 6월 · 2026年6月</div>
+<div class="meta">Versión pública · Junio de 2026 · Public release · 2026년 6월 · 2026年6月 · июнь 2026 г.</div>
 </footer>
 <script>
     (() => {
@@ -671,7 +696,7 @@
 
       const preferred = languageList
         .map(value => String(value).toLowerCase())
-        .find(value => /^(es|en|ko|zh)/.test(value)) || "es";
+        .find(value => /^(es|en|ko|zh|ru)/.test(value)) || "es";
 
       const key = preferred.startsWith("es")
         ? "es"
@@ -679,7 +704,9 @@
           ? "ko"
           : preferred.startsWith("zh")
             ? "zh"
-            : "en";
+            : preferred.startsWith("ru")
+              ? "ru"
+              : "en";
 
       const card = document.querySelector(`[data-lang="${key}"]`);
       if (card) {
