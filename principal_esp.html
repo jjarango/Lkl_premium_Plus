@@ -17721,7 +17721,7 @@ function drawStartMarks(){
   const ytGuia = {
     activa:false, stream:null, video:null, raf:0, timer:0,
     lector:null, puestas:{}, firmes:{}, ausencias:{}, cerca:{}, desvios:{},
-    centroides:{}, cercaDesde:{}, cierre:0, audio:null
+    centroides:{}, cercaDesde:{}, cierre:0, festejos:{}, gloria:0, audio:null
   };
 
   // Sastrería de la cabecera del velo: con la guía en vivo activa, el
@@ -17824,7 +17824,7 @@ function drawStartMarks(){
         o.type = 'triangle'; o.frequency.value = fr;
         const t = ctxA.currentTime + t0;
         g.gain.setValueAtTime(0.0001, t);
-        g.gain.exponentialRampToValueAtTime(0.85, t + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.4, t + 0.02);
         g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
         o.connect(g); g.connect(ctxA.destination);
         o.start(t); o.stop(t + dur + 0.05);
@@ -17841,7 +17841,7 @@ function drawStartMarks(){
       // otro lado del salón.
       const notas = [[523.25, 0], [659.25, 0.14], [783.99, 0.28], [1046.5, 0.42]];
       for(const [f, t0] of notas){
-        for(const [tipo, mul, gan] of [['triangle', 1, 0.8], ['sine', 2, 0.3]]){
+        for(const [tipo, mul, gan] of [['triangle', 1, 0.35], ['sine', 2, 0.15]]){
           const o = ctxA.createOscillator(), g = ctxA.createGain();
           o.type = tipo; o.frequency.value = f * mul;
           const t = ctxA.currentTime + t0;
@@ -17950,6 +17950,7 @@ function drawStartMarks(){
           ytGuia.puestas[o.key] = true;
           ytGuia.cerca[o.key] = false;
           ytgPip(o.key);
+          ytGuia.festejos[o.key] = Date.now();
           recienPuestas++;
         }
       } else {
@@ -17965,6 +17966,7 @@ function drawStartMarks(){
           ytGuia.desvios[o.key] = 0;
           // Una bola perdió el verde: si el regreso automático estaba en
           // camino, se cancela y la guía sigue acompañando.
+          ytGuia.gloria = 0;
           if(ytGuia.cierre){
             clearTimeout(ytGuia.cierre);
             ytGuia.cierre = 0;
@@ -17975,6 +17977,10 @@ function drawStartMarks(){
     }
     if(recienPuestas && ytGuia.puestas.white && ytGuia.puestas.yellow && ytGuia.puestas.red){
       ytgAcorde();
+      // El borde de gloria: las tres bolas emiten sus ondas a la vez y
+      // el marco verde respira mientras el letrero anuncia la hazaña.
+      ytGuia.gloria = Date.now();
+      ytGuia.festejos.white = ytGuia.festejos.yellow = ytGuia.festejos.red = Date.now();
       ytgEstado('Las tres bolas están exactas. Volviendo a la app en 3 segundos…');
       // Regreso automático: tras el acorde, el velo se cierra solo y la
       // app queda lista para estudiar y tacar, sin viaje hasta el PC.
@@ -18032,6 +18038,7 @@ function drawStartMarks(){
           g.textAlign = 'start';
         }
         ytgPintarLupa(g, v, cw, ch, objetivos);
+        ytgPintarFestejos(g, cw, ch, objetivos);
       }
     }
     ytGuia.raf = requestAnimationFrame(ytgPintar);
@@ -18143,6 +18150,54 @@ function drawStartMarks(){
     g.textAlign = 'start';
   }
 
+  // Celebraciones visuales, transparentes y con reloj propio: por bola
+  // bien puesta, dos ondas verdes que se expanden desde su círculo (la
+  // gota en el agua) con un brillo breve; por la tercera, el borde de
+  // gloria que respira dos pulsos y el letrero grande de ¡POSICIÓN
+  // LISTA!, que se desvanece solo justo antes del regreso a la app.
+  function ytgPintarFestejos(g, cw, ch, objetivos){
+    const ahora = Date.now();
+    for(const o of objetivos){
+      const ts = ytGuia.festejos[o.key];
+      if(!ts) continue;
+      const t = (ahora - ts) / 1000;
+      if(t > 1.1){ delete ytGuia.festejos[o.key]; continue; }
+      for(const retraso of [0, 0.25]){
+        const tt = t - retraso;
+        if(tt < 0 || tt > 0.85) continue;
+        const alfa = Math.max(0, 0.9 * (1 - tt / 0.85));
+        g.strokeStyle = 'rgba(55,227,124,' + alfa.toFixed(3) + ')';
+        g.lineWidth = Math.max(3, cw / 300) * (1.6 - tt);
+        g.beginPath();
+        g.arc(o.x, o.y, o.r * 1.5 + tt * o.r * 3, 0, Math.PI * 2);
+        g.stroke();
+      }
+    }
+    if(ytGuia.gloria){
+      const t = (ahora - ytGuia.gloria) / 1000;
+      if(t > 2){ ytGuia.gloria = 0; return; }
+      const pulso = 0.5 + 0.5 * Math.cos(t * Math.PI * 2);
+      const alfa = Math.max(0, 1 - t / 2) * (0.35 + 0.65 * pulso);
+      const grosor = Math.max(8, cw / 60);
+      g.strokeStyle = 'rgba(55,227,124,' + alfa.toFixed(3) + ')';
+      g.lineWidth = grosor;
+      g.strokeRect(grosor / 2, grosor / 2, cw - grosor, ch - grosor);
+      if(t < 1.7){
+        const alfaTxt = t < 1.2 ? 1 : Math.max(0, (1.7 - t) / 0.5);
+        g.font = '900 ' + Math.round(cw / 16) + 'px system-ui';
+        g.textAlign = 'center';
+        g.globalAlpha = alfaTxt;
+        g.lineWidth = Math.max(6, cw / 160);
+        g.strokeStyle = 'rgba(0,0,0,.85)';
+        g.strokeText('¡POSICIÓN LISTA!', cw / 2, ch * 0.18);
+        g.fillStyle = '#37e37c';
+        g.fillText('¡POSICIÓN LISTA!', cw / 2, ch * 0.18);
+        g.globalAlpha = 1;
+        g.textAlign = 'start';
+      }
+    }
+  }
+
   function ytgDetener(){
     const estaba = ytGuia.activa;
     ytGuia.activa = false;
@@ -18152,7 +18207,7 @@ function drawStartMarks(){
     try{ if(ytGuia.stream) ytGuia.stream.getTracks().forEach(t => t.stop()); }catch{}
     ytGuia.stream = null; ytGuia.video = null;
     ytGuia.puestas = {}; ytGuia.firmes = {}; ytGuia.ausencias = {}; ytGuia.cerca = {}; ytGuia.desvios = {};
-    ytGuia.centroides = {}; ytGuia.cercaDesde = {};
+    ytGuia.centroides = {}; ytGuia.cercaDesde = {}; ytGuia.festejos = {}; ytGuia.gloria = 0;
     const btn = ids('ytPlaceLive');
     if(btn) btn.textContent = 'Guía en vivo';
     ytgCompactarCabecera(false);
@@ -18185,7 +18240,7 @@ function drawStartMarks(){
     }
     ytGuia.activa = true;
     ytGuia.puestas = {}; ytGuia.firmes = {}; ytGuia.ausencias = {}; ytGuia.cerca = {}; ytGuia.desvios = {};
-    ytGuia.centroides = {}; ytGuia.cercaDesde = {};
+    ytGuia.centroides = {}; ytGuia.cercaDesde = {}; ytGuia.festejos = {}; ytGuia.gloria = 0;
     const btn = ids('ytPlaceLive');
     if(btn) btn.textContent = 'Volver al mapa';
     ytgCompactarCabecera(true);
