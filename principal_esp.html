@@ -17693,9 +17693,26 @@ function drawStartMarks(){
       return;
     }
     fab.dataset.modo = modo;
-    fab.textContent = modo === 'volver'
-      ? '¿Volver a colocar las bolas en la misma posición?'
-      : '¿Colocar las bolas en la mesa real?';
+    if(modo === 'volver'){
+      fab.textContent = '¿Volver a colocar las bolas en la misma posición?';
+      // Vestido discreto de siempre: usted ya está dentro del ciclo y
+      // sabe que el botón existe.
+      fab.style.fontSize = '16px';
+      fab.style.padding = '14px 18px';
+      fab.style.background = '#2a1d4d';
+      fab.style.borderColor = '#c9a4ff';
+      fab.style.color = '#e6d8ff';
+    } else {
+      fab.textContent = '¿Colocar las bolas en la mesa real?';
+      // Vestido de alarma para la primera colocación: es el paso
+      // siguiente obligatorio y no puede vestirse de susurro; doble de
+      // letra y rojo, imposible de pasar por alto camino a la mesa.
+      fab.style.fontSize = '32px';
+      fab.style.padding = '22px 30px';
+      fab.style.background = '#4d1d1d';
+      fab.style.borderColor = '#ff5d5d';
+      fab.style.color = '#ffd8d8';
+    }
     fab.style.display = '';
     if(barra) barra.style.display = 'flex';
   }
@@ -17824,7 +17841,7 @@ function drawStartMarks(){
         o.type = 'triangle'; o.frequency.value = fr;
         const t = ctxA.currentTime + t0;
         g.gain.setValueAtTime(0.0001, t);
-        g.gain.exponentialRampToValueAtTime(0.4, t + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.18, t + 0.02);
         g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
         o.connect(g); g.connect(ctxA.destination);
         o.start(t); o.stop(t + dur + 0.05);
@@ -17841,7 +17858,7 @@ function drawStartMarks(){
       // otro lado del salón.
       const notas = [[523.25, 0], [659.25, 0.14], [783.99, 0.28], [1046.5, 0.42]];
       for(const [f, t0] of notas){
-        for(const [tipo, mul, gan] of [['triangle', 1, 0.35], ['sine', 2, 0.15]]){
+        for(const [tipo, mul, gan] of [['triangle', 1, 0.16], ['sine', 2, 0.07]]){
           const o = ctxA.createOscillator(), g = ctxA.createGain();
           o.type = tipo; o.frequency.value = f * mul;
           const t = ctxA.currentTime + t0;
@@ -18161,15 +18178,23 @@ function drawStartMarks(){
       const ts = ytGuia.festejos[o.key];
       if(!ts) continue;
       const t = (ahora - ts) / 1000;
-      if(t > 1.1){ delete ytGuia.festejos[o.key]; continue; }
-      for(const retraso of [0, 0.25]){
-        const tt = t - retraso;
-        if(tt < 0 || tt > 0.85) continue;
-        const alfa = Math.max(0, 0.9 * (1 - tt / 0.85));
-        g.strokeStyle = 'rgba(55,227,124,' + alfa.toFixed(3) + ')';
-        g.lineWidth = Math.max(3, cw / 300) * (1.6 - tt);
+      if(t > 1.35){ delete ytGuia.festejos[o.key]; continue; }
+      // Destello inicial: un lleno verde suave dentro del círculo que
+      // muere rápido, para que el ojo lo atrape aun de reojo.
+      if(t < 0.3){
+        g.fillStyle = 'rgba(55,227,124,' + (0.35 * (1 - t / 0.3)).toFixed(3) + ')';
         g.beginPath();
-        g.arc(o.x, o.y, o.r * 1.5 + tt * o.r * 3, 0, Math.PI * 2);
+        g.arc(o.x, o.y, o.r * 1.5, 0, Math.PI * 2);
+        g.fill();
+      }
+      for(const retraso of [0, 0.22, 0.44]){
+        const tt = t - retraso;
+        if(tt < 0 || tt > 0.9) continue;
+        const alfa = Math.max(0, 1 - tt / 0.9);
+        g.strokeStyle = 'rgba(55,227,124,' + alfa.toFixed(3) + ')';
+        g.lineWidth = Math.max(5, cw / 180) * (1.7 - tt);
+        g.beginPath();
+        g.arc(o.x, o.y, o.r * 1.5 + tt * o.r * 3.5, 0, Math.PI * 2);
         g.stroke();
       }
     }
