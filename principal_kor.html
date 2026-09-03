@@ -12,7 +12,7 @@
 <meta content="yes" name="mobile-web-app-capable"/>
 <meta content="#2b4495" name="theme-color"/>
 <link href="data:application/manifest+json,%7B%22name%22%3A%22Asistente%20LKL%203%20Bandas%22%2C%22short_name%22%3A%22LKL%203B%22%2C%22start_url%22%3A%22.%22%2C%22scope%22%3A%22.%22%2C%22display%22%3A%22fullscreen%22%2C%22orientation%22%3A%22any%22%2C%22background_color%22%3A%22%23101217%22%2C%22theme_color%22%3A%22%232b4495%22%7D" rel="manifest"/>
-<title>3쿠션 디지털 어시스턴트 | LKL Base 50 & Plus</title>
+<title>JJA 3쿠션 당구</title>
 <style>
     :root{
       --bg:#101217;
@@ -17194,6 +17194,7 @@ function drawStartMarks(){
   function ytAbrirMarcado(frameCanvas){
     ytTrain.frameCanvas = frameCanvas;
     ytTrain.bolas = [];
+    ytTrain.candidato = null;
     const calGuardada = ytLeerCalibracion(ytTrain.claveCal);
     const dimsCambiaron = !!calGuardada && calGuardada.w !== null &&
       (calGuardada.w !== frameCanvas.width || calGuardada.h !== frameCanvas.height);
@@ -17261,6 +17262,19 @@ function drawStartMarks(){
       ctx2.strokeStyle = colores[YT_PASOS_BOLAS[i].key];
       ctx2.beginPath(); ctx2.arc(b.x, b.y, Math.max(6, fc.width/180), 0, Math.PI*2); ctx2.stroke();
     }
+    if(ytTrain.candidato && ytTrain.frameCanvas){
+      const cvM = ids('ytMarkCanvas');
+      const gM = cvM.getContext('2d');
+      const c = ytTrain.candidato;
+      const tinte = ytColorEtiqueta();
+      gM.lineWidth = 4; gM.strokeStyle = 'rgba(0,0,0,.85)';
+      gM.beginPath(); gM.moveTo(c.x - 26, c.y); gM.lineTo(c.x + 26, c.y); gM.moveTo(c.x, c.y - 26); gM.lineTo(c.x, c.y + 26); gM.stroke();
+      gM.beginPath(); gM.arc(c.x, c.y, 12, 0, Math.PI * 2); gM.stroke();
+      gM.lineWidth = 2; gM.strokeStyle = tinte;
+      gM.beginPath(); gM.moveTo(c.x - 26, c.y); gM.lineTo(c.x + 26, c.y); gM.moveTo(c.x, c.y - 26); gM.lineTo(c.x, c.y + 26); gM.stroke();
+      gM.beginPath(); gM.arc(c.x, c.y, 12, 0, Math.PI * 2); gM.stroke();
+    }
+    ytActualizarPanelFino();
     const lbl = ids('ytMarkLabel');
     if(lbl){
       lbl.textContent = ytEtiquetaMarcado();
@@ -17270,29 +17284,82 @@ function drawStartMarks(){
     if(recal) recal.style.display = ytTrain.modo === 'balls' ? '' : 'none';
   }
 
+  // El toque es candidato, no sentencia: el clic coloca (o reubica) la
+  // cruz, la lupa la amplía a 4 aumentos, las flechas la mueven de a un
+  // píxel (las del teclado también) y «Confirmar punto» (o Enter) la
+  // sella. La precisión del traslado deja de depender del pulso.
   function ytClicMarcado(ev){
     const cv = ids('ytMarkCanvas');
     const r = cv.getBoundingClientRect();
     const x = (ev.clientX - r.left) * cv.width / Math.max(r.width, 1);
     const y = (ev.clientY - r.top) * cv.height / Math.max(r.height, 1);
+    ytTrain.candidato = { x, y };
+    ytPintarMarcado();
+  }
+
+  function ytMoverCandidato(dx, dy){
+    if(!ytTrain.candidato || !ytTrain.frameCanvas) return;
+    const fc = ytTrain.frameCanvas;
+    ytTrain.candidato.x = Math.min(fc.width - 1, Math.max(0, ytTrain.candidato.x + dx));
+    ytTrain.candidato.y = Math.min(fc.height - 1, Math.max(0, ytTrain.candidato.y + dy));
+    ytPintarMarcado();
+  }
+
+  function ytConfirmarPunto(){
+    if(!ytTrain.candidato) return;
+    const p = { x: ytTrain.candidato.x, y: ytTrain.candidato.y };
+    ytTrain.candidato = null;
+    ytRegistrarPunto(p);
+  }
+
+  function ytRegistrarPunto(p){
     if(ytTrain.modo === 'corners'){
-      ytTrain.esquinas.push({x, y});
+      ytTrain.esquinas.push(p);
       if(ytTrain.esquinas.length === 4){
         const fc = ytTrain.frameCanvas;
         ytTrain.esquinas = ytOrdenarEsquinas(ytTrain.esquinas);
         ytGuardarCalibracion(ytTrain.claveCal,
-          ytTrain.esquinas.map(p => ({ x: p.x / fc.width, y: p.y / fc.height })),
+          ytTrain.esquinas.map(q => ({ x: q.x / fc.width, y: q.y / fc.height })),
           fc.width, fc.height);
         ytTrain.modo = 'balls';
       }
     } else {
-      ytTrain.bolas.push({x, y});
+      ytTrain.bolas.push(p);
       if(ytTrain.bolas.length === 3){
         ytAplicarPosicionDesdeMarcas();
         return;
       }
     }
     ytPintarMarcado();
+  }
+
+  function ytActualizarPanelFino(){
+    const panel = ids('ytMarkFine');
+    if(!panel) return;
+    const hay = !!ytTrain.candidato;
+    panel.style.display = hay ? 'flex' : 'none';
+    if(hay) ytPintarLupaMarcado();
+  }
+
+  function ytPintarLupaMarcado(){
+    const lc = ids('ytMarkLupa'), fc = ytTrain.frameCanvas, c = ytTrain.candidato;
+    if(!lc || !fc || !c) return;
+    const g = lc.getContext('2d');
+    const zoom = 4;
+    const vw = lc.width / zoom, vh = lc.height / zoom;
+    const sx = Math.min(Math.max(0, c.x - vw / 2), Math.max(0, fc.width - vw));
+    const sy = Math.min(Math.max(0, c.y - vh / 2), Math.max(0, fc.height - vh));
+    g.imageSmoothingEnabled = false;
+    g.fillStyle = '#000'; g.fillRect(0, 0, lc.width, lc.height);
+    g.drawImage(fc, sx, sy, vw, vh, 0, 0, lc.width, lc.height);
+    const px = (c.x - sx) * zoom, py = (c.y - sy) * zoom;
+    const tinte = ytColorEtiqueta();
+    g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,.85)';
+    g.beginPath(); g.moveTo(px - 22, py); g.lineTo(px + 22, py); g.moveTo(px, py - 22); g.lineTo(px, py + 22); g.stroke();
+    g.beginPath(); g.arc(px, py, 10, 0, Math.PI * 2); g.stroke();
+    g.lineWidth = 1.5; g.strokeStyle = tinte;
+    g.beginPath(); g.moveTo(px - 22, py); g.lineTo(px + 22, py); g.moveTo(px, py - 22); g.lineTo(px, py + 22); g.stroke();
+    g.beginPath(); g.arc(px, py, 10, 0, Math.PI * 2); g.stroke();
   }
 
   function ytRecalibrarPorEncuadre(mensaje){
@@ -17627,9 +17694,26 @@ function drawStartMarks(){
       return;
     }
     fab.dataset.modo = modo;
-    fab.textContent = modo === 'volver'
-      ? '공을 같은 배치로 다시 놓을까요?'
-      : '실제 테이블에 공을 배치할까요?';
+    if(modo === 'volver'){
+      fab.textContent = '공을 같은 배치로 다시 놓을까요?';
+      // Vestido discreto de siempre: usted ya está dentro del ciclo y
+      // sabe que el botón existe.
+      fab.style.fontSize = '16px';
+      fab.style.padding = '14px 18px';
+      fab.style.background = '#2a1d4d';
+      fab.style.borderColor = '#c9a4ff';
+      fab.style.color = '#e6d8ff';
+    } else {
+      fab.textContent = '실제 테이블에 공을 배치할까요?';
+      // Vestido de alarma para la primera colocación: es el paso
+      // siguiente obligatorio y no puede vestirse de susurro; doble de
+      // letra y rojo, imposible de pasar por alto camino a la mesa.
+      fab.style.fontSize = '32px';
+      fab.style.padding = '22px 30px';
+      fab.style.background = '#4d1d1d';
+      fab.style.borderColor = '#ff5d5d';
+      fab.style.color = '#ffd8d8';
+    }
     fab.style.display = '';
     if(barra) barra.style.display = 'flex';
   }
@@ -17655,7 +17739,7 @@ function drawStartMarks(){
   const ytGuia = {
     activa:false, stream:null, video:null, raf:0, timer:0,
     lector:null, puestas:{}, firmes:{}, ausencias:{}, cerca:{}, desvios:{},
-    centroides:{}, cercaDesde:{}, cierre:0, audio:null
+    centroides:{}, cercaDesde:{}, cierre:0, festejos:{}, gloria:0, audio:null
   };
 
   // Sastrería de la cabecera del velo: con la guía en vivo activa, el
@@ -17749,14 +17833,20 @@ function drawStartMarks(){
     try{
       const ctxA = ytGuia.audio;
       if(!ctxA) return;
+      // Campanada de dos notas (salto de quinta), más larga y con más
+      // cuerpo que el pip viejo, para cortar la música de la sala. La
+      // firma por bola se conserva: agudo la blanca, grave la roja.
       const f = { white:880, yellow:700, red:560 }[key] || 700;
-      const o = ctxA.createOscillator(), g = ctxA.createGain();
-      o.type = 'sine'; o.frequency.value = f;
-      g.gain.setValueAtTime(0.0001, ctxA.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.5, ctxA.currentTime + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, ctxA.currentTime + 0.16);
-      o.connect(g); g.connect(ctxA.destination);
-      o.start(); o.stop(ctxA.currentTime + 0.18);
+      [[f, 0, 0.28], [f * 1.5, 0.12, 0.42]].forEach(([fr, t0, dur]) => {
+        const o = ctxA.createOscillator(), g = ctxA.createGain();
+        o.type = 'triangle'; o.frequency.value = fr;
+        const t = ctxA.currentTime + t0;
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.18, t + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        o.connect(g); g.connect(ctxA.destination);
+        o.start(t); o.stop(t + dur + 0.05);
+      });
     }catch{}
   }
 
@@ -17764,16 +17854,23 @@ function drawStartMarks(){
     try{
       const ctxA = ytGuia.audio;
       if(!ctxA) return;
-      [523.25, 659.25, 783.99].forEach((f, i) => {
-        const o = ctxA.createOscillator(), g = ctxA.createGain();
-        o.type = 'sine'; o.frequency.value = f;
-        const t0 = ctxA.currentTime + i * 0.09;
-        g.gain.setValueAtTime(0.0001, t0);
-        g.gain.exponentialRampToValueAtTime(0.4, t0 + 0.03);
-        g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.55);
-        o.connect(g); g.connect(ctxA.destination);
-        o.start(t0); o.stop(t0 + 0.6);
-      });
+      // Fanfarria de verdad: arpegio de do mayor con octava final y dos
+      // voces, segundo y medio de celebración inconfundible desde el
+      // otro lado del salón.
+      const notas = [[523.25, 0], [659.25, 0.14], [783.99, 0.28], [1046.5, 0.42]];
+      for(const [f, t0] of notas){
+        for(const [tipo, mul, gan] of [['triangle', 1, 0.16], ['sine', 2, 0.07]]){
+          const o = ctxA.createOscillator(), g = ctxA.createGain();
+          o.type = tipo; o.frequency.value = f * mul;
+          const t = ctxA.currentTime + t0;
+          const dur = t0 >= 0.42 ? 1.1 : 0.5;
+          g.gain.setValueAtTime(0.0001, t);
+          g.gain.exponentialRampToValueAtTime(gan, t + 0.03);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+          o.connect(g); g.connect(ctxA.destination);
+          o.start(t); o.stop(t + dur + 0.05);
+        }
+      }
     }catch{}
   }
 
@@ -17785,10 +17882,11 @@ function drawStartMarks(){
     return r >= 140 && g <= 95 && b <= 95 && r >= g + 55;
   }
 
-  // Tolerancia de exactitud: fracción del radio de bola. Con 0.4, el
-  // centro de gravedad del color debe quedar a menos de ~12 mm del
-  // punto exacto sobre el paño para que el pip suene.
-  const YTG_TOL_RADIO = 0.4;
+  // Tolerancia de exactitud: fracción del radio de bola. Con 0.25, el
+  // centro de gravedad del color debe quedar a menos de ~8 mm del
+  // punto exacto sobre el paño para que la campanada suene: exigencia
+  // seria, a la altura de quien coloca con lupa.
+  const YTG_TOL_RADIO = 0.25;
 
   function ytgMuestrear(){
     if(!ytGuia.activa || !ytGuia.video || !ytGuia.video.videoWidth) return;
@@ -17820,27 +17918,44 @@ function drawStartMarks(){
       const x0 = Math.max(0, Math.round(o.x - rBusca)), y0 = Math.max(0, Math.round(o.y - rBusca));
       const w = Math.min(cw - x0, rBusca * 2), hh = Math.min(ch - y0, rBusca * 2);
       if(w <= 2 || hh <= 2) continue;
-      let acierto = 0, sx = 0, sy = 0;
       const datos = g2.getImageData(x0, y0, w, hh).data;
+      const marca = [];
       for(let py = 0; py < hh; py += 2){
         for(let px = 0; px < w; px += 2){
           const dx = px + x0 - o.x, dy = py + y0 - o.y;
           if(dx * dx + dy * dy > rBusca * rBusca) continue;
           const i4 = (py * w + px) * 4;
           if(ytgClasifica(o.key, datos[i4], datos[i4 + 1], datos[i4 + 2])){
-            acierto++; sx += px + x0; sy += py + y0;
+            marca.push(px + x0, py + y0);
           }
         }
+      }
+      const acierto = marca.length / 2;
+      let sx = 0, sy = 0;
+      for(let k = 0; k < marca.length; k += 2){ sx += marca[k]; sy += marca[k + 1]; }
+      // Centroide recortado en dos pasadas: la primera da un centro
+      // provisional; la segunda descarta la cola de píxeles lejanos
+      // (reflejos y media luna de luz cenital) y recentra sobre el
+      // cuerpo de la bola, para que la iluminación no corra la medida.
+      let cenX = acierto ? sx / acierto : 0, cenY = acierto ? sy / acierto : 0;
+      if(acierto >= 12){
+        const rCorte = o.r * 0.9;
+        let n2 = 0, s2x = 0, s2y = 0;
+        for(let k = 0; k < marca.length; k += 2){
+          const ddx = marca[k] - cenX, ddy = marca[k + 1] - cenY;
+          if(ddx * ddx + ddy * ddy <= rCorte * rCorte){ n2++; s2x += marca[k]; s2y += marca[k + 1]; }
+        }
+        if(n2 >= 10){ cenX = s2x / n2; cenY = s2y / n2; }
       }
       // Área esperada de una bola completa, en muestras (paso de 2 px).
       const esperada = Math.PI * o.r * o.r / 4;
       const presencia = acierto >= esperada * 0.30;
       const perdida = acierto < esperada * 0.12;
-      const desvio = presencia ? Math.hypot(sx / acierto - o.x, sy / acierto - o.y) : Infinity;
+      const desvio = presencia ? Math.hypot(cenX - o.x, cenY - o.y) : Infinity;
       const tol = o.r * YTG_TOL_RADIO;
       const exacta = presencia && desvio <= tol;
       if(presencia){
-        ytGuia.centroides[o.key] = { x: sx / acierto, y: sy / acierto };
+        ytGuia.centroides[o.key] = { x: cenX, y: cenY };
       } else {
         delete ytGuia.centroides[o.key];
       }
@@ -17853,6 +17968,7 @@ function drawStartMarks(){
           ytGuia.puestas[o.key] = true;
           ytGuia.cerca[o.key] = false;
           ytgPip(o.key);
+          ytGuia.festejos[o.key] = Date.now();
           recienPuestas++;
         }
       } else {
@@ -17868,6 +17984,7 @@ function drawStartMarks(){
           ytGuia.desvios[o.key] = 0;
           // Una bola perdió el verde: si el regreso automático estaba en
           // camino, se cancela y la guía sigue acompañando.
+          ytGuia.gloria = 0;
           if(ytGuia.cierre){
             clearTimeout(ytGuia.cierre);
             ytGuia.cierre = 0;
@@ -17878,6 +17995,10 @@ function drawStartMarks(){
     }
     if(recienPuestas && ytGuia.puestas.white && ytGuia.puestas.yellow && ytGuia.puestas.red){
       ytgAcorde();
+      // El borde de gloria: las tres bolas emiten sus ondas a la vez y
+      // el marco verde respira mientras el letrero anuncia la hazaña.
+      ytGuia.gloria = Date.now();
+      ytGuia.festejos.white = ytGuia.festejos.yellow = ytGuia.festejos.red = Date.now();
       ytgEstado('세 공이 모두 정확합니다. 3초 후 앱으로 돌아갑니다…');
       // Regreso automático: tras el acorde, el velo se cierra solo y la
       // app queda lista para estudiar y tacar, sin viaje hasta el PC.
@@ -17935,6 +18056,7 @@ function drawStartMarks(){
           g.textAlign = 'start';
         }
         ytgPintarLupa(g, v, cw, ch, objetivos);
+        ytgPintarFestejos(g, cw, ch, objetivos);
       }
     }
     ytGuia.raf = requestAnimationFrame(ytgPintar);
@@ -18046,6 +18168,62 @@ function drawStartMarks(){
     g.textAlign = 'start';
   }
 
+  // Celebraciones visuales, transparentes y con reloj propio: por bola
+  // bien puesta, dos ondas verdes que se expanden desde su círculo (la
+  // gota en el agua) con un brillo breve; por la tercera, el borde de
+  // gloria que respira dos pulsos y el letrero grande de ¡POSICIÓN
+  // LISTA!, que se desvanece solo justo antes del regreso a la app.
+  function ytgPintarFestejos(g, cw, ch, objetivos){
+    const ahora = Date.now();
+    for(const o of objetivos){
+      const ts = ytGuia.festejos[o.key];
+      if(!ts) continue;
+      const t = (ahora - ts) / 1000;
+      if(t > 1.35){ delete ytGuia.festejos[o.key]; continue; }
+      // Destello inicial: un lleno verde suave dentro del círculo que
+      // muere rápido, para que el ojo lo atrape aun de reojo.
+      if(t < 0.3){
+        g.fillStyle = 'rgba(55,227,124,' + (0.35 * (1 - t / 0.3)).toFixed(3) + ')';
+        g.beginPath();
+        g.arc(o.x, o.y, o.r * 1.5, 0, Math.PI * 2);
+        g.fill();
+      }
+      for(const retraso of [0, 0.22, 0.44]){
+        const tt = t - retraso;
+        if(tt < 0 || tt > 0.9) continue;
+        const alfa = Math.max(0, 1 - tt / 0.9);
+        g.strokeStyle = 'rgba(55,227,124,' + alfa.toFixed(3) + ')';
+        g.lineWidth = Math.max(5, cw / 180) * (1.7 - tt);
+        g.beginPath();
+        g.arc(o.x, o.y, o.r * 1.5 + tt * o.r * 3.5, 0, Math.PI * 2);
+        g.stroke();
+      }
+    }
+    if(ytGuia.gloria){
+      const t = (ahora - ytGuia.gloria) / 1000;
+      if(t > 2){ ytGuia.gloria = 0; return; }
+      const pulso = 0.5 + 0.5 * Math.cos(t * Math.PI * 2);
+      const alfa = Math.max(0, 1 - t / 2) * (0.35 + 0.65 * pulso);
+      const grosor = Math.max(8, cw / 60);
+      g.strokeStyle = 'rgba(55,227,124,' + alfa.toFixed(3) + ')';
+      g.lineWidth = grosor;
+      g.strokeRect(grosor / 2, grosor / 2, cw - grosor, ch - grosor);
+      if(t < 1.7){
+        const alfaTxt = t < 1.2 ? 1 : Math.max(0, (1.7 - t) / 0.5);
+        g.font = '900 ' + Math.round(cw / 16) + 'px system-ui';
+        g.textAlign = 'center';
+        g.globalAlpha = alfaTxt;
+        g.lineWidth = Math.max(6, cw / 160);
+        g.strokeStyle = 'rgba(0,0,0,.85)';
+        g.strokeText('배치 완료!', cw / 2, ch * 0.18);
+        g.fillStyle = '#37e37c';
+        g.fillText('배치 완료!', cw / 2, ch * 0.18);
+        g.globalAlpha = 1;
+        g.textAlign = 'start';
+      }
+    }
+  }
+
   function ytgDetener(){
     const estaba = ytGuia.activa;
     ytGuia.activa = false;
@@ -18055,7 +18233,7 @@ function drawStartMarks(){
     try{ if(ytGuia.stream) ytGuia.stream.getTracks().forEach(t => t.stop()); }catch{}
     ytGuia.stream = null; ytGuia.video = null;
     ytGuia.puestas = {}; ytGuia.firmes = {}; ytGuia.ausencias = {}; ytGuia.cerca = {}; ytGuia.desvios = {};
-    ytGuia.centroides = {}; ytGuia.cercaDesde = {};
+    ytGuia.centroides = {}; ytGuia.cercaDesde = {}; ytGuia.festejos = {}; ytGuia.gloria = 0;
     const btn = ids('ytPlaceLive');
     if(btn) btn.textContent = '실시간 가이드';
     ytgCompactarCabecera(false);
@@ -18088,7 +18266,7 @@ function drawStartMarks(){
     }
     ytGuia.activa = true;
     ytGuia.puestas = {}; ytGuia.firmes = {}; ytGuia.ausencias = {}; ytGuia.cerca = {}; ytGuia.desvios = {};
-    ytGuia.centroides = {}; ytGuia.cercaDesde = {};
+    ytGuia.centroides = {}; ytGuia.cercaDesde = {}; ytGuia.festejos = {}; ytGuia.gloria = 0;
     const btn = ids('ytPlaceLive');
     if(btn) btn.textContent = '지도로 돌아가기';
     ytgCompactarCabecera(true);
@@ -18118,6 +18296,22 @@ function drawStartMarks(){
     }
     const cv = ids('ytMarkCanvas');
     if(cv) cv.addEventListener('click', ytClicMarcado);
+    const okFino = ids('ytMarkOk');
+    if(okFino) okFino.addEventListener('click', ytConfirmarPunto);
+    const flechasFinas = [['ytFineUp', 0, -1], ['ytFineDown', 0, 1], ['ytFineLeft', -1, 0], ['ytFineRight', 1, 0]];
+    for(const [idF, dxF, dyF] of flechasFinas){
+      const bF = ids(idF);
+      if(bF) bF.addEventListener('click', () => ytMoverCandidato(dxF, dyF));
+    }
+    // Flechas del teclado y Enter: siete puntos clavados sin soltar el
+    // teclado, mucho más veloz que picar botoncitos.
+    document.addEventListener('keydown', ev => {
+      const velo = ids('ytMarkOverlay');
+      if(!velo || velo.style.display === 'none' || !ytTrain.candidato) return;
+      const paso = { ArrowUp:[0,-1], ArrowDown:[0,1], ArrowLeft:[-1,0], ArrowRight:[1,0] }[ev.key];
+      if(paso){ ev.preventDefault(); ytMoverCandidato(paso[0], paso[1]); return; }
+      if(ev.key === 'Enter'){ ev.preventDefault(); ytConfirmarPunto(); }
+    });
     const cancel = ids('ytMarkCancel');
     if(cancel) cancel.addEventListener('click', () => {
       ids('ytMarkOverlay').style.display = 'none';
@@ -18125,7 +18319,8 @@ function drawStartMarks(){
     });
     const undo = ids('ytMarkUndo');
     if(undo) undo.addEventListener('click', () => {
-      if(ytTrain.modo === 'balls' && ytTrain.bolas.length) ytTrain.bolas.pop();
+      if(ytTrain.candidato){ ytTrain.candidato = null; }
+      else if(ytTrain.modo === 'balls' && ytTrain.bolas.length) ytTrain.bolas.pop();
       else if(ytTrain.modo === 'corners' && ytTrain.esquinas.length) ytTrain.esquinas.pop();
       else if(ytTrain.modo === 'balls' && !ytTrain.bolas.length){
         ytTrain.modo = 'corners';
@@ -18136,6 +18331,7 @@ function drawStartMarks(){
     const recal = ids('ytMarkRecal');
     if(recal) recal.addEventListener('click', () => {
       ytTrain.esquinas = []; ytTrain.bolas = []; ytTrain.modo = 'corners';
+      ytTrain.candidato = null;
       try{ localStorage.removeItem(ytTrain.claveCal); }catch{}
       ytPintarMarcado();
     });
@@ -18318,6 +18514,15 @@ function drawStartMarks(){
 <div id="ytMarkOverlay" style="display:none; position:fixed; inset:0; z-index:9500; background:rgba(6,8,12,.93); flex-direction:column; align-items:center; justify-content:center; gap:10px;">
 <p class="small" id="ytMarkLabel" style="margin:0; color:#fff; font-size:clamp(19px,2.6vw,26px); font-weight:800; letter-spacing:.2px; text-shadow:0 2px 10px rgba(0,0,0,.95), 0 0 2px rgba(0,0,0,.9);"></p>
 <canvas id="ytMarkCanvas" style="max-width:94vw; max-height:80vh; border:1px solid #c9a4ff66; border-radius:8px; cursor:crosshair;"></canvas>
+<div id="ytMarkFine" style="display:none; align-items:center; gap:14px;">
+<canvas height="180" id="ytMarkLupa" style="width:180px; height:180px; border:2px solid #c9a4ff; border-radius:12px; background:#000;" width="180"></canvas>
+<div style="display:grid; grid-template-columns:repeat(3,48px); grid-template-rows:repeat(3,44px); gap:6px; align-items:center; justify-items:center;">
+<span></span><button id="ytFineUp" style="width:48px; height:44px; font-size:20px;" type="button">▲</button><span></span>
+<button id="ytFineLeft" style="width:48px; height:44px; font-size:20px;" type="button">◀</button><span style="color:#9aa3b2; font-size:12px;">1 px</span><button id="ytFineRight" style="width:48px; height:44px; font-size:20px;" type="button">▶</button>
+<span></span><button id="ytFineDown" style="width:48px; height:44px; font-size:20px;" type="button">▼</button><span></span>
+</div>
+<button id="ytMarkOk" style="font-size:clamp(16px,2vw,20px); padding:12px 22px; background:#1d4d2a; border:1px solid #7de3a0; color:#d8ffe6; border-radius:10px;" type="button">지점 확인</button>
+</div>
 <div style="display:flex; gap:10px;">
 <button id="ytMarkRecal" type="button">모서리 재보정</button>
 <button id="ytMarkUndo" type="button">마지막 클릭 취소</button>
