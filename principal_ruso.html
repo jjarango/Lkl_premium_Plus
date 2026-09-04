@@ -18106,11 +18106,18 @@ function drawStartMarks(){
     g.restore();
     const EN = p => ({ x: box.x + (p.x - rx0) * escala, y: box.y + (p.y - ry0) * escala });
     const c = EN(o), rL = o.r * escala, tolL = o.r * YTG_TOL_RADIO * escala;
-    g.lineWidth = 3;
-    g.strokeStyle = 'rgba(0,0,0,.7)';
-    g.beginPath(); g.arc(c.x, c.y, rL, 0, Math.PI * 2); g.stroke();
-    g.strokeStyle = YT_COLORES_BOLA[o.key];
-    g.beginPath(); g.arc(c.x, c.y, rL - 1, 0, Math.PI * 2); g.stroke();
+    // Anillo objetivo de la lupa: corona gruesa (el triple del trazo
+    // fino de antes) en el color pleno y saturado de la bola, que crece
+    // SOLO hacia afuera: el borde interior queda anclado donde estaba,
+    // para que el hueco donde va la bola no cambie de tamaño. Un halo
+    // oscuro fino por el lado exterior lo despega del paño.
+    const rIn = rL - 2.5, W = 9;
+    g.lineWidth = W + 4;
+    g.strokeStyle = 'rgba(0,0,0,.85)';
+    g.beginPath(); g.arc(c.x, c.y, rIn + (W + 4) / 2, 0, Math.PI * 2); g.stroke();
+    g.lineWidth = W;
+    g.strokeStyle = { white:'#ffffff', yellow:'#ffd400', red:'#ff2a2a' }[o.key];
+    g.beginPath(); g.arc(c.x, c.y, rIn + W / 2, 0, Math.PI * 2); g.stroke();
     g.setLineDash([6, 5]);
     g.strokeStyle = '#ffb347';
     g.beginPath(); g.arc(c.x, c.y, tolL, 0, Math.PI * 2); g.stroke();
