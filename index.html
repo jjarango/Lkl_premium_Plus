@@ -328,6 +328,11 @@
     footer .dia{color:var(--diamond);letter-spacing:.6em;margin-bottom:10px}
     footer .author{color:#d9d4c7;font-weight:700}
     footer .meta{margin-top:6px;font-size:12.5px}
+    /* Letrero discreto de créditos, a la derecha y en letra pequeña. */
+    footer .credit{margin-top:22px;text-align:right;font-size:11.5px;color:var(--muted);opacity:.75;letter-spacing:.02em}
+    footer .creditMark{display:inline-block;margin-right:6px;color:var(--diamond);font-size:11px}
+    .languagesNote{margin-top:18px}
+    .languagesNote p{font-size:13.5px;line-height:1.55}
 
     @media(max-width:560px){
       .wrap{padding:0 18px}
@@ -543,7 +548,7 @@
 <section aria-labelledby="language-title" class="languages wrap">
 <div class="sectionIntro">
 <h2 id="language-title">Seleccione su idioma</h2>
-<p>Español · English · 한국어 · 简体中文 · Русский</p>
+<p>Español · English · 한국어 · 简体中文 · Русский · Türkçe · Tiếng Việt</p>
 </div>
 <div class="languageGrid">
 <article class="languageCard" data-lang="es" lang="es"><div aria-label="Colombia" class="flagGroup">
@@ -653,7 +658,7 @@
 <a class="action" href="dequevaesto_chi.html" rel="noopener" target="_blank"><span>这是什么？</span><span class="arrow">→</span></a>
 </div>
 </article>
-<article class="languageCard centrada" data-lang="ru" lang="ru"><div aria-label="Russia" class="flagGroup">
+<article class="languageCard" data-lang="ru" lang="ru"><div aria-label="Russia" class="flagGroup">
 <span aria-label="Bandera de Rusia" class="flag" role="img">
 <svg aria-hidden="true" viewbox="0 0 60 40" xmlns="http://www.w3.org/2000/svg">
 <rect fill="#FFFFFF" height="13.34" width="60"></rect>
@@ -672,6 +677,44 @@
 <a class="action" href="dequevaesto_ru.html" rel="noopener" target="_blank"><span>Что это такое?</span><span class="arrow">→</span></a>
 </div>
 </article>
+<article class="languageCard" data-lang="tr" lang="tr"><div aria-label="Türkiye" class="flagGroup">
+<span aria-label="Bandera de Turquía" class="flag" role="img">
+<svg aria-hidden="true" viewbox="0 0 60 40" xmlns="http://www.w3.org/2000/svg">
+<rect fill="#E30A17" height="40" width="60"></rect>
+<circle cx="22" cy="20" fill="#FFFFFF" r="10"></circle>
+<circle cx="24.5" cy="20" fill="#E30A17" r="8"></circle>
+<polygon fill="#FFFFFF" points="33.5,20 29.3,21.4 29.3,18.6 34.7,16.3 32.9,22.9 32.9,17.1 34.7,23.7 29.3,21.4"></polygon>
+</svg>
+</span>
+</div>
+<span class="suggested">Önerilen</span>
+<div class="langNumber">06 · TR</div><div class="countryLabel">Türkiye</div>
+<div class="languageHeading"><h3>Türkçe</h3></div>
+<p class="nativeTitle">Üç bant bilardo için dijital asistan</p>
+<p class="description">Profesyonel masada nişan sistemlerini hesaplayın, görselleştirin ve çalışın.</p>
+<div class="buttonStack">
+<a class="action primary" href="principal_turco.html" rel="noopener" target="_blank"><span>Uygulamayı aç</span><span class="arrow">→</span></a>
+<a class="action" href="dequevaesto_tr.html" rel="noopener" target="_blank"><span>Bu ne?</span><span class="arrow">→</span></a>
+</div>
+</article>
+<article class="languageCard centrada" data-lang="vi" lang="vi"><div aria-label="Vietnam" class="flagGroup">
+<span aria-label="Bandera de Vietnam" class="flag" role="img">
+<svg aria-hidden="true" viewbox="0 0 60 40" xmlns="http://www.w3.org/2000/svg">
+<rect fill="#DA251D" height="40" width="60"></rect>
+<polygon fill="#FFFF00" points="30,8 33.5,17.5 43.4,17.5 35.4,23.3 38.4,32.8 30,27 21.6,32.8 24.6,23.3 16.6,17.5 26.5,17.5"></polygon>
+</svg>
+</span>
+</div>
+<span class="suggested">Đề xuất</span>
+<div class="langNumber">07 · VI</div><div class="countryLabel">Vietnam</div>
+<div class="languageHeading"><h3>Tiếng Việt</h3></div>
+<p class="nativeTitle">Trợ lý số cho bida 3 băng</p>
+<p class="description">Tính toán, hình dung và luyện các hệ thống ngắm trên bàn chuyên nghiệp.</p>
+<div class="buttonStack">
+<a class="action primary" href="principal_viet.html" rel="noopener" target="_blank"><span>Mở ứng dụng</span><span class="arrow">→</span></a>
+<a class="action" href="dequevaesto_vi.html" rel="noopener" target="_blank"><span>Đây là gì?</span><span class="arrow">→</span></a>
+</div>
+</article>
 </div>
 <aside aria-label="Nota sobre el proyecto de código abierto" class="projectNote">
 <p lang="es"><strong>Proyecto de código abierto.</strong> Herramienta gratuita para estudio y entrenamiento; sus resultados requieren calibración y criterio del jugador.</p>
@@ -679,6 +722,17 @@
 <p lang="ko"><strong>오픈 소스 프로젝트.</strong> 무료 학습·훈련 도구이며, 결과에는 보정과 플레이어의 판단이 필요합니다.</p>
 <p lang="zh-CN"><strong>开源项目。</strong> 本工具免费用于学习与训练；结果仍需校准并结合球员判断。</p>
 <p lang="ru"><strong>Проект с открытым кодом.</strong> Бесплатный инструмент для изучения и тренировки; его результаты требуют калибровки и суждения игрока.</p>
+<p lang="tr"><strong>Açık kaynaklı proje.</strong> Öğrenme ve antrenman için ücretsiz bir araç; sonuçları kalibrasyon ve oyuncunun kararını gerektirir.</p>
+<p lang="vi"><strong>Dự án mã nguồn mở.</strong> Công cụ miễn phí để học và luyện tập; kết quả cần hiệu chuẩn và phán đoán của người chơi.</p>
+</aside>
+<aside aria-label="Por qué estos idiomas" class="projectNote languagesNote">
+<p lang="es"><strong>¿Por qué estos siete idiomas?</strong> El español es la lengua materna del autor. Los demás siguen la geografía del billar a tres bandas: Corea, Turquía y Vietnam tienen hoy algunas de las comunidades más numerosas y entusiastas del juego, y el inglés, el chino y el ruso llevan la app a jugadores de muchos otros países. La elección es deportiva y práctica, sin otra intención.</p>
+<p lang="en"><strong>Why these seven languages?</strong> Spanish is the author's native language. The others follow the geography of three-cushion billiards: Korea, Türkiye and Vietnam have some of the largest and most passionate communities in the game today, and English, Chinese and Russian carry the app to players in many other countries. The choice is sporting and practical, nothing more.</p>
+<p lang="ko"><strong>왜 이 일곱 언어인가요?</strong> 스페인어는 저자의 모국어입니다. 나머지는 3쿠션 당구의 지리를 따릅니다. 한국, 튀르키예, 베트남은 오늘날 가장 크고 열정적인 3쿠션 커뮤니티를 가진 나라들이며, 영어·중국어·러시아어는 그 밖의 여러 나라 플레이어에게 앱을 전합니다. 순전히 스포츠적이고 실용적인 선택일 뿐입니다.</p>
+<p lang="zh-CN"><strong>为什么是这七种语言？</strong> 西班牙语是作者的母语。其余语言遵循三库台球的地理分布：韩国、土耳其和越南拥有当今规模最大、最热情的三库社群，而英语、中文和俄语把应用带给更多国家的球员。这只是一个体育与实用上的选择，别无他意。</p>
+<p lang="ru"><strong>Почему именно эти семь языков?</strong> Испанский — родной язык автора. Остальные следуют географии трёхбортного карамболя: в Корее, Турции и Вьетнаме сегодня одни из самых многочисленных и увлечённых сообществ игроков, а английский, китайский и русский несут приложение игрокам многих других стран. Выбор спортивный и практический, без иных намерений.</p>
+<p lang="tr"><strong>Neden bu yedi dil?</strong> İspanyolca yazarın anadilidir. Diğerleri üç bant bilardonun coğrafyasını izler: Kore, Türkiye ve Vietnam bugün oyunun en kalabalık ve en tutkulu topluluklarından bazılarına sahiptir; İngilizce, Çince ve Rusça ise uygulamayı başka pek çok ülkenin oyuncularına ulaştırır. Seçim sportif ve pratiktir, başka bir niyet yoktur.</p>
+<p lang="vi"><strong>Vì sao là bảy ngôn ngữ này?</strong> Tiếng Tây Ban Nha là tiếng mẹ đẻ của tác giả. Các ngôn ngữ còn lại đi theo địa lý của bida 3 băng: Hàn Quốc, Thổ Nhĩ Kỳ và Việt Nam ngày nay có những cộng đồng đông đảo và nhiệt thành bậc nhất của môn chơi, còn tiếng Anh, tiếng Trung và tiếng Nga đưa ứng dụng tới người chơi ở nhiều nước khác. Lựa chọn thuần túy vì thể thao và tính thực dụng, không có ý gì khác.</p>
 </aside>
 </section>
 </main>
@@ -686,7 +740,8 @@
 <div class="dia">◆ ◆ ◆</div>
 <div class="author">Juan José Arango Escobar</div>
 <div>Cali, Colombia · BILLAR 3 BANDAS, ASISTENTE DIGITAL POTENCIADO POR IA</div>
-<div class="meta">Versión pública · Junio de 2026 · Public release · 2026년 6월 · 2026年6月 · июнь 2026 г.</div>
+<div class="meta">Versión pública · Junio de 2026 · Public release · 2026년 6월 · 2026年6月 · июнь 2026 г. · Haziran 2026 · tháng 6 năm 2026</div>
+<div class="credit"><span class="creditMark" aria-hidden="true">✦</span>Vibe Coding, powered by Claude from Anthropic</div>
 </footer>
 <script>
     (() => {
@@ -696,7 +751,7 @@
 
       const preferred = languageList
         .map(value => String(value).toLowerCase())
-        .find(value => /^(es|en|ko|zh|ru)/.test(value)) || "es";
+        .find(value => /^(es|en|ko|zh|ru|tr|vi)/.test(value)) || "es";
 
       const key = preferred.startsWith("es")
         ? "es"
@@ -706,7 +761,11 @@
             ? "zh"
             : preferred.startsWith("ru")
               ? "ru"
-              : "en";
+              : preferred.startsWith("tr")
+                ? "tr"
+                : preferred.startsWith("vi")
+                  ? "vi"
+                  : "en";
 
       const card = document.querySelector(`[data-lang="${key}"]`);
       if (card) {
