@@ -15838,7 +15838,7 @@ function drawStartMarks(){
       setVideoReplayStatus(startMode === 'calibrate'
         ? 'Cámara lista. Arrastre los cuatro puntos hasta las esquinas internas del paño; los anillos de las bolas y los diamantes proyectados deben coincidir con el video.' + videoReplayFocusNote()
         : 'Cámara lista. Pulse 5, 10 o 15 seg cuando vaya a ejecutar la tacada.' + audioNote + videoReplayFocusNote(), 'good');
-      if(startBtn) startBtn.disabled = false;
+      vestirBotonesLatencia('listo');
     }catch(error){
       setVideoReplayStatus(cameraErrorMessage(error), 'bad');
       console.error('Video de la jugada:', error);
