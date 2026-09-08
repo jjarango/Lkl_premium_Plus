@@ -17827,7 +17827,18 @@ function drawStartMarks(){
     return true;
   }
   function ytVozEstado(msg){ const e = ids('ytVozEstado'); if(e) e.textContent = msg; }
-  function ytVozChip(on){ const c = ids('ytVozChip'); if(c) c.style.display = on ? '' : 'none'; }
+  // El interruptor junto al botón morado cuenta su estado con color:
+  // gris apagado, morado encendido en espera, azul escuchando.
+  function ytVozChip(on){
+    const b = ids('ytVozBtn');
+    if(!b) return;
+    if(!ytVozSoportada()){ b.style.display = 'none'; return; }
+    const activa = ytVozActiva();
+    if(!activa){ b.textContent = '🎙 Voz: no'; b.style.background = '#1a2230'; b.style.borderColor = '#3a4a63'; b.style.color = '#c9d3e6'; }
+    else if(on){ b.textContent = '🎙 Escuchando «volver a colocar»'; b.style.background = '#1d3a4d'; b.style.borderColor = '#62d7ff'; b.style.color = '#d8f4ff'; }
+    else { b.textContent = '🎙 Voz: sí'; b.style.background = '#2a1d4d'; b.style.borderColor = '#c9a4ff'; b.style.color = '#e6d8ff'; }
+    const c = ids('ytVozCheck'); if(c && c.checked !== activa) c.checked = activa;
+  }
   function ytVozAcuse(){
     try{
       if(!ytGuia.audio){ const AC = window.AudioContext || window.webkitAudioContext; if(AC) ytGuia.audio = new AC(); }
@@ -18558,8 +18569,16 @@ function drawStartMarks(){
         ytVozEstado('Este navegador no ofrece reconocimiento de voz; use Chrome o Edge para la orden «volver a colocar».');
       } else {
         vozCheck.checked = ytVozActiva();
-        vozCheck.addEventListener('change', () => { ytVozGuardar(vozCheck.checked); ytVozSincronizar(); if(!vozCheck.checked) ytVozEstado('Orden de voz apagada.'); });
+        vozCheck.addEventListener('change', () => { ytVozGuardar(vozCheck.checked); ytVozChip(false); ytVozSincronizar(); if(!vozCheck.checked) ytVozEstado('Orden de voz apagada.'); });
       }
+      const vozBtn = ids('ytVozBtn');
+      if(vozBtn) vozBtn.addEventListener('click', () => {
+        ytVozGuardar(!ytVozActiva());
+        ytVozChip(false);
+        ytVozSincronizar();
+        if(!ytVozActiva()) ytVozEstado('Orden de voz apagada.');
+      });
+      ytVozChip(false);
       // Vigilante: el oído sigue al estado de la app aunque nadie lo avise.
       setInterval(ytVozSincronizar, 800);
     }
@@ -18757,7 +18776,7 @@ function drawStartMarks(){
 </div>
 
 <div id="ytPlaceFabBar" style="display:none; position:fixed; bottom:18px; right:18px; z-index:9400; gap:10px; align-items:stretch;">
-<span id="ytVozChip" style="display:none; align-self:center; padding:8px 12px; border-radius:12px; background:#1d3a4d; border:1px solid #62d7ff; color:#d8f4ff; font-weight:700; font-size:14px;">🎙 Escuchando «volver a colocar»</span>
+<button id="ytVozBtn" type="button" title="Orden de voz «volver a colocar»: diga la orden desde la mesa y la app vuelve a la guía en vivo" style="align-self:center; padding:10px 14px; border-radius:12px; background:#1a2230; border:1px solid #3a4a63; color:#c9d3e6; font-weight:700; font-size:14px; cursor:pointer;">🎙 Voz: no</button>
 <button id="ytPlaceFab" type="button" style="background:#2a1d4d; color:#e6d8ff; border:1px solid #c9a4ff; border-radius:14px; padding:14px 18px; font-size:16px; font-weight:700; box-shadow:0 6px 24px rgba(0,0,0,.5);">¿Colocar las bolas en la mesa real?</button>
 <button id="ytChangePlay" type="button" style="background:#1a1420; color:#ffb3b3; border:1px solid #ff8a8a; border-radius:14px; padding:14px 14px; font-size:14px; font-weight:700; box-shadow:0 6px 24px rgba(0,0,0,.5);">Cambiar de jugada</button>
 </div>
