@@ -17848,11 +17848,11 @@ function drawStartMarks(){
   function ytVozReglas(){
     return {
       volver: /\bv(olver|uelve|uelva|olve)\b.*\bcoloc/,
-      detener: /\bdeten\w*\b.*\brevis|\bpar(ar|a)\b.*\brevis/,
-      grabarOtra: /\bgrab\w*\b.*\botra\b/,
+      detener: /\bdeten|\brevis|\bpar(ar|a|e|en)\b|\balto\b|\bstop\b/,
+      grabarOtra: /\bgrab\w*\b.*\b(otra|jugada|video)\b/,
       descargar: /\bdescarg\w*\b.*\bdatos\b|\bexport/,
       grabarEn: /\bgrab\w*\b.*\b(?:en\s+)?(5|cinco|10|diez|15|quince)\b/,
-      grabarJugada: /\bgrab\w*\b.*\bjugada\b/,
+      grabarJugada: /\bgrab\w*\b.*\b(jugada|video|grabacion)\b/,
       reproducir: /\breproduc/,
       numero: { '5':5, 'cinco':5, '10':10, 'diez':10, '15':15, 'quince':15 }
     };
@@ -17862,9 +17862,9 @@ function drawStartMarks(){
     grabar: 'grabar en 5, 10 o 15',
     grabarVolver: 'grabar en 5, 10 o 15 · volver a colocar',
     espera: 'cuenta regresiva en marcha',
-    grabando: 'detener y revisar',
-    revisar: 'reproducir · grabar otra jugada · descargar con datos',
-    revisarVolver: 'reproducir · grabar otra jugada · descargar con datos · volver a colocar'
+    grabando: 'detener (y revisar)',
+    revisar: 'reproducir · grabar jugada · descargar con datos',
+    revisarVolver: 'reproducir · grabar jugada · descargar con datos · volver a colocar'
   };
   // ¿Hay una jugada capturada a la que se pueda volver? (el botón morado)
   function ytVozHayJugada(){ const fab = ids('ytPlaceFab'); return !!fab && fab.style.display !== 'none' && fab.dataset.modo === 'volver'; }
@@ -17907,7 +17907,7 @@ function drawStartMarks(){
     const t = ytVozNormalizar(s), R = ytVozReglas();
     if(ctx === 'espera') return null;
     if((ctx === 'volver' || ctx === 'grabarVolver' || ctx === 'revisarVolver') && R.volver.test(t)) return { accion:'volver', desdeVideo: ctx !== 'volver' };
-    if(ctx === 'volver' && R.grabarJugada.test(t) && !R.grabarOtra.test(t)) return { accion:'grabarJugada' };
+    if(ctx === 'volver' && R.grabarJugada.test(t)) return { accion:'grabarJugada' };
     if(ctx === 'grabando' && R.detener.test(t)) return { accion:'detener' };
     if(ctx === 'revisar' || ctx === 'revisarVolver'){
       if(R.reproducir.test(t)) return { accion:'reproducir' };
@@ -17916,7 +17916,7 @@ function drawStartMarks(){
     }
     if(ctx === 'grabar' || ctx === 'grabarVolver'){
       const m = t.match(R.grabarEn);
-      if(m && !R.grabarOtra.test(t)) return { accion:'grabarEn', seg: R.numero[m[1]] };
+      if(m) return { accion:'grabarEn', seg: R.numero[m[1]] };
     }
     return null;
   }
@@ -17972,13 +17972,16 @@ function drawStartMarks(){
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     try{
       const rec = new SR();
-      rec.lang = 'es-CO'; rec.continuous = true; rec.interimResults = false; rec.maxAlternatives = 3;
+      rec.lang = 'es-CO'; rec.continuous = true; rec.interimResults = true; rec.maxAlternatives = 3;
       rec.onresult = ev => {
         const ctx = ytVozContexto();
         if(!ctx) return;
+        // Se examinan también los resultados provisionales (los que Google
+        // entrega mientras usted aún habla): la orden se ejecuta con el
+        // primero que la traiga, sin esperar el silencio de cierre, que en
+        // plena grabación llega tarde o pegado al ruido de las bolas.
         for(let i = ev.resultIndex; i < ev.results.length; i++){
           const res = ev.results[i];
-          if(!res.isFinal) continue;
           let oida = '';
           for(let k = 0; k < res.length; k++){
             const t = res[k].transcript;
@@ -17986,6 +17989,7 @@ function drawStartMarks(){
             const orden = ytVozInterpretar(t, ctx);
             if(orden){ ytVozEjecutar(orden); return; }
           }
+          if(!res.isFinal) continue;
           if(oida){
             const msg = 'Oí: «' + oida.trim() + '». Diga «' + (YT_VOZ_LETREROS[ctx] || '') + '».';
             if(ctx === 'volver') ytVozEstado(msg); else setVideoReplayStatus(msg);
