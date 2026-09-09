@@ -17837,7 +17837,7 @@ function drawStartMarks(){
   // reconocedor tras unos segundos de silencio.
   // =======================================================
   const YT_VOZ_KEY = 'ytVozOrdenV1';
-  const ytVoz = { rec:null, escuchando:false, reintento:0, desde:0, ultimoTic:0, contexto:null };
+  const ytVoz = { rec:null, escuchando:false, reintento:0, desde:0, ultimoTic:0, contexto:null, ultimaOrden:'', ultimaVez:0 };
   function ytVozSoportada(){ return !!(window.SpeechRecognition || window.webkitSpeechRecognition); }
   function ytVozActiva(){ try{ return localStorage.getItem(YT_VOZ_KEY) === '1'; }catch{ return false; } }
   function ytVozGuardar(on){ try{ localStorage.setItem(YT_VOZ_KEY, on ? '1' : '0'); }catch{} }
@@ -17922,6 +17922,12 @@ function drawStartMarks(){
   }
   function ytVozEjecutar(orden){
     const pulsar = id => { const b = ids(id); if(b && !b.disabled){ b.click(); return true; } return false; };
+    // Cinturón contra ecos: la misma orden no se repite en dos segundos.
+    const ahora = Date.now();
+    if(ytVoz.ultimaOrden === orden.accion && (ahora - ytVoz.ultimaVez) < 2000) return;
+    ytVoz.ultimaOrden = orden.accion; ytVoz.ultimaVez = ahora;
+    // «Reproducir» no es un interruptor por voz: si ya reproduce, no pausa.
+    if(orden.accion === 'reproducir'){ const v = ids('videoReplayPlayback'); if(v && !v.paused) return; }
     ytVozParar(false);
     ytVozAcuse();
     if(orden.accion === 'volver'){
@@ -18061,7 +18067,10 @@ function drawStartMarks(){
   }
   function ytVozParar(mantenerMedidor){
     if(ytVoz.reintento){ clearTimeout(ytVoz.reintento); ytVoz.reintento = 0; }
-    if(ytVoz.rec){ const rec = ytVoz.rec; ytVoz.rec = null; ytVoz.escuchando = false; try{ rec.onend = null; rec.stop(); }catch{} }
+    // El reconocedor que se apaga queda mudo del todo: sin onend, sin
+    // onresult ni onerror, para que un resultado en vuelo de la misma
+    // frase no llegue después y ejecute la orden dos veces.
+    if(ytVoz.rec){ const rec = ytVoz.rec; ytVoz.rec = null; ytVoz.escuchando = false; try{ rec.onend = null; rec.onresult = null; rec.onerror = null; rec.stop(); }catch{} }
     ytVozChip(false);
     if(!mantenerMedidor) ytVozMedidorParar();
   }
