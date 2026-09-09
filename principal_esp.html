@@ -17809,7 +17809,7 @@ function drawStartMarks(){
   // reconocedor tras unos segundos de silencio.
   // =======================================================
   const YT_VOZ_KEY = 'ytVozOrdenV1';
-  const ytVoz = { rec:null, escuchando:false, reintento:0 };
+  const ytVoz = { rec:null, escuchando:false, reintento:0, desde:0, ultimoTic:0 };
   function ytVozSoportada(){ return !!(window.SpeechRecognition || window.webkitSpeechRecognition); }
   function ytVozActiva(){ try{ return localStorage.getItem(YT_VOZ_KEY) === '1'; }catch{ return false; } }
   function ytVozGuardar(on){ try{ localStorage.setItem(YT_VOZ_KEY, on ? '1' : '0'); }catch{} }
@@ -17885,18 +17885,71 @@ function drawStartMarks(){
         if(ytVozDebeEscuchar()) ytVoz.reintento = setTimeout(ytVozArrancar, 400);
       };
       rec.start();
-      ytVoz.rec = rec; ytVoz.escuchando = true; ytVozChip(true);
+      ytVoz.rec = rec; ytVoz.escuchando = true; ytVoz.desde = Date.now(); ytVozChip(true);
+      ytVozMedidorArrancar();
       ytVozEstado('Escuchando la orden «volver a colocar»…');
     }catch{ ytVoz.escuchando = false; ytVoz.rec = null; }
   }
-  function ytVozParar(){
+  // Medidor de nivel del micrófono: barrita junto al botón, viva solo
+  // mientras el oído está encendido, para distinguir «no me oye» (barra
+  // quieta al hablar: problema de Windows o del micrófono) de «no me
+  // entiende» (barra viva y sin reconocer: problema del reconocedor).
+  const ytVozMedidor = { stream:null, ctx:null, timer:0 };
+  async function ytVozMedidorArrancar(){
+    if(ytVozMedidor.stream || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+    try{
+      const stream = await navigator.mediaDevices.getUserMedia({ audio:{ echoCancellation:false, noiseSuppression:false, autoGainControl:false } });
+      if(!ytVoz.escuchando){ stream.getTracks().forEach(t => t.stop()); return; }
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if(!AC){ stream.getTracks().forEach(t => t.stop()); return; }
+      const ctx = new AC();
+      const analizador = ctx.createAnalyser();
+      analizador.fftSize = 1024;
+      ctx.createMediaStreamSource(stream).connect(analizador);
+      ytVozMedidor.stream = stream; ytVozMedidor.ctx = ctx;
+      const datos = new Float32Array(analizador.fftSize);
+      const caja = ids('ytVozNivel'), barra = ids('ytVozNivelBarra');
+      if(caja) caja.style.display = '';
+      ytVozMedidor.timer = setInterval(() => {
+        analizador.getFloatTimeDomainData(datos);
+        let s = 0;
+        for(let i = 0; i < datos.length; i++) s += datos[i] * datos[i];
+        const rms = Math.sqrt(s / datos.length);
+        // Escala perceptual: voz normal a un par de metros ronda la mitad.
+        const pct = Math.min(100, Math.round(Math.sqrt(rms) * 200));
+        if(barra){ barra.style.width = pct + '%'; barra.style.background = pct > 85 ? '#ffb347' : (pct > 8 ? '#37e37c' : '#3a4a63'); }
+      }, 100);
+    }catch{}
+  }
+  function ytVozMedidorParar(){
+    if(ytVozMedidor.timer){ clearInterval(ytVozMedidor.timer); ytVozMedidor.timer = 0; }
+    if(ytVozMedidor.stream){ try{ ytVozMedidor.stream.getTracks().forEach(t => t.stop()); }catch{} ytVozMedidor.stream = null; }
+    if(ytVozMedidor.ctx){ try{ ytVozMedidor.ctx.close(); }catch{} ytVozMedidor.ctx = null; }
+    const caja = ids('ytVozNivel'), barra = ids('ytVozNivelBarra');
+    if(caja) caja.style.display = 'none';
+    if(barra) barra.style.width = '0%';
+  }
+  function ytVozParar(mantenerMedidor){
     if(ytVoz.reintento){ clearTimeout(ytVoz.reintento); ytVoz.reintento = 0; }
     if(ytVoz.rec){ const rec = ytVoz.rec; ytVoz.rec = null; ytVoz.escuchando = false; try{ rec.onend = null; rec.stop(); }catch{} }
     ytVozChip(false);
+    if(!mantenerMedidor) ytVozMedidorParar();
   }
+  // Reciclaje: reconocedor fresco cada tres minutos y tras cualquier
+  // brecha larga del vigilante (pestaña dormida, PC en reposo, salvapantallas):
+  // Chrome se fatiga en las escuchas largas y despierta torpe.
+  const YT_VOZ_RECICLO_MS = 180000;
   function ytVozSincronizar(){
-    if(ytVozDebeEscuchar()){ if(!ytVoz.escuchando) ytVozArrancar(); }
-    else if(ytVoz.escuchando || ytVoz.reintento) ytVozParar();
+    const ahora = Date.now();
+    const brecha = ytVoz.ultimoTic ? ahora - ytVoz.ultimoTic : 0;
+    ytVoz.ultimoTic = ahora;
+    if(ytVozDebeEscuchar()){
+      if(ytVoz.escuchando && ((ahora - ytVoz.desde) > YT_VOZ_RECICLO_MS || brecha > 5000)) ytVozParar(true);
+      if(!ytVoz.escuchando) ytVozArrancar();
+    } else if(ytVoz.escuchando || ytVoz.reintento) ytVozParar(false);
+  }
+  function ytVozDespertar(){
+    if(ytVoz.escuchando && ytVozDebeEscuchar()){ ytVozParar(true); ytVozSincronizar(); }
   }
 
   function ytActualizarFab(modo){
@@ -18581,6 +18634,8 @@ function drawStartMarks(){
       ytVozChip(false);
       // Vigilante: el oído sigue al estado de la app aunque nadie lo avise.
       setInterval(ytVozSincronizar, 800);
+      document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible') ytVozDespertar(); });
+      window.addEventListener('focus', ytVozDespertar);
     }
     if(fab) fab.addEventListener('click', () => {
       if(fab.dataset.modo === 'volver'){ ytVolverAColocar(); return; }
@@ -18777,6 +18832,7 @@ function drawStartMarks(){
 
 <div id="ytPlaceFabBar" style="display:none; position:fixed; bottom:18px; right:18px; z-index:9400; gap:10px; align-items:stretch;">
 <button id="ytVozBtn" type="button" title="Orden de voz «volver a colocar»: diga la orden desde la mesa y la app vuelve a la guía en vivo" style="align-self:center; padding:10px 14px; border-radius:12px; background:#1a2230; border:1px solid #3a4a63; color:#c9d3e6; font-weight:700; font-size:14px; cursor:pointer;">🎙 Voz: no</button>
+<span id="ytVozNivel" title="Nivel del micrófono: la barra se mueve cuando la app le oye" style="display:none; align-self:center; width:72px; height:14px; border-radius:7px; background:#111823; border:1px solid #3a4a63; overflow:hidden;"><span id="ytVozNivelBarra" style="display:block; height:100%; width:0%; background:#3a4a63; transition:width .08s linear;"></span></span>
 <button id="ytPlaceFab" type="button" style="background:#2a1d4d; color:#e6d8ff; border:1px solid #c9a4ff; border-radius:14px; padding:14px 18px; font-size:16px; font-weight:700; box-shadow:0 6px 24px rgba(0,0,0,.5);">¿Colocar las bolas en la mesa real?</button>
 <button id="ytChangePlay" type="button" style="background:#1a1420; color:#ffb3b3; border:1px solid #ff8a8a; border-radius:14px; padding:14px 14px; font-size:14px; font-weight:700; box-shadow:0 6px 24px rgba(0,0,0,.5);">Cambiar de jugada</button>
 </div>
