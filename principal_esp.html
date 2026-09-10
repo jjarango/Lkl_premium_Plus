@@ -2093,8 +2093,8 @@
 </div>
 </div>
 <div id="videoReplayVozBar" style="display:none; align-items:center; gap:10px; padding:8px 12px; border-radius:12px; background:#1d3a4d; border:1px solid #62d7ff; color:#d8f4ff; font-weight:700; font-size:14px;">
-<span id="videoReplayVozChip" style="white-space:nowrap;">🎙 Escuchando</span>
-<span id="videoReplayVozNivel" title="Nivel del micrófono" style="flex:1 1 120px; min-width:80px; height:12px; border-radius:6px; background:#111823; border:1px solid #3a4a63; overflow:hidden;"><span id="videoReplayVozNivelBarra" style="display:block; height:100%; width:0%; background:#3a4a63; transition:width .08s linear;"></span></span>
+<span id="videoReplayVozChip" style="white-space:normal; min-width:0;">🎙 Voz: en espera</span>
+<span id="videoReplayVozNivel" title="Nivel de audio del medidor; la escucha se confirma en el letrero de voz" style="flex:1 1 120px; min-width:80px; height:12px; border-radius:6px; background:#111823; border:1px solid #3a4a63; overflow:hidden;"><span id="videoReplayVozNivelBarra" style="display:block; height:100%; width:0%; background:#3a4a63; transition:width .08s linear;"></span></span>
 </div>
 <div class="videoReplayGroup" id="videoReplayRecordPanel" style="display:none">
 <h3><span class="videoRecDot" id="videoReplayRecDot" style="display:none"></span>Grabación</h3>
@@ -17837,7 +17837,7 @@ function drawStartMarks(){
   // reconocedor tras unos segundos de silencio.
   // =======================================================
   const YT_VOZ_KEY = 'ytVozOrdenV1';
-  const ytVoz = { rec:null, escuchando:false, reintento:0, desde:0, ultimoTic:0, contexto:null, ultimaOrden:'', ultimaVez:0 };
+  const ytVoz = { rec:null, iniciando:false, escuchando:false, reintento:0, desde:0, ultimoTic:0, contexto:null, versionContexto:0, fragmento:null, avisoTimer:0, ultimaOrden:'', ultimaVez:0 };
   function ytVozSoportada(){ return !!(window.SpeechRecognition || window.webkitSpeechRecognition); }
   function ytVozActiva(){ try{ return localStorage.getItem(YT_VOZ_KEY) === '1'; }catch{ return false; } }
   function ytVozGuardar(on){ try{ localStorage.setItem(YT_VOZ_KEY, on ? '1' : '0'); }catch{} }
@@ -17849,10 +17849,10 @@ function drawStartMarks(){
     return {
       volver: /\bv(olver|uelve|uelva|olve)\b.*\bcoloc/,
       detener: /\bdeten|\brevis|\bpar(ar|a|e|en)\b|\balto\b|\bstop\b/,
-      grabarOtra: /\bgrab\w*\b.*\b(otra|jugada|video)\b/,
+      grabarOtra: /\bgra[bv]\w*\b.*\b(otra|jugadas?|videos?)\b/,
       descargar: /\bdescarg\w*\b.*\bdatos\b|\bexport/,
-      grabarEn: /\bgrab\w*\b.*\b(?:en\s+)?(5|cinco|10|diez|15|quince)\b/,
-      grabarJugada: /\bgrab\w*\b.*\b(jugada|video|grabacion)\b/,
+      grabarEn: /\bgra[bv]\w*\b.*\b(?:en\s+)?(5|cinco|10|diez|15|quince)\b/,
+      grabarJugada: /\bgra[bv]\w*\b.*\b(jugadas?|videos?|gra[bv]acion(?:es)?)\b/,
       reproducir: /\breproduc/,
       numero: { '5':5, 'cinco':5, '10':10, 'diez':10, '15':15, 'quince':15 }
     };
@@ -17903,9 +17903,21 @@ function drawStartMarks(){
   }
   function ytVozDebeEscuchar(){ return !!ytVozContexto(); }
   // Interpreta una frase oída según el contexto; devuelve la acción o null.
+  function ytVozConflicto(s){
+    const t = ytVozNormalizar(s), R = ytVozReglas();
+    if(/\b(no|nunca|tampoco)\b/.test(t)) return 'Sin acción: la frase contiene una negación.';
+    const familias = [R.volver.test(t), R.detener.test(t), R.reproducir.test(t), R.descargar.test(t),
+      R.grabarJugada.test(t) || R.grabarOtra.test(t) || R.grabarEn.test(t)];
+    if(familias.filter(Boolean).length > 1) return 'Sin acción: diga una sola orden cada vez.';
+    if(R.grabarEn.test(t)){
+      const tiempos = Array.from(t.matchAll(/\b(5|cinco|10|diez|15|quince)\b/g), m => R.numero[m[1]]);
+      if(new Set(tiempos).size > 1) return 'Sin acción: indique un solo tiempo de grabación.';
+    }
+    return '';
+  }
   function ytVozInterpretar(s, ctx){
     const t = ytVozNormalizar(s), R = ytVozReglas();
-    if(ctx === 'espera') return null;
+    if(ctx === 'espera' || ytVozConflicto(t)) return null;
     if((ctx === 'volver' || ctx === 'grabarVolver' || ctx === 'revisarVolver') && R.volver.test(t)) return { accion:'volver', desdeVideo: ctx !== 'volver' };
     if(ctx === 'volver' && R.grabarJugada.test(t)) return { accion:'grabarJugada' };
     if(ctx === 'grabando' && R.detener.test(t)) return { accion:'detener' };
@@ -17920,16 +17932,87 @@ function drawStartMarks(){
     }
     return null;
   }
-  function ytVozEjecutar(orden){
+  function ytVozLimpiarFragmento(){ ytVoz.fragmento = null; }
+  function ytVozFijarContexto(ctx){
+    if(ctx !== ytVoz.contexto){
+      ytVoz.contexto = ctx;
+      ytVoz.versionContexto++;
+      ytVozLimpiarFragmento();
+    }
+  }
+  // Solo se conservan comienzos de órdenes, durante 2,5 s en total.
+  // Nunca se unen sesiones, contextos ni resultados no consecutivos.
+  const YT_VOZ_FRAGMENTOS_MS = 2500;
+  function ytVozPuedeContinuar(s){
+    const t = ytVozNormalizar(s).replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+    if(!t || t.length > 100 || t.split(' ').length > 10) return false;
+    if(/\b(no|nunca|tampoco)\b/.test(t)) return true;
+    return /^(?:por favor\s+)?(?:gra[bv]\w*(?:\s+(?:la|una|otra|el|un|en|con|los|las|a|de))*|v(?:olver|uelve|uelva|olve)(?:\s+a)?|descarg\w*(?:\s+con)?)$/.test(t);
+  }
+  function ytVozResultado(res, indice, ctx){
+    const ahora = Date.now();
+    let previo = ytVoz.fragmento;
+    if(previo && (previo.ctx !== ctx || previo.indice !== indice - 1 || ahora - previo.inicio > YT_VOZ_FRAGMENTOS_MS)) previo = null;
+    const frases = Array.from(res, alt => String(alt.transcript || '').trim()).filter(Boolean);
+    if(!frases.length){ ytVozLimpiarFragmento(); return { frase:'', motivo:'' }; }
+    const unir = t => previo ? previo.texto + ' ' + t : t;
+    const frase = unir(frases[0]);
+    const conflicto = ytVozConflicto(frase);
+    const candidatas = new Map();
+    if(!conflicto){
+      for(const texto of frases){
+        const completa = unir(texto), orden = ytVozInterpretar(completa, ctx);
+        if(orden){
+          const clave = orden.accion + ':' + (orden.seg || '');
+          if(!candidatas.has(clave)) candidatas.set(clave, { orden, frase:completa });
+        }
+      }
+    }
+    if(candidatas.size === 1){ ytVozLimpiarFragmento(); return candidatas.values().next().value; }
+    if(res.isFinal){
+      ytVoz.fragmento = candidatas.size === 0 && ytVozPuedeContinuar(frase)
+        ? { texto:frase, indice, ctx, inicio:previo ? previo.inicio : ahora } : null;
+    }
+    return { frase, motivo:conflicto || (candidatas.size > 1
+      ? 'Sin acción: el reconocedor propuso órdenes distintas. Repita una sola.'
+      : (ytVozPuedeContinuar(frase) ? 'Sin acción: falta completar la orden.' : 'Sin acción: esta frase no es una orden válida en este momento.')) };
+  }
+  // Aviso breve y visible también con los módulos de ayuda plegados.
+  // Solo texto en pantalla; no guarda audio ni envía información adicional.
+  function ytVozAvisar(frase, resultado, tono='neutral'){
+    const aviso = ids('ytVozAviso'), oida = ids('ytVozAvisoOida'), accion = ids('ytVozAvisoAccion');
+    if(!aviso || !oida || !accion) return;
+    const texto = String(frase || '').replace(/\s+/g, ' ').trim();
+    oida.textContent = texto ? 'Oí: «' + (texto.length > 180 ? texto.slice(0, 177) + '…' : texto) + '»' : '';
+    oida.style.display = texto ? 'block' : 'none';
+    accion.textContent = resultado;
+    const color = tono === 'good' ? '#7de3a0' : (tono === 'warn' ? '#ffcb75' : '#d8f4ff');
+    accion.style.color = color; aviso.style.borderColor = color; aviso.style.display = 'block';
+    if(ytVoz.avisoTimer) clearTimeout(ytVoz.avisoTimer);
+    ytVoz.avisoTimer = setTimeout(() => { aviso.style.display = 'none'; ytVoz.avisoTimer = 0; }, 6000);
+  }
+  function ytVozEjecutar(orden, frase){
     const pulsar = id => { const b = ids(id); if(b && !b.disabled){ b.click(); return true; } return false; };
+    const destinos = {
+      volver:['ytPlaceFab', 'volver a colocar las bolas.'],
+      grabarJugada:['videoReplayRecordBtn', 'abrir el módulo para grabar la jugada.'],
+      detener:['videoReplayStopBtn', 'detener y revisar la jugada.'],
+      reproducir:['videoReplayPlayBtn', 'reproducir la jugada.'],
+      grabarOtra:['videoReplayAgainBtn', 'preparar otra grabación.'],
+      descargar:['videoReplayExportBtn', 'iniciar la exportación con datos.'],
+      grabarEn:['videoReplayStart' + orden.seg, 'iniciar la cuenta de ' + orden.seg + ' segundos.']
+    };
+    const destino = destinos[orden.accion], boton = destino && ids(destino[0]);
+    if(!boton || boton.disabled){ ytVozAvisar(frase, 'Sin acción: el control no está disponible.', 'warn'); return; }
     // Cinturón contra ecos: la misma orden no se repite en dos segundos.
     const ahora = Date.now();
-    if(ytVoz.ultimaOrden === orden.accion && (ahora - ytVoz.ultimaVez) < 2000) return;
-    ytVoz.ultimaOrden = orden.accion; ytVoz.ultimaVez = ahora;
+    if(ytVoz.ultimaOrden === orden.accion && (ahora - ytVoz.ultimaVez) < 2000){ ytVozAvisar(frase, 'Orden repetida: no se ejecutó de nuevo.'); return; }
     // «Reproducir» no es un interruptor por voz: si ya reproduce, no pausa.
-    if(orden.accion === 'reproducir'){ const v = ids('videoReplayPlayback'); if(v && !v.paused) return; }
+    if(orden.accion === 'reproducir'){ const v = ids('videoReplayPlayback'); if(v && !v.paused){ ytVozAvisar(frase, 'La jugada ya se está reproduciendo; no se pausó.'); return; } }
+    ytVoz.ultimaOrden = orden.accion; ytVoz.ultimaVez = ahora;
     ytVozParar(false);
     ytVozAcuse();
+    ytVozAvisar(frase, 'Aceptada: ' + destino[1], 'good');
     if(orden.accion === 'volver'){
       ytVozEstado('Orden recibida: volviendo a colocar.');
       // Desde el módulo de video: se cierra el módulo y se abre la guía,
@@ -17951,19 +18034,33 @@ function drawStartMarks(){
     const b = ids('ytVozBtn');
     if(!b) return;
     if(!ytVozSoportada()){ b.style.display = 'none'; return; }
-    const activa = ytVozActiva();
+    const activa = ytVozActiva(), ctx = ytVoz.contexto;
+    on = !!on && ytVoz.escuchando;
+    const pendiente = ytVoz.iniciando ? '🎙 Activando voz…' : (ctx ? '🎙 Reconectando voz…' : '🎙 Voz: en espera');
     if(!activa){ b.textContent = '🎙 Voz: no'; b.style.background = '#1a2230'; b.style.borderColor = '#3a4a63'; b.style.color = '#c9d3e6'; }
-    else if(on){ b.textContent = '🎙 Escuchando «volver a colocar · grabar jugada»'; b.style.background = '#1d3a4d'; b.style.borderColor = '#62d7ff'; b.style.color = '#d8f4ff'; }
-    else { b.textContent = '🎙 Voz: sí'; b.style.background = '#2a1d4d'; b.style.borderColor = '#c9a4ff'; b.style.color = '#e6d8ff'; }
-    const c = ids('ytVozCheck'); if(c && c.checked !== activa) c.checked = activa;
-    // Dentro del módulo de video, el letrero dice qué orden vale ahora.
-    const barra = ids('videoReplayVozBar'), chip = ids('videoReplayVozChip');
-    const ctx = ytVoz.contexto;
-    if(barra){
-      const enModal = on && ctx && ctx !== 'volver';
-      barra.style.display = enModal ? 'flex' : 'none';
-      if(chip && enModal) chip.textContent = '🎙 Escuchando: ' + (YT_VOZ_LETREROS[ctx] || '');
+    else if(on){
+      b.textContent = ctx === 'volver' ? '🎙 Escuchando «volver a colocar · grabar jugada»' : (ctx === 'espera' ? '🎙 Voz: cuenta regresiva' : '🎙 Escuchando');
+      b.style.background = '#1d3a4d'; b.style.borderColor = '#62d7ff'; b.style.color = '#d8f4ff';
     }
+    else { b.textContent = pendiente; b.style.background = '#2a1d4d'; b.style.borderColor = '#c9a4ff'; b.style.color = '#e6d8ff'; }
+    const estado = ids('ytVozEstado');
+    if(estado && /^(Escuchando:|Cuenta regresiva; órdenes en pausa\.)/.test(estado.textContent)){
+      estado.textContent = !activa ? 'Voz desactivada.' : (on
+        ? (ctx === 'espera' ? 'Cuenta regresiva; órdenes en pausa.' : 'Escuchando: ' + (YT_VOZ_LETREROS[ctx] || ''))
+        : pendiente.replace('🎙 ', ''));
+    }
+    const c = ids('ytVozCheck'); if(c && c.checked !== activa) c.checked = activa;
+    const barra = ids('videoReplayVozBar'), chip = ids('videoReplayVozChip');
+    const modal = ids('videoReplayModal');
+    if(barra){
+      const enModal = activa && modal && modal.classList.contains('active') && ctx && ctx !== 'volver';
+      barra.style.display = enModal ? 'flex' : 'none';
+      if(chip && enModal) chip.textContent = on
+        ? (ctx === 'espera' ? '🎙 Cuenta regresiva; órdenes en pausa.' : '🎙 Escuchando: ' + (YT_VOZ_LETREROS[ctx] || ''))
+        : pendiente;
+    }
+    const nivel = ids('ytVozNivel');
+    if(nivel) nivel.style.display = on && ytVozMedidor.stream ? '' : 'none';
   }
   function ytVozAcuse(){
     try{
@@ -17973,56 +18070,87 @@ function drawStartMarks(){
     }catch{}
   }
   function ytVozOrden(){ ytVozEjecutar({ accion:'volver' }); }
+  function ytVozReintentar(){
+    if(ytVoz.reintento || !ytVozDebeEscuchar()) return;
+    ytVoz.reintento = setTimeout(() => { ytVoz.reintento = 0; ytVozArrancar(); }, 400);
+  }
   function ytVozArrancar(){
-    if(ytVoz.escuchando || !ytVozDebeEscuchar()) return;
+    if(ytVoz.rec || ytVoz.iniciando || ytVoz.reintento || !ytVozDebeEscuchar()) return;
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     try{
       const rec = new SR();
+      let servicio = false, audio = false, confirmado = false;
+      let ultimoFinal = -1, ultimoIndice = -1, descartarHasta = -1;
+      ytVoz.rec = rec; ytVoz.iniciando = true; ytVoz.escuchando = false; ytVoz.desde = Date.now();
+      ytVozFijarContexto(ytVozContexto()); ytVozLimpiarFragmento();
+      let versionResultados = ytVoz.versionContexto;
       rec.lang = 'es-CO'; rec.continuous = true; rec.interimResults = true; rec.maxAlternatives = 3;
-      rec.onresult = ev => {
+      const confirmar = () => {
+        if(ytVoz.rec !== rec || !servicio || !audio || ytVoz.escuchando) return;
         const ctx = ytVozContexto();
-        if(!ctx) return;
-        // Se examinan también los resultados provisionales (los que Google
-        // entrega mientras usted aún habla): la orden se ejecuta con el
-        // primero que la traiga, sin esperar el silencio de cierre, que en
-        // plena grabación llega tarde o pegado al ruido de las bolas.
+        if(!ctx){ ytVozParar(false); return; }
+        confirmado = true; ytVoz.iniciando = false; ytVoz.escuchando = true; ytVoz.desde = Date.now();
+        ytVozFijarContexto(ctx); ytVozChip(true); ytVozMedidorArrancar();
+        ytVozEstado(ctx === 'espera' ? 'Cuenta regresiva; órdenes en pausa.' : 'Escuchando: ' + (YT_VOZ_LETREROS[ctx] || ''));
+      };
+      // Solicitar start() no confirma la escucha: se esperan ambos eventos.
+      rec.onstart = () => { if(ytVoz.rec !== rec) return; servicio = true; confirmar(); };
+      rec.onaudiostart = () => { if(ytVoz.rec !== rec) return; audio = true; confirmar(); };
+      rec.onaudioend = () => {
+        if(ytVoz.rec !== rec) return;
+        audio = false; ytVoz.iniciando = false; ytVoz.escuchando = false; ytVoz.desde = Date.now(); ytVozChip(false);
+        // Todavía puede llegar el resultado final de lo ya capturado.
+      };
+      rec.onresult = ev => {
+        if(ytVoz.rec !== rec || !confirmado) return;
+        const ctx = ytVozContexto();
+        ytVozFijarContexto(ctx);
+        if(versionResultados !== ytVoz.versionContexto){
+          if(ultimoIndice > ultimoFinal) descartarHasta = ultimoIndice;
+          versionResultados = ytVoz.versionContexto;
+        }
         for(let i = ev.resultIndex; i < ev.results.length; i++){
+          if(i <= ultimoFinal) continue;
           const res = ev.results[i];
-          let oida = '';
-          for(let k = 0; k < res.length; k++){
-            const t = res[k].transcript;
-            oida = oida || t;
-            const orden = ytVozInterpretar(t, ctx);
-            if(orden){ ytVozEjecutar(orden); return; }
-          }
-          if(!res.isFinal) continue;
-          if(oida){
-            const msg = 'Oí: «' + oida.trim() + '». Diga «' + (YT_VOZ_LETREROS[ctx] || '') + '».';
+          ultimoIndice = Math.max(ultimoIndice, i);
+          if(res.isFinal) ultimoFinal = i;
+          if(!ctx || ctx === 'espera' || i <= descartarHasta){ ytVozLimpiarFragmento(); continue; }
+          const resultado = ytVozResultado(res, i, ctx);
+          if(resultado.orden){ ytVozEjecutar(resultado.orden, resultado.frase); return; }
+          if(res.isFinal && resultado.frase){
+            ytVozAvisar(resultado.frase, resultado.motivo, 'warn');
+            const msg = 'Oí: «' + resultado.frase + '». ' + resultado.motivo + ' Diga «' + (YT_VOZ_LETREROS[ctx] || '') + '».';
             if(ctx === 'volver') ytVozEstado(msg); else setVideoReplayStatus(msg);
           }
         }
       };
       rec.onerror = ev => {
-        // Cualquier tropiezo se muestra, para diagnosticar sin adivinar.
+        if(ytVoz.rec !== rec) return;
+        ytVoz.iniciando = false; ytVoz.escuchando = false; ytVoz.desde = Date.now(); ytVozLimpiarFragmento(); ytVozChip(false);
         if(ev.error && ev.error !== 'no-speech'){
           const msg = 'Reconocedor: ' + ev.error + (ev.error === 'audio-capture' ? ' (no pudo capturar el micrófono)' : (ev.error === 'network' ? ' (sin internet)' : ''));
           if(ytVoz.contexto === 'volver') ytVozEstado(msg); else setVideoReplayStatus(msg, 'warn');
+          ytVozAvisar('', msg, 'warn');
         }
         if(ev.error === 'not-allowed' || ev.error === 'service-not-allowed'){
           ytVozGuardar(false);
           const c = ids('ytVozCheck'); if(c) c.checked = false;
+          ytVozParar(false);
           ytVozEstado('Chrome no permitió el micrófono: la orden de voz queda apagada. Revise el permiso del sitio y vuelva a activar la casilla.');
         }
       };
       rec.onend = () => {
-        ytVoz.escuchando = false; ytVoz.rec = null; ytVozChip(false);
-        if(ytVozDebeEscuchar()) ytVoz.reintento = setTimeout(ytVozArrancar, 400);
+        if(ytVoz.rec !== rec) return;
+        ytVoz.rec = null; ytVoz.iniciando = false; ytVoz.escuchando = false; ytVozLimpiarFragmento(); ytVozChip(false);
+        ytVozReintentar();
       };
+      ytVozChip(false); ytVozEstado('Activando reconocimiento de voz…');
       rec.start();
-      ytVoz.rec = rec; ytVoz.escuchando = true; ytVoz.desde = Date.now(); ytVoz.contexto = ytVozContexto(); ytVozChip(true);
-      ytVozMedidorArrancar();
-      ytVozEstado('Escuchando la orden «volver a colocar»…');
-    }catch{ ytVoz.escuchando = false; ytVoz.rec = null; }
+    }catch(error){
+      ytVozParar(false);
+      const msg = 'No se pudo activar la voz: ' + (error && error.message ? error.message : error);
+      ytVozEstado(msg); ytVozAvisar('', msg, 'warn'); ytVozReintentar();
+    }
   }
   // Medidor de nivel del micrófono: barrita junto al botón, viva solo
   // mientras el oído está encendido, para distinguir «no me oye» (barra
@@ -18031,9 +18159,10 @@ function drawStartMarks(){
   const ytVozMedidor = { stream:null, ctx:null, timer:0 };
   async function ytVozMedidorArrancar(){
     if(ytVozMedidor.stream || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+    const rec = ytVoz.rec;
     try{
       const stream = await navigator.mediaDevices.getUserMedia({ audio:{ echoCancellation:false, noiseSuppression:false, autoGainControl:false } });
-      if(!ytVoz.escuchando){ stream.getTracks().forEach(t => t.stop()); return; }
+      if(!ytVoz.escuchando || ytVoz.rec !== rec || ytVozMedidor.stream){ stream.getTracks().forEach(t => t.stop()); return; }
       const AC = window.AudioContext || window.webkitAudioContext;
       if(!AC){ stream.getTracks().forEach(t => t.stop()); return; }
       const ctx = new AC();
@@ -18067,10 +18196,13 @@ function drawStartMarks(){
   }
   function ytVozParar(mantenerMedidor){
     if(ytVoz.reintento){ clearTimeout(ytVoz.reintento); ytVoz.reintento = 0; }
-    // El reconocedor que se apaga queda mudo del todo: sin onend, sin
-    // onresult ni onerror, para que un resultado en vuelo de la misma
-    // frase no llegue después y ejecute la orden dos veces.
-    if(ytVoz.rec){ const rec = ytVoz.rec; ytVoz.rec = null; ytVoz.escuchando = false; try{ rec.onend = null; rec.onresult = null; rec.onerror = null; rec.stop(); }catch{} }
+    const rec = ytVoz.rec;
+    ytVoz.rec = null; ytVoz.iniciando = false; ytVoz.escuchando = false; ytVozLimpiarFragmento();
+    // Una sesión retirada no puede confirmar escucha ni ejecutar resultados tardíos.
+    if(rec){
+      rec.onstart = rec.onaudiostart = rec.onaudioend = rec.onend = rec.onresult = rec.onerror = null;
+      try{ rec.stop(); }catch{}
+    }
     ytVozChip(false);
     if(!mantenerMedidor) ytVozMedidorParar();
   }
@@ -18083,16 +18215,18 @@ function drawStartMarks(){
     const brecha = ytVoz.ultimoTic ? ahora - ytVoz.ultimoTic : 0;
     ytVoz.ultimoTic = ahora;
     const ctx = ytVozContexto();
+    ytVozFijarContexto(ctx);
     if(ctx){
-      if(ytVoz.escuchando && ((ahora - ytVoz.desde) > YT_VOZ_RECICLO_MS || brecha > 5000)) ytVozParar(true);
-      if(!ytVoz.escuchando) ytVozArrancar();
-      // Un cambio de contexto (reposo → cuenta → grabación → revisión) no
-      // toca el oído: solo cambia lo que vale y el letrero que lo dice.
-      else if(ctx !== ytVoz.contexto){ ytVoz.contexto = ctx; ytVozChip(true); }
-    } else if(ytVoz.escuchando || ytVoz.reintento) ytVozParar(false);
+      const limite = ytVoz.escuchando ? YT_VOZ_RECICLO_MS : 15000;
+      if(ytVoz.rec && ((ahora - ytVoz.desde) > limite || brecha > 5000)) ytVozParar(true);
+      if(!ytVoz.rec && !ytVoz.reintento) ytVozArrancar();
+      // El cambio de contexto limpia fragmentos, sin interrumpir el oído.
+      ytVozChip(ytVoz.escuchando);
+    } else if(ytVoz.rec || ytVoz.iniciando || ytVoz.reintento) ytVozParar(false);
+    else ytVozChip(false);
   }
   function ytVozDespertar(){
-    if(ytVoz.escuchando && ytVozDebeEscuchar()){ ytVozParar(true); ytVozSincronizar(); }
+    if(ytVoz.rec && ytVozDebeEscuchar()){ ytVozParar(true); ytVozSincronizar(); }
   }
 
   function ytActualizarFab(modo){
@@ -18973,7 +19107,8 @@ function drawStartMarks(){
 </div>
 </div>
 
-<span id="ytVozNivel" title="Nivel del micrófono: la barra se mueve cuando la app le oye" style="display:none; position:fixed; bottom:18px; left:18px; z-index:9401; width:300px; height:14px; border-radius:7px; background:#111823; border:1px solid #3a4a63; overflow:hidden; box-shadow:0 6px 24px rgba(0,0,0,.5);"><span id="ytVozNivelBarra" style="display:block; height:100%; width:0%; background:#3a4a63; transition:width .08s linear;"></span></span>
+<div id="ytVozAviso" role="status" aria-live="polite" aria-atomic="true" style="display:none; position:fixed; top:16px; left:50%; transform:translateX(-50%); z-index:10010; width:max-content; max-width:calc(100vw - 32px); box-sizing:border-box; padding:10px 16px; border:1px solid #62d7ff; border-radius:12px; background:rgba(15,23,35,.96); color:#f4f2e8; font-size:clamp(16px,1.6vw,22px); line-height:1.4; text-align:center; overflow-wrap:anywhere; pointer-events:none; box-shadow:0 6px 24px rgba(0,0,0,.5);"><span id="ytVozAvisoOida" style="display:block;"></span><span id="ytVozAvisoAccion" style="display:block; font-weight:700;"></span></div>
+<span id="ytVozNivel" title="Nivel de audio del medidor; la escucha se confirma en el letrero de voz" style="display:none; position:fixed; bottom:18px; left:18px; z-index:9401; width:300px; height:14px; border-radius:7px; background:#111823; border:1px solid #3a4a63; overflow:hidden; box-shadow:0 6px 24px rgba(0,0,0,.5);"><span id="ytVozNivelBarra" style="display:block; height:100%; width:0%; background:#3a4a63; transition:width .08s linear;"></span></span>
 <div id="ytPlaceFabBar" style="display:none; position:fixed; bottom:18px; right:18px; z-index:9400; gap:10px; align-items:stretch;">
 <button id="ytVozBtn" type="button" title="Orden de voz «volver a colocar»: diga la orden desde la mesa y la app vuelve a la guía en vivo" style="align-self:center; padding:10px 14px; border-radius:12px; background:#1a2230; border:1px solid #3a4a63; color:#c9d3e6; font-weight:700; font-size:14px; cursor:pointer;">🎙 Voz: no</button>
 <button id="ytPlaceFab" type="button" style="background:#2a1d4d; color:#e6d8ff; border:1px solid #c9a4ff; border-radius:14px; padding:14px 18px; font-size:16px; font-weight:700; box-shadow:0 6px 24px rgba(0,0,0,.5);">¿Colocar las bolas en la mesa real?</button>
