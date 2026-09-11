@@ -17851,7 +17851,7 @@ function drawStartMarks(){
   // reconocedor tras unos segundos de silencio.
   // =======================================================
   const YT_VOZ_KEY = 'ytVozOrdenV1';
-  const ytVoz = { rec:null, iniciando:false, escuchando:false, reintento:0, desde:0, ultimoTic:0, contexto:null, versionContexto:0, fragmento:null, avisoTimer:0, abriendoModulo:false, solicitudModulo:0, retorno:null, ultimaOrden:'', ultimaVez:0 };
+  const ytVoz = { rec:null, iniciando:false, escuchando:false, reintento:0, desde:0, ultimoTic:0, contexto:null, versionContexto:0, fragmento:null, avisoTimer:0, abriendoModulo:false, solicitudModulo:0, retorno:null, cerrando:null, cierreTimer:0, renovarPendiente:false, ultimaActividad:0, ultimoResultado:0, hablando:false, hablaDesde:0, hablaFin:0, pendienteDesde:0, pendienteFrase:'', sinAudioDesde:0, ultimoAvisoConexion:0, ultimoDespertar:0, fallos:0, ultimaOrden:'', ultimaVez:0 };
   function ytVozSoportada(){ return !!(window.SpeechRecognition || window.webkitSpeechRecognition); }
   function ytVozActiva(){ try{ return localStorage.getItem(YT_VOZ_KEY) === '1'; }catch{ return false; } }
   function ytVozGuardar(on){ try{ localStorage.setItem(YT_VOZ_KEY, on ? '1' : '0'); }catch{} }
@@ -17867,7 +17867,7 @@ function drawStartMarks(){
       descargar: /\bdescarg\w*\b.*\bdatos\b|\bexport/,
       grabarEn: /\bgra[bv]\w*\b.*\b(?:en\s+)?(5|cinco|10|diez|15|quince)\b/,
       grabarJugada: /\bgra[bv]\w*\b.*\b(jugadas?|videos?|gra[bv]acion(?:es)?)\b/,
-      grabarCorto: /^[\s.!?,;:¡¿]*gra[bv]ar[\s.!?,;:¡¿]*$/,
+      grabarCorto: /^[\s.!?,;:¡¿]*gra[bv]ar(?:[\s.!?,;:¡¿]+gra[bv]ar)*[\s.!?,;:¡¿]*$/,
       reproducir: /\breproduc/,
       numero: { '5':5, 'cinco':5, '10':10, 'diez':10, '15':15, 'quince':15 }
     };
@@ -17974,6 +17974,9 @@ function drawStartMarks(){
     if(previo && (previo.ctx !== ctx || previo.indice !== indice - 1 || ahora - previo.inicio > YT_VOZ_FRAGMENTOS_MS)) previo = null;
     const frases = Array.from(res, alt => String(alt.transcript || '').trim()).filter(Boolean);
     if(!frases.length){ ytVozLimpiarFragmento(); return { frase:'', motivo:'' }; }
+    // Una repetición clara corrige un «graba» aislado mal reconocido.
+    // No descartar negaciones, tiempos ni fragmentos de otras órdenes.
+    if(previo && /^gra[bv]ar?$/.test(ytVozNormalizar(previo.texto).trim()) && frases.every(t => ytVozReglas().grabarCorto.test(ytVozNormalizar(t)))) previo = null;
     const unir = t => previo ? previo.texto + ' ' + t : t;
     const frase = unir(frases[0]);
     const conflicto = ytVozConflicto(frase);
@@ -18177,25 +18180,27 @@ function drawStartMarks(){
   }
   function ytVozOrden(){ ytVozEjecutar({ accion:'volver' }); }
   function ytVozReintentar(){
-    if(ytVoz.reintento || !ytVozDebeEscuchar()) return;
-    ytVoz.reintento = setTimeout(() => { ytVoz.reintento = 0; ytVozArrancar(); }, 400);
+    if(ytVoz.reintento || ytVoz.rec || ytVoz.cerrando || !ytVozDebeEscuchar()) return;
+    const demora = Math.min(8000, 400 * Math.pow(2, Math.min(ytVoz.fallos, 5)));
+    ytVoz.reintento = setTimeout(() => { ytVoz.reintento = 0; ytVozArrancar(); }, demora);
   }
   function ytVozArrancar(){
-    if(ytVoz.rec || ytVoz.iniciando || ytVoz.reintento || !ytVozDebeEscuchar()) return;
+    if(ytVoz.rec || ytVoz.cerrando || ytVoz.iniciando || ytVoz.reintento || !ytVozDebeEscuchar()) return;
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     try{
       const rec = new SR();
       let servicio = false, audio = false, confirmado = false;
       let ultimoFinal = -1, ultimoIndice = -1, descartarHasta = -1;
       ytVoz.rec = rec; ytVoz.iniciando = true; ytVoz.escuchando = false; ytVoz.desde = Date.now();
-      ytVozFijarContexto(ytVozContexto()); ytVozLimpiarFragmento();
+      ytVozFijarContexto(ytVozContexto()); ytVozLimpiarFragmento(); ytVozLimpiarActividad(); ytVoz.renovarPendiente = false;
       let versionResultados = ytVoz.versionContexto;
       rec.lang = 'es-CO'; rec.continuous = true; rec.interimResults = true; rec.maxAlternatives = 3;
       const confirmar = () => {
-        if(ytVoz.rec !== rec || !servicio || !audio || ytVoz.escuchando) return;
+        if(ytVoz.rec !== rec || ytVoz.cerrando === rec || !servicio || !audio || ytVoz.escuchando) return;
         const ctx = ytVozContexto();
         if(!ctx){ ytVozParar(false); return; }
         confirmado = true; ytVoz.iniciando = false; ytVoz.escuchando = true; ytVoz.desde = Date.now();
+        ytVoz.ultimaActividad = Date.now(); ytVoz.sinAudioDesde = 0;
         ytVozFijarContexto(ctx); ytVozChip(true); ytVozMedidorArrancar();
         ytVozEstado(ctx === 'espera' ? 'Cuenta regresiva; órdenes en pausa.' : 'Escuchando: ' + (YT_VOZ_LETREROS[ctx] || ''));
       };
@@ -18204,12 +18209,28 @@ function drawStartMarks(){
       rec.onaudiostart = () => { if(ytVoz.rec !== rec) return; audio = true; confirmar(); };
       rec.onaudioend = () => {
         if(ytVoz.rec !== rec) return;
-        audio = false; ytVoz.iniciando = false; ytVoz.escuchando = false; ytVoz.desde = Date.now(); ytVozChip(false);
+        audio = false; ytVoz.iniciando = false; ytVoz.escuchando = false;
+        if(!ytVoz.sinAudioDesde) ytVoz.sinAudioDesde = Date.now();
+        ytVozChip(false);
         // Todavía puede llegar el resultado final de lo ya capturado.
+      };
+      rec.onspeechstart = () => {
+        if(ytVoz.rec !== rec || ytVoz.cerrando) return;
+        ytVoz.hablando = true; ytVoz.hablaDesde = Date.now(); ytVoz.hablaFin = 0; ytVoz.ultimaActividad = Date.now();
+      };
+      rec.onspeechend = () => {
+        if(ytVoz.rec !== rec) return;
+        ytVoz.hablando = false; ytVoz.hablaFin = Date.now(); ytVoz.ultimaActividad = Date.now();
+      };
+      rec.onnomatch = () => {
+        if(ytVoz.rec !== rec || !ytVozActiva()) return;
+        ytVoz.pendienteDesde = 0; ytVoz.pendienteFrase = ''; ytVoz.hablaDesde = 0; ytVoz.ultimaActividad = Date.now();
+        ytVozAvisar('', 'Chrome oyó sonido, pero no reconoció una orden. Repítala.', 'warn');
       };
       rec.onresult = ev => {
         if(ytVoz.rec !== rec || !confirmado) return;
         const ctx = ytVozContexto();
+        ytVoz.ultimaActividad = Date.now(); ytVoz.ultimoResultado = Date.now(); ytVoz.fallos = 0;
         ytVozFijarContexto(ctx);
         if(versionResultados !== ytVoz.versionContexto){
           if(ultimoIndice > ultimoFinal) descartarHasta = ultimoIndice;
@@ -18221,7 +18242,13 @@ function drawStartMarks(){
           ultimoIndice = Math.max(ultimoIndice, i);
           if(res.isFinal) ultimoFinal = i;
           if(!ctx || i <= descartarHasta){ ytVozLimpiarFragmento(); continue; }
+          if(res.isFinal){ ytVoz.pendienteDesde = 0; ytVoz.pendienteFrase = ''; ytVoz.hablando = false; ytVoz.hablaDesde = 0; ytVoz.hablaFin = Date.now(); }
+          else if(!ytVoz.pendienteDesde) ytVoz.pendienteDesde = Date.now();
           const resultado = ytVozResultado(res, i, ctx);
+          if(!res.isFinal && resultado.frase && resultado.frase !== ytVoz.pendienteFrase){
+            ytVoz.pendienteFrase = resultado.frase;
+            if(!resultado.orden) ytVozAvisar(resultado.frase, 'Resultado provisional de Chrome; esperando confirmación…');
+          }
           if(resultado.orden){ ytVozEjecutar(resultado.orden, resultado.frase); return; }
           if(res.isFinal && resultado.frase){
             ytVozAvisar(resultado.frase, resultado.motivo, 'warn');
@@ -18232,7 +18259,9 @@ function drawStartMarks(){
       };
       rec.onerror = ev => {
         if(ytVoz.rec !== rec) return;
-        ytVoz.iniciando = false; ytVoz.escuchando = false; ytVoz.desde = Date.now(); ytVozLimpiarFragmento(); ytVozChip(false);
+        if(ytVoz.cerrando === rec) return;
+        ytVoz.iniciando = false; ytVoz.escuchando = false; ytVozLimpiarFragmento(); ytVozChip(false);
+        if(ev.error !== 'no-speech' && ev.error !== 'aborted') ytVoz.fallos = Math.min(ytVoz.fallos + 1, 5);
         if(ev.error && ev.error !== 'no-speech'){
           const msg = 'Reconocedor: ' + ev.error + (ev.error === 'audio-capture' ? ' (no pudo capturar el micrófono)' : (ev.error === 'network' ? ' (sin internet)' : ''));
           if(ytVoz.contexto === 'volver') ytVozEstado(msg); else setVideoReplayStatus(msg, 'warn');
@@ -18243,16 +18272,19 @@ function drawStartMarks(){
           const c = ids('ytVozCheck'); if(c) c.checked = false;
           ytVozParar(false);
           ytVozEstado('Chrome no permitió el micrófono: la orden de voz queda apagada. Revise el permiso del sitio y vuelva a activar la casilla.');
+        } else {
+          ytVozParar(true);
         }
       };
       rec.onend = () => {
-        if(ytVoz.rec !== rec) return;
-        ytVoz.rec = null; ytVoz.iniciando = false; ytVoz.escuchando = false; ytVozLimpiarFragmento(); ytVozChip(false);
-        ytVozReintentar();
+        if(ytVoz.rec !== rec && ytVoz.cerrando !== rec) return;
+        if(ytVozActiva() && ytVoz.rec === rec && ytVoz.pendienteFrase) ytVozAvisar(ytVoz.pendienteFrase, 'Chrome terminó la escucha sin confirmar la palabra. Reconectando; repita la orden.', 'warn');
+        ytVozFinalizarSesion(rec);
       };
       ytVozChip(false); ytVozEstado('Activando reconocimiento de voz…');
       rec.start();
     }catch(error){
+      ytVoz.fallos = Math.min(ytVoz.fallos + 1, 5);
       ytVozParar(false);
       const msg = 'No se pudo activar la voz: ' + (error && error.message ? error.message : error);
       ytVozEstado(msg); ytVozAvisar('', msg, 'warn'); ytVozReintentar();
@@ -18264,7 +18296,14 @@ function drawStartMarks(){
   // entiende» (barra viva y sin reconocer: problema del reconocedor).
   const ytVozMedidor = { stream:null, ctx:null, timer:0 };
   async function ytVozMedidorArrancar(){
-    if(ytVozMedidor.stream || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+    if(ytVozMedidor.stream){
+      if(ytVozMedidor.stream.getAudioTracks().some(t => t.readyState === 'live') && ytVozMedidor.ctx && ytVozMedidor.ctx.state !== 'closed'){
+        if(ytVozMedidor.ctx.state === 'suspended') ytVozMedidor.ctx.resume().catch(() => {});
+        return;
+      }
+      ytVozMedidorParar();
+    }
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
     const rec = ytVoz.rec;
     try{
       const stream = await navigator.mediaDevices.getUserMedia({ audio:{ echoCancellation:false, noiseSuppression:false, autoGainControl:false } });
@@ -18272,6 +18311,7 @@ function drawStartMarks(){
       const AC = window.AudioContext || window.webkitAudioContext;
       if(!AC){ stream.getTracks().forEach(t => t.stop()); return; }
       const ctx = new AC();
+      if(ctx.state === 'suspended') ctx.resume().catch(() => {});
       const analizador = ctx.createAnalyser();
       analizador.fftSize = 1024;
       ctx.createMediaStreamSource(stream).connect(analizador);
@@ -18300,41 +18340,108 @@ function drawStartMarks(){
     for(const b of [barra, ids('videoReplayVozNivelBarra')]) if(b) b.style.width = '0%';
     const vb = ids('videoReplayVozBar'); if(vb) vb.style.display = 'none';
   }
-  function ytVozParar(mantenerMedidor){
+  function ytVozLimpiarActividad(){
+    ytVoz.hablando = false; ytVoz.hablaDesde = 0; ytVoz.hablaFin = 0;
+    ytVoz.pendienteDesde = 0; ytVoz.pendienteFrase = ''; ytVoz.sinAudioDesde = 0;
+    ytVoz.ultimoResultado = 0; ytVoz.ultimaActividad = Date.now();
+  }
+  function ytVozFinalizarSesion(rec){
+    if(ytVoz.rec !== rec && ytVoz.cerrando !== rec) return;
+    if(ytVoz.cierreTimer){ clearTimeout(ytVoz.cierreTimer); ytVoz.cierreTimer = 0; }
+    if(ytVoz.rec === rec) ytVoz.rec = null;
+    if(ytVoz.cerrando === rec) ytVoz.cerrando = null;
+    rec.onstart = rec.onaudiostart = rec.onaudioend = rec.onspeechstart = rec.onspeechend = rec.onnomatch = rec.onend = rec.onresult = rec.onerror = null;
+    ytVoz.iniciando = false; ytVoz.escuchando = false; ytVoz.renovarPendiente = false;
+    ytVozLimpiarFragmento(); ytVozLimpiarActividad(); ytVozChip(false);
+    ytVozReintentar();
+  }
+  function ytVozCerrar(mantenerMedidor, conservarResultado){
     if(ytVoz.reintento){ clearTimeout(ytVoz.reintento); ytVoz.reintento = 0; }
-    const rec = ytVoz.rec;
-    ytVoz.rec = null; ytVoz.iniciando = false; ytVoz.escuchando = false; ytVozLimpiarFragmento();
-    // Una sesión retirada no puede confirmar escucha ni ejecutar resultados tardíos.
-    if(rec){
-      rec.onstart = rec.onaudiostart = rec.onaudioend = rec.onend = rec.onresult = rec.onerror = null;
-      try{ rec.stop(); }catch{}
-    }
+    const rec = ytVoz.rec || ytVoz.cerrando;
+    const teniaResultado = ytVoz.rec === rec;
+    ytVoz.iniciando = false; ytVoz.escuchando = false;
+    if(!conservarResultado){ ytVoz.rec = null; ytVozLimpiarFragmento(); ytVozLimpiarActividad(); }
     ytVozChip(false);
     if(!mantenerMedidor) ytVozMedidorParar();
+    if(!rec) return;
+    if(ytVoz.cerrando === rec){
+      // Si ya se aceptó la orden o se apagó la voz, no aceptar más resultados.
+      if(!conservarResultado && teniaResultado){ try{ if(rec.abort) rec.abort(); }catch{} }
+      return;
+    }
+    ytVoz.cerrando = rec;
+    // Esperar end antes de abrir otra sesión. Si Chrome no cierra, abortar
+    // y darle un segundo plazo; los eventos tardíos de esa sesión se ignoran.
+    ytVoz.cierreTimer = setTimeout(() => {
+      if(ytVoz.cerrando !== rec) return;
+      ytVoz.rec = null;
+      if(ytVozActiva() && ytVoz.pendienteFrase) ytVozAvisar(ytVoz.pendienteFrase, 'Chrome no confirmó la palabra. Recuperando la escucha; repita la orden cuando indique «Escuchando».', 'warn');
+      ytVozLimpiarFragmento(); ytVozLimpiarActividad();
+      ytVoz.cierreTimer = setTimeout(() => {
+        if(ytVoz.cerrando !== rec) return;
+        ytVozFinalizarSesion(rec);
+      }, 2000);
+      try{ if(rec.abort) rec.abort(); else rec.stop(); }catch{}
+    }, 2500);
+    try{ if(conservarResultado || !rec.abort) rec.stop(); else rec.abort(); }catch{}
   }
-  // Reciclaje: reconocedor fresco cada tres minutos y tras cualquier
-  // brecha larga del vigilante (pestaña dormida, PC en reposo, salvapantallas):
-  // Chrome se fatiga en las escuchas largas y despierta torpe.
+  function ytVozParar(mantenerMedidor){ ytVozCerrar(mantenerMedidor, false); }
+  function ytVozReconectar(motivo, conservarResultado=true){
+    if(ytVoz.cerrando || !ytVoz.rec) return;
+    const mensaje = 'Reconectando voz: ' + motivo;
+    ytVozEstado(mensaje);
+    if(!ytVoz.ultimoAvisoConexion || Date.now() - ytVoz.ultimoAvisoConexion > 8000){
+      ytVoz.ultimoAvisoConexion = Date.now();
+      ytVozAvisar(ytVoz.pendienteFrase, mensaje, 'warn');
+    }
+    ytVozCerrar(true, conservarResultado);
+  }
+  // La renovación preventiva espera una pausa real. El silencio, por sí
+  // solo, no es un error; una palabra pendiente conserva su resultado final.
   const YT_VOZ_RECICLO_MS = 180000;
   function ytVozSincronizar(){
     const ahora = Date.now();
     const brecha = ytVoz.ultimoTic ? ahora - ytVoz.ultimoTic : 0;
     ytVoz.ultimoTic = ahora;
-    const ctx = ytVozContexto();
-    ytVozFijarContexto(ctx);
-    if(ctx){
-      const limite = ytVoz.escuchando ? YT_VOZ_RECICLO_MS : 15000;
-      if(ytVoz.rec && ((ahora - ytVoz.desde) > limite || brecha > 5000)) ytVozParar(true);
-      if(!ytVoz.rec && !ytVoz.reintento) ytVozArrancar();
-      // El cambio de contexto limpia fragmentos, sin interrumpir el oído.
-      ytVozChip(ytVoz.escuchando);
-    } else if(ytVoz.rec || ytVoz.iniciando || ytVoz.reintento) ytVozParar(false);
-    else ytVozChip(false);
+    const ctx = ytVozContexto(); ytVozFijarContexto(ctx);
+    if(!ctx){
+      if(ytVoz.rec || ytVoz.cerrando || ytVoz.iniciando || ytVoz.reintento) ytVozParar(false);
+      else ytVozChip(false);
+      return;
+    }
+    if(ytVoz.rec && !ytVoz.cerrando){
+      if(brecha > 5000 || ahora - ytVoz.desde > YT_VOZ_RECICLO_MS) ytVoz.renovarPendiente = true;
+      if(ytVoz.iniciando && ahora - ytVoz.desde > 15000){
+        ytVozReconectar('Chrome no confirmó el inicio de la escucha.', false);
+      } else if(ytVoz.sinAudioDesde && ahora - ytVoz.sinAudioDesde > 1500){
+        ytVozReconectar('se interrumpió la entrada de audio.');
+      } else {
+        const pendiente = ytVoz.pendienteDesde || (ytVoz.hablaDesde && ytVoz.hablaDesde > ytVoz.ultimoResultado ? ytVoz.hablaDesde : 0);
+        const sinProgreso = ahora - (ytVoz.ultimoResultado || pendiente || ahora);
+        // Pedir el resultado final después de terminar de hablar, sin
+        // ejecutar como definitiva una transcripción todavía provisional.
+        const trasHablar = pendiente && !ytVoz.hablando && ytVoz.hablaFin && ahora - ytVoz.hablaFin > 1200 && sinProgreso > 1200;
+        const atascado = pendiente && sinProgreso > 12000;
+        if(trasHablar || atascado){
+          ytVozReconectar('Chrome todavía no ha confirmado lo que oyó.');
+        } else if(ytVoz.renovarPendiente && !ytVoz.hablando && !pendiente && ahora - ytVoz.ultimaActividad > 2500 && (!ytVoz.fragmento || ahora - ytVoz.fragmento.inicio > YT_VOZ_FRAGMENTOS_MS)){
+          ytVozReconectar('actualizando la escucha durante una pausa.');
+        }
+      }
+    }
+    if(!ytVoz.rec && !ytVoz.cerrando && !ytVoz.reintento) ytVozArrancar();
+    ytVozChip(ytVoz.escuchando);
   }
   function ytVozDespertar(){
-    if(ytVoz.rec && ytVozDebeEscuchar()){ ytVozParar(true); ytVozSincronizar(); }
+    if(!ytVozDebeEscuchar()) return;
+    const ahora = Date.now();
+    // visibilitychange y focus pueden llegar juntos: una sola renovación.
+    if(ytVoz.ultimoDespertar && ahora - ytVoz.ultimoDespertar < 2000) return;
+    ytVoz.ultimoDespertar = ahora;
+    if(ytVoz.rec && !ytVoz.iniciando && !ytVoz.cerrando && ahora - ytVoz.desde > 5000) ytVoz.renovarPendiente = true;
+    if(ytVoz.escuchando) ytVozMedidorArrancar();
+    ytVozSincronizar();
   }
-
   function ytActualizarFab(modo){
     const fab = ids('ytPlaceFab');
     if(!fab) return;
