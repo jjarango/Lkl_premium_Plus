@@ -17852,11 +17852,52 @@ function drawStartMarks(){
   // reconocedor tras unos segundos de silencio.
   // =======================================================
   const YT_VOZ_KEY = 'ytVozOrdenV1';
-  const ytVoz = { rec:null, iniciando:false, escuchando:false, reintento:0, desde:0, ultimoTic:0, contexto:null, versionContexto:0, fragmento:null, avisoTimer:0, abriendoModulo:false, capturandoMesa:false, volviendo:false, volverPendiente:null, volverTrasCalibrar:false, solicitudModulo:0, retorno:null, cerrando:null, cierreTimer:0, renovarPendiente:false, ultimaActividad:0, ultimoResultado:0, hablando:false, hablaDesde:0, hablaFin:0, pendienteDesde:0, pendienteFrase:'', sinAudioDesde:0, ultimoAvisoConexion:0, ultimoDespertar:0, fallos:0, ultimaOrden:'', ultimaVez:0 };
+  const ytVoz = { rec:null, iniciando:false, escuchando:false, reintento:0, desde:0, ultimoTic:0, contexto:null, versionContexto:0, fragmento:null, avisoTimer:0, abriendoModulo:false, capturandoMesa:false, volviendo:false, volverPendiente:null, volverTrasCalibrar:false, solicitudModulo:0, retorno:null, cerrando:null, cierreTimer:0, renovarPendiente:false, ultimaActividad:0, ultimoResultado:0, hablando:false, hablaDesde:0, hablaFin:0, pendienteDesde:0, pendienteFrase:'', indiceProvisional:-1, ordenProvisional:'', cambioOrden:0, prefijoProvisional:false, sinAudioDesde:0, ultimoAvisoConexion:0, ultimoDespertar:0, fallos:0, ultimaOrden:'', ultimaVez:0 };
   function ytVozSoportada(){ return !!(window.SpeechRecognition || window.webkitSpeechRecognition); }
   function ytVozActiva(){ try{ return localStorage.getItem(YT_VOZ_KEY) === '1'; }catch{ return false; } }
   function ytVozGuardar(on){ try{ localStorage.setItem(YT_VOZ_KEY, on ? '1' : '0'); }catch{} }
   function ytVozNormalizar(s){ return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').normalize('NFC'); }
+  // Extraer las órdenes en este idioma, conservando sus negaciones y tiempos.
+  function ytVozRecortarFrase(s){
+    const texto = ytVozNormalizar(s).replace(/\s+/g, ' ').trim();
+    const patron = /(?<![\p{L}\p{N}])(?:снять|сними|сфотографировать|сфотографиру[йи])(?![\p{L}\p{N}])(?:\s+(?<![\p{L}\p{N}])(?:стол)(?![\p{L}\p{N}]))*|(?<![\p{L}\p{N}])(?:верн[уи]\p{L}*|снова|расстав\p{L}*|повтор\p{L}*)(?![\p{L}\p{N}])(?:\s+(?<![\p{L}\p{N}])(?:шар\p{L}*|расстав\p{L}*|снова)(?![\p{L}\p{N}]))*|(?<![\p{L}\p{N}])(?:запис\p{L}*|запиши|начать)(?![\p{L}\p{N}])(?:\s+(?<![\p{L}\p{N}])(?:запис\p{L}*|позици\p{L}*|видео|удар\p{L}*|еще?|друг\p{L}*|снова|через|пять|десять|пятнадцать|двадцать|\d+|секунд\p{L}*|или|и|лучше)(?![\p{L}\p{N}]))*|(?<![\p{L}\p{N}])(?:стоп|останов\p{L}*|прекрат\p{L}*|провер\p{L}*|просмотр)(?![\p{L}\p{N}])(?:\s+(?<![\p{L}\p{N}])(?:и|просмотр)(?![\p{L}\p{N}]))*|(?<![\p{L}\p{N}])(?:скача\p{L}*|загруз\p{L}*|экспорт\p{L}*|сохран\p{L}*)(?![\p{L}\p{N}])(?:\s+(?<![\p{L}\p{N}])(?:с|данн\p{L}*)(?![\p{L}\p{N}]))*|(?<![\p{L}\p{N}])(?:воспроизв\p{L}*|проигр\p{L}*|показ\p{L}*)(?![\p{L}\p{N}])/gu;
+    const partes = [];
+    for(const m of texto.matchAll(patron)){
+      const antes = texto.slice(0, m.index).split(/[.!?;:。！？；：]/).pop().trim().split(/\s+/).slice(-6).join(' ');
+      const despues = texto.slice(m.index + m[0].length);
+      const negada = /(?:^|\s)(?:не|нет|никогда|нельзя)(?=\s|$)/.test(antes) || /^\s*,?\s*(?:не|нет|никогда|нельзя)(?=\s|$)/.test(despues);
+      partes.push((negada ? "не " : '') + m[0].replace(/\s+/g, ' ').trim());
+    }
+    return partes.length ? partes.join(' ') : texto;
+  }
+  // Solo el progreso de la instrucción renueva su plazo; añadir palabras
+  // ajenas a ella no mantiene una transcripción pendiente indefinidamente.
+  const YT_VOZ_CONFIRMAR_MS = 3200;
+  const YT_VOZ_COMPLETAR_MS = 4000;
+  const YT_VOZ_CONVERSACION_MS = 12000;
+  function ytVozLimpiarPendiente(){
+    ytVoz.pendienteDesde = 0; ytVoz.pendienteFrase = '';
+    ytVoz.indiceProvisional = -1; ytVoz.ordenProvisional = '';
+    ytVoz.cambioOrden = 0; ytVoz.prefijoProvisional = false;
+  }
+  function ytVozSeguirPendiente(resultado, indice){
+    const ahora = Date.now();
+    if(ytVoz.indiceProvisional !== indice){
+      ytVozLimpiarPendiente(); ytVoz.indiceProvisional = indice;
+      ytVoz.pendienteDesde = ahora;
+    }
+    if(!ytVoz.pendienteDesde) ytVoz.pendienteDesde = ahora;
+    const texto = ytVozRecortarFrase(resultado.frase);
+    const prefijo = !resultado.ambigua && !resultado.prevista && ytVozPuedeContinuar(texto);
+    const firma = resultado.prevista
+      ? resultado.prevista.accion + ':' + (resultado.prevista.seg || '')
+      : (prefijo ? 'fragmento:' + texto : '');
+    if(firma !== ytVoz.ordenProvisional){
+      ytVoz.ordenProvisional = firma; ytVoz.cambioOrden = firma ? ahora : 0;
+    }
+    ytVoz.prefijoProvisional = prefijo;
+  }
+
   // Reglas de las órdenes, tolerantes al ruido: basta que las palabras
   // clave aparezcan juntas, aunque el reconocedor añada o se coma otras.
   // (Este bloque es el único que cambia de idioma en idioma.)
@@ -17923,11 +17964,11 @@ function drawStartMarks(){
   function ytVozDebeEscuchar(){ return !!ytVozContexto(); }
   // Interpreta una frase oída según el contexto; devuelve la acción o null.
   function ytVozConflicto(s){
-    const t = ytVozNormalizar(s), R = ytVozReglas();
+    const t = ytVozRecortarFrase(s), R = ytVozReglas();
     if(R.negacion.test(t)) return 'Не выполнено: фраза содержит отрицание.';
     const resto = t.replace(R.capturarMesa, ' ');
     const familias = [R.capturarMesa.test(t), R.volver.test(resto), R.detener.test(resto), R.reproducir.test(resto), R.descargar.test(resto),
-      R.grabarJugada.test(resto) || R.grabarOtra.test(resto) || R.grabarEn.test(resto) || ((R.capturarMesa.test(t) || R.volver.test(t)) && /(?<![\p{L}\p{N}])(?:(?:записать|запиши|запись))(?![\p{L}\p{N}])/u.test(resto))];
+      R.grabarJugada.test(resto) || R.grabarOtra.test(resto) || R.grabarEn.test(resto) || /(?<![\p{L}\p{N}])(?:(?:записать|запиши|запись))(?![\p{L}\p{N}])/u.test(resto)];
     if(familias.filter(Boolean).length > 1) return 'Не выполнено: произносите по одной команде.';
     if(R.grabarEn.test(t)){
       const tiempos = Array.from(t.matchAll(R.tiempos), m => R.numero[m[1]]);
@@ -17936,7 +17977,7 @@ function drawStartMarks(){
     return '';
   }
   function ytVozInterpretar(s, ctx){
-    const t = ytVozNormalizar(s), R = ytVozReglas();
+    const t = ytVozRecortarFrase(s), R = ytVozReglas();
     if(!ctx || ytVozConflicto(t)) return null;
     if(R.capturarMesa.test(t)) return { accion:'capturarMesa' };
     if(R.volver.test(t)) return { accion:'volver' };
@@ -17963,7 +18004,7 @@ function drawStartMarks(){
     if(ctx !== ytVoz.contexto){
       ytVoz.contexto = ctx;
       ytVoz.versionContexto++;
-      ytVozLimpiarFragmento();
+      ytVozLimpiarFragmento(); ytVozLimpiarPendiente();
     }
   }
   // Solo se conservan comienzos de órdenes, durante 2,5 s en total.
@@ -17972,9 +18013,9 @@ function drawStartMarks(){
   function ytVozPuedeContinuar(s){
     const R = ytVozReglas();
     const limpiar = texto => ytVozNormalizar(texto).replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
-    const t = limpiar(s);
+    const t = limpiar(ytVozRecortarFrase(s));
     if(!t || t.length > 100 || t.split(' ').length > 10) return false;
-    if(R.negacion.test(t)) return true;
+    if(/^(?:не|нет|никогда|нельзя)(?:\s+(?:хочу|надо|нужно|это|делать)){0,6}$/.test(t)) return true;
     return R.inicios.some(frase => {
       const comando = limpiar(frase);
       return comando.startsWith(t + ' ');
@@ -17996,22 +18037,21 @@ function drawStartMarks(){
     if(!conflicto){
       for(const texto of frases){
         const completa = unir(texto), orden = ytVozInterpretar(completa, ctx);
-        // La palabra sola espera el resultado final, para no adelantarse a una frase más larga.
-        if(!res.isFinal && (ytVozReglas().grabarCorto.test(ytVozNormalizar(completa)) || (orden && (orden.accion === 'capturarMesa' || orden.accion === 'volver')))) continue;
         if(orden){
           const clave = orden.accion + ':' + (orden.seg || '');
           if(!candidatas.has(clave)) candidatas.set(clave, { orden, frase:completa });
         }
       }
     }
-    if(candidatas.size === 1){ ytVozLimpiarFragmento(); return candidatas.values().next().value; }
+    // La orden provisional orienta el plazo, pero solo la confirmada se ejecuta.
+    if(candidatas.size === 1 && res.isFinal){ ytVozLimpiarFragmento(); return candidatas.values().next().value; }
     if(res.isFinal){
       ytVoz.fragmento = candidatas.size === 0 && ytVozPuedeContinuar(frase)
-        ? { texto:frase, indice, ctx, inicio:previo ? previo.inicio : ahora } : null;
+        ? { texto:ytVozRecortarFrase(frase), indice, ctx, inicio:previo ? previo.inicio : ahora } : null;
     }
-    return { frase, motivo:conflicto || (candidatas.size > 1
+    return { frase, ambigua:!!conflicto || candidatas.size > 1, prevista:!res.isFinal && candidatas.size === 1 ? candidatas.values().next().value.orden : null, motivo:conflicto || (candidatas.size > 1
       ? 'Не выполнено: распознаны разные команды. Повторите только одну.'
-      : ((ctx === 'grabar' || ctx === 'grabarVolver') && ytVozReglas().grabarCorto.test(ytVozNormalizar(frase))
+      : ((ctx === 'grabar' || ctx === 'grabarVolver') && ytVozReglas().grabarCorto.test(ytVozRecortarFrase(frase))
         ? 'Модуль готов. Скажите «записать через пять, десять или пятнадцать».'
         : (ytVozPuedeContinuar(frase) ? 'Не выполнено: команда ещё не закончена.' : 'Не выполнено: эта команда сейчас недоступна.'))) };
   }
@@ -18021,7 +18061,7 @@ function drawStartMarks(){
     const aviso = ids('ytVozAviso'), oida = ids('ytVozAvisoOida'), accion = ids('ytVozAvisoAccion');
     if(!aviso || !oida || !accion) return;
     const texto = String(frase || '').replace(/\s+/g, ' ').trim();
-    oida.textContent = texto ? 'Распознано: «' + (texto.length > 180 ? texto.slice(0, 177) + '…' : texto) + '»' : '';
+    oida.textContent = texto ? 'Распознано: «' + (texto.length > 180 ? '…' + texto.slice(-177) : texto) + '»' : '';
     oida.style.display = texto ? 'block' : 'none';
     accion.textContent = resultado;
     const color = tono === 'good' ? '#7de3a0' : (tono === 'warn' ? '#ffcb75' : '#d8f4ff');
@@ -18365,7 +18405,7 @@ function drawStartMarks(){
       };
       rec.onnomatch = () => {
         if(ytVoz.rec !== rec || !ytVozActiva()) return;
-        ytVoz.pendienteDesde = 0; ytVoz.pendienteFrase = ''; ytVoz.hablaDesde = 0; ytVoz.ultimaActividad = Date.now();
+        ytVozLimpiarPendiente(); ytVoz.hablaDesde = 0; ytVoz.ultimaActividad = Date.now();
         ytVozAvisar('', 'Chrome обнаружил звук, но не распознал команду. Повторите её.', 'warn');
       };
       rec.onresult = ev => {
@@ -18383,9 +18423,9 @@ function drawStartMarks(){
           ultimoIndice = Math.max(ultimoIndice, i);
           if(res.isFinal) ultimoFinal = i;
           if(!ctx || i <= descartarHasta){ ytVozLimpiarFragmento(); continue; }
-          if(res.isFinal){ ytVoz.pendienteDesde = 0; ytVoz.pendienteFrase = ''; ytVoz.hablando = false; ytVoz.hablaDesde = 0; ytVoz.hablaFin = Date.now(); }
-          else if(!ytVoz.pendienteDesde) ytVoz.pendienteDesde = Date.now();
+          if(res.isFinal){ ytVozLimpiarPendiente(); ytVoz.hablando = false; ytVoz.hablaDesde = 0; ytVoz.hablaFin = Date.now(); }
           const resultado = ytVozResultado(res, i, ctx);
+          if(!res.isFinal) ytVozSeguirPendiente(resultado, i);
           if(!res.isFinal && resultado.frase && resultado.frase !== ytVoz.pendienteFrase){
             ytVoz.pendienteFrase = resultado.frase;
             if(!resultado.orden) ytVozAvisar(resultado.frase, 'Предварительный результат Chrome; ожидание подтверждения…');
@@ -18483,7 +18523,7 @@ function drawStartMarks(){
   }
   function ytVozLimpiarActividad(){
     ytVoz.hablando = false; ytVoz.hablaDesde = 0; ytVoz.hablaFin = 0;
-    ytVoz.pendienteDesde = 0; ytVoz.pendienteFrase = ''; ytVoz.sinAudioDesde = 0;
+    ytVozLimpiarPendiente(); ytVoz.sinAudioDesde = 0;
     ytVoz.ultimoResultado = 0; ytVoz.ultimaActividad = Date.now();
   }
   function ytVozFinalizarSesion(rec){
@@ -18564,8 +18604,16 @@ function drawStartMarks(){
         // ejecutar como definitiva una transcripción todavía provisional.
         const trasHablar = pendiente && !ytVoz.hablando && ytVoz.hablaFin && ahora - ytVoz.hablaFin > 1200 && sinProgreso > 1200;
         const atascado = pendiente && sinProgreso > 12000;
-        if(trasHablar || atascado){
-          ytVozReconectar('Chrome ещё не подтвердил услышанное.');
+        const plazo = ytVoz.prefijoProvisional ? YT_VOZ_COMPLETAR_MS : YT_VOZ_CONFIRMAR_MS;
+        const ordenReciente = ytVoz.ordenProvisional && ahora - ytVoz.cambioOrden < plazo;
+        const fragmentoReciente = ytVoz.fragmento && ahora - ytVoz.fragmento.inicio <= YT_VOZ_FRAGMENTOS_MS;
+        const confirmarOrden = ytVoz.ordenProvisional && !ordenReciente;
+        const conversacionLarga = ytVoz.pendienteDesde && ahora - ytVoz.pendienteDesde >= YT_VOZ_CONVERSACION_MS;
+        if(!ordenReciente && !fragmentoReciente && (confirmarOrden || conversacionLarga || trasHablar || atascado)){
+          // stop() solicita el resultado final. La sesión sigue aceptándolo
+          // hasta end; no se ejecuta ni se descarta una hipótesis provisional.
+          ytVozReconectar(confirmarOrden ? "запрашивается подтверждение команды."
+            : (conversacionLarga ? "завершение длинной фразы для восстановления прослушивания." : "Chrome ещё не подтвердил услышанное."));
         } else if(ytVoz.renovarPendiente && !ytVoz.hablando && !pendiente && ahora - ytVoz.ultimaActividad > 2500 && (!ytVoz.fragmento || ahora - ytVoz.fragmento.inicio > YT_VOZ_FRAGMENTOS_MS)){
           ytVozReconectar('обновление сеанса прослушивания во время паузы.');
         }
