@@ -17852,11 +17852,55 @@ function drawStartMarks(){
   // reconocedor tras unos segundos de silencio.
   // =======================================================
   const YT_VOZ_KEY = 'ytVozOrdenV1';
-  const ytVoz = { rec:null, iniciando:false, escuchando:false, reintento:0, desde:0, ultimoTic:0, contexto:null, versionContexto:0, fragmento:null, avisoTimer:0, abriendoModulo:false, capturandoMesa:false, volviendo:false, volverPendiente:null, volverTrasCalibrar:false, solicitudModulo:0, retorno:null, cerrando:null, cierreTimer:0, renovarPendiente:false, ultimaActividad:0, ultimoResultado:0, hablando:false, hablaDesde:0, hablaFin:0, pendienteDesde:0, pendienteFrase:'', sinAudioDesde:0, ultimoAvisoConexion:0, ultimoDespertar:0, fallos:0, ultimaOrden:'', ultimaVez:0 };
+  const ytVoz = { rec:null, iniciando:false, escuchando:false, reintento:0, desde:0, ultimoTic:0, contexto:null, versionContexto:0, fragmento:null, avisoTimer:0, abriendoModulo:false, capturandoMesa:false, volviendo:false, volverPendiente:null, volverTrasCalibrar:false, solicitudModulo:0, retorno:null, cerrando:null, cierreTimer:0, renovarPendiente:false, ultimaActividad:0, ultimoResultado:0, hablando:false, hablaDesde:0, hablaFin:0, pendienteDesde:0, pendienteFrase:'', indiceProvisional:-1, ordenProvisional:'', cambioOrden:0, prefijoProvisional:false, sinAudioDesde:0, ultimoAvisoConexion:0, ultimoDespertar:0, fallos:0, ultimaOrden:'', ultimaVez:0 };
   function ytVozSoportada(){ return !!(window.SpeechRecognition || window.webkitSpeechRecognition); }
   function ytVozActiva(){ try{ return localStorage.getItem(YT_VOZ_KEY) === '1'; }catch{ return false; } }
   function ytVozGuardar(on){ try{ localStorage.setItem(YT_VOZ_KEY, on ? '1' : '0'); }catch{} }
   function ytVozNormalizar(s){ return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+  // Delimitar las palabras de las órdenes, sin exigir una palabra de llamada.
+  // La conversación que las rodea no forma parte de la instrucción.
+  function ytVozRecortarFrase(s){
+    const texto = ytVozNormalizar(s).replace(/\s+/g, ' ').trim();
+    const patron = /\bcapturar\b(?:\s+la\b)?(?:\s+mesa\b)?|\bv(?:olver|uelve|uelva|olve)\b(?:\s+a\b)?(?:\s+coloc\w*\b)?(?:\s+las\s+bolas\b)?|\bgra[bv]\w*\b(?:\s+(?:la|una|otr[ao]|el|un|en|con|los|las|a|de|por|favor)\b)*(?:\s+(?:15|quince|10|diez|5|cinco|jugadas?|videos?|gra[bv]acion(?:es)?)\b)?(?:\s+en\b(?:\s+(?:15|quince|10|diez|5|cinco)\b)?)?(?:\s+segundos?\b)?(?:\s+(?:o|y|digo|mejor|perdon)\s+(?:15|quince|10|diez|5|cinco)\b)*|\b(?:deten\w*|revis\w*|par(?:ar|a|e|en)|alto|stop)\b(?:\s+y\s+revis\w*\b)?|\bdescarg\w*\b(?:\s+con\b)?(?:\s+(?:los\s+)?datos\b)?|\bexport\w*\b|\breproduc\w*\b/g;
+    const partes = [];
+    for(const m of texto.matchAll(patron)){
+      // Una negación cercana sigue anulando la orden. Una negación en
+      // una frase anterior, ya terminada, no anula las órdenes siguientes.
+      const antes = texto.slice(0, m.index).split(/[.!?;:]/).pop().trim().split(/\s+/).slice(-6).join(' ');
+      const despues = texto.slice(m.index + m[0].length);
+      const negada = /\b(?:no|nunca|tampoco)\b/.test(antes) || /^\s*,?\s*(?:no|nunca|tampoco)\b/.test(despues);
+      partes.push((negada ? 'no ' : '') + m[0].replace(/\bpor favor\b/g, '').replace(/\s+/g, ' ').trim());
+    }
+    return partes.length ? partes.join(' ') : texto;
+  }
+  // Solo el progreso de la instrucción renueva su plazo; añadir palabras
+  // ajenas a ella no mantiene una transcripción pendiente indefinidamente.
+  const YT_VOZ_CONFIRMAR_MS = 3200;
+  const YT_VOZ_COMPLETAR_MS = 4000;
+  const YT_VOZ_CONVERSACION_MS = 12000;
+  function ytVozLimpiarPendiente(){
+    ytVoz.pendienteDesde = 0; ytVoz.pendienteFrase = '';
+    ytVoz.indiceProvisional = -1; ytVoz.ordenProvisional = '';
+    ytVoz.cambioOrden = 0; ytVoz.prefijoProvisional = false;
+  }
+  function ytVozSeguirPendiente(resultado, indice){
+    const ahora = Date.now();
+    if(ytVoz.indiceProvisional !== indice){
+      ytVozLimpiarPendiente(); ytVoz.indiceProvisional = indice;
+      ytVoz.pendienteDesde = ahora;
+    }
+    if(!ytVoz.pendienteDesde) ytVoz.pendienteDesde = ahora;
+    const texto = ytVozRecortarFrase(resultado.frase);
+    const prefijo = !resultado.ambigua && !resultado.prevista && ytVozPuedeContinuar(texto);
+    const firma = resultado.prevista
+      ? resultado.prevista.accion + ':' + (resultado.prevista.seg || '')
+      : (prefijo ? 'fragmento:' + texto : '');
+    if(firma !== ytVoz.ordenProvisional){
+      ytVoz.ordenProvisional = firma; ytVoz.cambioOrden = firma ? ahora : 0;
+    }
+    ytVoz.prefijoProvisional = prefijo;
+  }
+
   // Reglas de las órdenes, tolerantes al ruido: basta que las palabras
   // clave aparezcan juntas, aunque el reconocedor añada o se coma otras.
   // (Este bloque es el único que cambia de idioma en idioma.)
@@ -17920,10 +17964,10 @@ function drawStartMarks(){
   function ytVozDebeEscuchar(){ return !!ytVozContexto(); }
   // Interpreta una frase oída según el contexto; devuelve la acción o null.
   function ytVozConflicto(s){
-    const t = ytVozNormalizar(s), R = ytVozReglas();
+    const t = ytVozRecortarFrase(s), R = ytVozReglas();
     if(/\b(no|nunca|tampoco)\b/.test(t)) return 'Sin acción: la frase contiene una negación.';
     const familias = [R.capturarMesa.test(t), R.volver.test(t), R.detener.test(t), R.reproducir.test(t), R.descargar.test(t),
-      R.grabarJugada.test(t) || R.grabarOtra.test(t) || R.grabarEn.test(t) || ((R.capturarMesa.test(t) || R.volver.test(t)) && /\bgra[bv]\w*\b/.test(t))];
+      R.grabarJugada.test(t) || R.grabarOtra.test(t) || R.grabarEn.test(t) || /\bgra[bv]ar?\b/.test(t)];
     if(familias.filter(Boolean).length > 1) return 'Sin acción: diga una sola orden cada vez.';
     if(R.grabarEn.test(t)){
       const tiempos = Array.from(t.matchAll(/\b(5|cinco|10|diez|15|quince)\b/g), m => R.numero[m[1]]);
@@ -17932,7 +17976,7 @@ function drawStartMarks(){
     return '';
   }
   function ytVozInterpretar(s, ctx){
-    const t = ytVozNormalizar(s), R = ytVozReglas();
+    const t = ytVozRecortarFrase(s), R = ytVozReglas();
     if(!ctx || ytVozConflicto(t)) return null;
     if(R.capturarMesa.test(t)) return { accion:'capturarMesa' };
     if(R.volver.test(t)) return { accion:'volver' };
@@ -17959,16 +18003,16 @@ function drawStartMarks(){
     if(ctx !== ytVoz.contexto){
       ytVoz.contexto = ctx;
       ytVoz.versionContexto++;
-      ytVozLimpiarFragmento();
+      ytVozLimpiarFragmento(); ytVozLimpiarPendiente();
     }
   }
   // Solo se conservan comienzos de órdenes, durante 2,5 s en total.
   // Nunca se unen sesiones, contextos ni resultados no consecutivos.
   const YT_VOZ_FRAGMENTOS_MS = 2500;
   function ytVozPuedeContinuar(s){
-    const t = ytVozNormalizar(s).replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+    const t = ytVozRecortarFrase(s).replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
     if(!t || t.length > 100 || t.split(' ').length > 10) return false;
-    if(/\b(no|nunca|tampoco)\b/.test(t)) return true;
+    if(/^(?:no|nunca|tampoco)(?:\s+(?:por|favor|quiero|que|debe|debes|vaya|vayas|a|lo|hagas)){0,7}$/.test(t)) return true;
     return /^(?:por favor\s+)?(?:capturar(?:\s+la)?|gra[bv]\w*(?:\s+(?:la|una|otra|el|un|en|con|los|las|a|de))*|v(?:olver|uelve|uelva|olve)(?:\s+a)?|descarg\w*(?:\s+con)?)$/.test(t);
   }
   function ytVozResultado(res, indice, ctx){
@@ -17987,22 +18031,21 @@ function drawStartMarks(){
     if(!conflicto){
       for(const texto of frases){
         const completa = unir(texto), orden = ytVozInterpretar(completa, ctx);
-        // La palabra sola espera el resultado final, para no adelantarse a una frase más larga.
-        if(!res.isFinal && (ytVozReglas().grabarCorto.test(ytVozNormalizar(completa)) || (orden && (orden.accion === 'capturarMesa' || orden.accion === 'volver')))) continue;
         if(orden){
           const clave = orden.accion + ':' + (orden.seg || '');
           if(!candidatas.has(clave)) candidatas.set(clave, { orden, frase:completa });
         }
       }
     }
-    if(candidatas.size === 1){ ytVozLimpiarFragmento(); return candidatas.values().next().value; }
+    // La orden provisional orienta el plazo, pero solo la confirmada se ejecuta.
+    if(candidatas.size === 1 && res.isFinal){ ytVozLimpiarFragmento(); return candidatas.values().next().value; }
     if(res.isFinal){
       ytVoz.fragmento = candidatas.size === 0 && ytVozPuedeContinuar(frase)
-        ? { texto:frase, indice, ctx, inicio:previo ? previo.inicio : ahora } : null;
+        ? { texto:ytVozRecortarFrase(frase), indice, ctx, inicio:previo ? previo.inicio : ahora } : null;
     }
-    return { frase, motivo:conflicto || (candidatas.size > 1
+    return { frase, ambigua:!!conflicto || candidatas.size > 1, prevista:!res.isFinal && candidatas.size === 1 ? candidatas.values().next().value.orden : null, motivo:conflicto || (candidatas.size > 1
       ? 'Sin acción: el reconocedor propuso órdenes distintas. Repita una sola.'
-      : ((ctx === 'grabar' || ctx === 'grabarVolver') && ytVozReglas().grabarCorto.test(ytVozNormalizar(frase))
+      : ((ctx === 'grabar' || ctx === 'grabarVolver') && ytVozReglas().grabarCorto.test(ytVozRecortarFrase(frase))
         ? 'El módulo ya está listo. Diga «grabar en cinco, diez o quince».'
         : (ytVozPuedeContinuar(frase) ? 'Sin acción: falta completar la orden.' : 'Sin acción: esta frase no es una orden válida en este momento.'))) };
   }
@@ -18012,7 +18055,7 @@ function drawStartMarks(){
     const aviso = ids('ytVozAviso'), oida = ids('ytVozAvisoOida'), accion = ids('ytVozAvisoAccion');
     if(!aviso || !oida || !accion) return;
     const texto = String(frase || '').replace(/\s+/g, ' ').trim();
-    oida.textContent = texto ? 'Oí: «' + (texto.length > 180 ? texto.slice(0, 177) + '…' : texto) + '»' : '';
+    oida.textContent = texto ? 'Oí: «' + (texto.length > 180 ? '…' + texto.slice(-177) : texto) + '»' : '';
     oida.style.display = texto ? 'block' : 'none';
     accion.textContent = resultado;
     const color = tono === 'good' ? '#7de3a0' : (tono === 'warn' ? '#ffcb75' : '#d8f4ff');
@@ -18356,7 +18399,7 @@ function drawStartMarks(){
       };
       rec.onnomatch = () => {
         if(ytVoz.rec !== rec || !ytVozActiva()) return;
-        ytVoz.pendienteDesde = 0; ytVoz.pendienteFrase = ''; ytVoz.hablaDesde = 0; ytVoz.ultimaActividad = Date.now();
+        ytVozLimpiarPendiente(); ytVoz.hablaDesde = 0; ytVoz.ultimaActividad = Date.now();
         ytVozAvisar('', 'Chrome oyó sonido, pero no reconoció una orden. Repítala.', 'warn');
       };
       rec.onresult = ev => {
@@ -18374,9 +18417,9 @@ function drawStartMarks(){
           ultimoIndice = Math.max(ultimoIndice, i);
           if(res.isFinal) ultimoFinal = i;
           if(!ctx || i <= descartarHasta){ ytVozLimpiarFragmento(); continue; }
-          if(res.isFinal){ ytVoz.pendienteDesde = 0; ytVoz.pendienteFrase = ''; ytVoz.hablando = false; ytVoz.hablaDesde = 0; ytVoz.hablaFin = Date.now(); }
-          else if(!ytVoz.pendienteDesde) ytVoz.pendienteDesde = Date.now();
+          if(res.isFinal){ ytVozLimpiarPendiente(); ytVoz.hablando = false; ytVoz.hablaDesde = 0; ytVoz.hablaFin = Date.now(); }
           const resultado = ytVozResultado(res, i, ctx);
+          if(!res.isFinal) ytVozSeguirPendiente(resultado, i);
           if(!res.isFinal && resultado.frase && resultado.frase !== ytVoz.pendienteFrase){
             ytVoz.pendienteFrase = resultado.frase;
             if(!resultado.orden) ytVozAvisar(resultado.frase, 'Resultado provisional de Chrome; esperando confirmación…');
@@ -18474,7 +18517,7 @@ function drawStartMarks(){
   }
   function ytVozLimpiarActividad(){
     ytVoz.hablando = false; ytVoz.hablaDesde = 0; ytVoz.hablaFin = 0;
-    ytVoz.pendienteDesde = 0; ytVoz.pendienteFrase = ''; ytVoz.sinAudioDesde = 0;
+    ytVozLimpiarPendiente(); ytVoz.sinAudioDesde = 0;
     ytVoz.ultimoResultado = 0; ytVoz.ultimaActividad = Date.now();
   }
   function ytVozFinalizarSesion(rec){
@@ -18555,8 +18598,16 @@ function drawStartMarks(){
         // ejecutar como definitiva una transcripción todavía provisional.
         const trasHablar = pendiente && !ytVoz.hablando && ytVoz.hablaFin && ahora - ytVoz.hablaFin > 1200 && sinProgreso > 1200;
         const atascado = pendiente && sinProgreso > 12000;
-        if(trasHablar || atascado){
-          ytVozReconectar('Chrome todavía no ha confirmado lo que oyó.');
+        const plazo = ytVoz.prefijoProvisional ? YT_VOZ_COMPLETAR_MS : YT_VOZ_CONFIRMAR_MS;
+        const ordenReciente = ytVoz.ordenProvisional && ahora - ytVoz.cambioOrden < plazo;
+        const fragmentoReciente = ytVoz.fragmento && ahora - ytVoz.fragmento.inicio <= YT_VOZ_FRAGMENTOS_MS;
+        const confirmarOrden = ytVoz.ordenProvisional && !ordenReciente;
+        const conversacionLarga = ytVoz.pendienteDesde && ahora - ytVoz.pendienteDesde >= YT_VOZ_CONVERSACION_MS;
+        if(!ordenReciente && !fragmentoReciente && (confirmarOrden || conversacionLarga || trasHablar || atascado)){
+          // stop() solicita el resultado final. La sesión sigue aceptándolo
+          // hasta end; no se ejecuta ni se descarta una hipótesis provisional.
+          ytVozReconectar(confirmarOrden ? 'solicitando confirmación de la orden.'
+            : (conversacionLarga ? 'cerrando una frase prolongada para recuperar la escucha.' : 'Chrome todavía no ha confirmado lo que oyó.'));
         } else if(ytVoz.renovarPendiente && !ytVoz.hablando && !pendiente && ahora - ytVoz.ultimaActividad > 2500 && (!ytVoz.fragmento || ahora - ytVoz.fragmento.inicio > YT_VOZ_FRAGMENTOS_MS)){
           ytVozReconectar('actualizando la escucha durante una pausa.');
         }
