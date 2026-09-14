@@ -17856,6 +17856,17 @@ function drawStartMarks(){
   function ytVozSoportada(){ return !!(window.SpeechRecognition || window.webkitSpeechRecognition); }
   function ytVozActiva(){ try{ return localStorage.getItem(YT_VOZ_KEY) === '1'; }catch{ return false; } }
   function ytVozGuardar(on){ try{ localStorage.setItem(YT_VOZ_KEY, on ? '1' : '0'); }catch{} }
+  // El botón y la casilla comparten el mismo interruptor de órdenes de voz.
+  // Solo se detiene la escucha; el audio de los videos y de la grabación sigue igual.
+  function ytVozCambiar(on){
+    ytVozGuardar(on);
+    if(ytVoz.avisoTimer){ clearTimeout(ytVoz.avisoTimer); ytVoz.avisoTimer = 0; }
+    const aviso = ids('ytVozAviso'); if(aviso) aviso.style.display = 'none';
+    ytVoz.ultimaOrden = ''; ytVoz.ultimaVez = 0;
+    if(!ytVozActiva()) ytVozParar(false);
+    ytVozSincronizar();
+    if(!ytVozActiva()) ytVozEstado("Đã tắt lệnh giọng nói. Bấm nút để tiếp tục nhận lệnh.");
+  }
   function ytVozNormalizar(s){ return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
   // Extraer las órdenes en este idioma, conservando sus negaciones y tiempos.
   function ytVozRecortarFrase(s){
@@ -18316,28 +18327,28 @@ function drawStartMarks(){
     if(control) control.style.display = 'flex';
     const activa = ytVozActiva(), ctx = ytVoz.contexto;
     b.setAttribute('aria-pressed', String(activa));
-    b.title = activa ? 'Tắt lệnh giọng nói' : 'Bật lệnh giọng nói: nói “ghi” từ bất kỳ mục nào · chụp bàn';
+    b.setAttribute('aria-label', activa ? "Tắt lệnh giọng nói" : "Bật lệnh giọng nói");
     on = !!on && ytVoz.escuchando;
     const pendiente = ytVoz.iniciando ? '🎙 Đang bật giọng nói…' : (ctx ? '🎙 Đang kết nối lại giọng nói…' : '🎙 Giọng nói: đang chờ');
-    if(!activa){ b.textContent = '🎙 Giọng nói: tắt'; b.style.background = '#1a2230'; b.style.borderColor = '#3a4a63'; b.style.color = '#c9d3e6'; }
-    else if(on){
-      b.textContent = ctx === 'general' ? '🎙 Đang nghe «ghi · chụp bàn · đặt lại bi»'
-        : ctx === 'volver' ? '🎙 Đang nghe «đặt lại bi · ghi · chụp bàn»'
-        : ctx === 'capturando' ? '🎙 Giọng nói: đang chụp bàn'
-        : ctx === 'espera' ? '🎙 Giọng nói: đang đếm ngược'
-        : ctx === 'exportando' ? '🎙 Giọng nói: đang xuất'
-        : ctx === 'preparando' ? '🎙 Giọng nói: chuẩn bị camera'
-        : ctx === 'calibrar' ? '🎙 Giọng nói: hiệu chuẩn' : '🎙 Đang nghe';
-      b.style.background = '#1d3a4d'; b.style.borderColor = '#62d7ff'; b.style.color = '#d8f4ff';
+    b.textContent = activa ? "🎙 Giọng nói: bật" : "🔇 Giọng nói: tắt";
+    if(!activa){ b.style.background = '#1a2230'; b.style.borderColor = '#3a4a63'; b.style.color = '#c9d3e6'; }
+    else if(on){ b.style.background = '#1d3a4d'; b.style.borderColor = '#62d7ff'; b.style.color = '#d8f4ff'; }
+    else { b.style.background = '#2a1d4d'; b.style.borderColor = '#c9a4ff'; b.style.color = '#e6d8ff'; }
+    const resumen = ids('ytVozResumen');
+    const detalle = activa ? (on ? "Đang nghe" : pendiente.replace('🎙 ', ''))
+      + (ytVoz.volverPendiente ? " · đang chờ đặt lại bi" : '') : '';
+    if(resumen){
+      if(resumen.textContent !== detalle) resumen.textContent = detalle;
+      resumen.style.display = activa ? 'block' : 'none';
     }
-    else { b.textContent = pendiente; b.style.background = '#2a1d4d'; b.style.borderColor = '#c9a4ff'; b.style.color = '#e6d8ff'; }
+    b.title = activa ? "Tắt lệnh giọng nói. " + detalle + (on ? ': ' + (YT_VOZ_LETREROS[ctx] || '') : '')
+      : "Bật lệnh giọng nói: ghi, chụp bàn hoặc đặt lại bi. Âm thanh khi phát video và ghi hình vẫn được giữ nguyên.";
     const estado = ids('ytVozEstado');
     if(estado && (estado.textContent.startsWith('Đang nghe: ') || estado.textContent === 'Đang đếm ngược; tạm ngừng nhận lệnh.')){
       estado.textContent = !activa ? 'Đã tắt điều khiển bằng giọng nói.' : (on
         ? (ctx === 'espera' ? 'Đang đếm ngược; tạm ngừng nhận lệnh.' : 'Đang nghe: ' + (YT_VOZ_LETREROS[ctx] || ''))
         : pendiente.replace('🎙 ', ''));
     }
-    if(activa && ytVoz.volverPendiente) b.textContent += ' · đang chờ đặt lại bi';
     const c = ids('ytVozCheck'); if(c && c.checked !== activa) c.checked = activa;
     const barra = ids('videoReplayVozBar'), chip = ids('videoReplayVozChip');
     const modal = ids('videoReplayModal');
@@ -19313,15 +19324,10 @@ function drawStartMarks(){
         ytVozEstado('Trình duyệt này không hỗ trợ nhận dạng giọng nói; hãy dùng Chrome hoặc Edge cho lệnh «đặt lại bi».');
       } else {
         vozCheck.checked = ytVozActiva();
-        vozCheck.addEventListener('change', () => { ytVozGuardar(vozCheck.checked); ytVozChip(false); ytVozSincronizar(); if(!vozCheck.checked) ytVozEstado('Đã tắt lệnh giọng nói.'); });
+        vozCheck.addEventListener('change', () => ytVozCambiar(vozCheck.checked));
       }
       const vozBtn = ids('ytVozBtn');
-      if(vozBtn) vozBtn.addEventListener('click', () => {
-        ytVozGuardar(!ytVozActiva());
-        ytVozChip(false);
-        ytVozSincronizar();
-        if(!ytVozActiva()) ytVozEstado('Đã tắt lệnh giọng nói.');
-      });
+      if(vozBtn) vozBtn.addEventListener('click', () => ytVozCambiar(!ytVozActiva()));
       ytVozChip(false);
       // Vigilante: el oído sigue al estado de la app aunque nadie lo avise.
       setInterval(ytVozSincronizar, 800);
@@ -19524,7 +19530,8 @@ function drawStartMarks(){
 
 <div id="ytVozAviso" role="status" aria-live="polite" aria-atomic="true" style="display:none; position:fixed; top:16px; left:50%; transform:translateX(-50%); z-index:10010; width:max-content; max-width:calc(100vw - 32px); box-sizing:border-box; padding:10px 16px; border:1px solid #62d7ff; border-radius:12px; background:rgba(15,23,35,.96); color:#f4f2e8; font-size:clamp(16px,1.6vw,22px); line-height:1.4; text-align:center; overflow-wrap:anywhere; pointer-events:none; box-shadow:0 6px 24px rgba(0,0,0,.5);"><span id="ytVozAvisoOida" style="display:block;"></span><span id="ytVozAvisoAccion" style="display:block; font-weight:700;"></span></div>
 <div id="ytVozControl" style="position:fixed; bottom:18px; left:18px; z-index:10011; display:flex; flex-direction:column; gap:7px; width:max-content; max-width:calc(100vw - 36px);">
-<button id="ytVozBtn" type="button" title="Bật lệnh giọng nói: nói “ghi” từ bất kỳ mục nào · chụp bàn" aria-pressed="false" style="align-self:stretch; max-width:300px; white-space:normal; padding:10px 14px; border-radius:12px; background:#1a2230; border:1px solid #3a4a63; color:#c9d3e6; font-weight:700; font-size:14px; cursor:pointer;">🎙 Giọng nói: tắt</button>
+<button id="ytVozBtn" type="button" title="Bật lệnh giọng nói: ghi, chụp bàn hoặc đặt lại bi" aria-label="Bật lệnh giọng nói" aria-describedby="ytVozResumen" aria-pressed="false" style="align-self:stretch; max-width:220px; min-height:44px; white-space:normal; padding:9px 12px; border-radius:12px; background:#1a2230; border:1px solid #3a4a63; color:#c9d3e6; font-weight:700; font-size:14px; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.4);">🔇 Giọng nói: tắt</button>
+<span id="ytVozResumen" role="status" aria-live="polite" style="display:none; max-width:220px; font-size:12px; line-height:1.3; text-align:center; color:#d8f4ff; background:rgba(15,23,35,.94); padding:3px 6px; box-sizing:border-box; border-radius:6px;"></span>
 <span id="ytVozNivel" title="Đồng hồ hiển thị mức âm thanh; nhãn trạng thái giọng nói xác nhận ứng dụng đang nghe." style="display:none; box-sizing:border-box; width:100%; height:14px; border-radius:7px; background:#111823; border:1px solid #3a4a63; overflow:hidden; box-shadow:0 6px 24px rgba(0,0,0,.5);"><span id="ytVozNivelBarra" style="display:block; height:100%; width:0%; background:#3a4a63; transition:width .08s linear;"></span></span>
 </div>
 <div id="ytPlaceFabBar" style="display:none; position:fixed; bottom:18px; right:18px; z-index:9400; gap:10px; align-items:stretch;">
