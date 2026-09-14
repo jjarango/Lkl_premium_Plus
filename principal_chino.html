@@ -17857,6 +17857,17 @@ function drawStartMarks(){
   function ytVozSoportada(){ return !!(window.SpeechRecognition || window.webkitSpeechRecognition); }
   function ytVozActiva(){ try{ return localStorage.getItem(YT_VOZ_KEY) === '1'; }catch{ return false; } }
   function ytVozGuardar(on){ try{ localStorage.setItem(YT_VOZ_KEY, on ? '1' : '0'); }catch{} }
+  // El botón y la casilla comparten el mismo interruptor de órdenes de voz.
+  // Solo se detiene la escucha; el audio de los videos y de la grabación sigue igual.
+  function ytVozCambiar(on){
+    ytVozGuardar(on);
+    if(ytVoz.avisoTimer){ clearTimeout(ytVoz.avisoTimer); ytVoz.avisoTimer = 0; }
+    const aviso = ids('ytVozAviso'); if(aviso) aviso.style.display = 'none';
+    ytVoz.ultimaOrden = ''; ytVoz.ultimaVez = 0;
+    if(!ytVozActiva()) ytVozParar(false);
+    ytVozSincronizar();
+    if(!ytVozActiva()) ytVozEstado("语音指令已关闭。点击按钮即可重新接收指令。");
+  }
   function ytVozNormalizar(s){ return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').normalize('NFC'); }
   // Extraer las órdenes en este idioma, conservando sus negaciones y tiempos.
   function ytVozRecortarFrase(s){
@@ -18318,28 +18329,28 @@ function drawStartMarks(){
     if(control) control.style.display = 'flex';
     const activa = ytVozActiva(), ctx = ytVoz.contexto;
     b.setAttribute('aria-pressed', String(activa));
-    b.title = activa ? '关闭语音指令' : '启用语音指令：在任意界面说“录制” · 拍摄球台';
+    b.setAttribute('aria-label', activa ? "关闭语音指令" : "开启语音指令");
     on = !!on && ytVoz.escuchando;
     const pendiente = ytVoz.iniciando ? '🎙 正在启用语音…' : (ctx ? '🎙 正在重新连接语音…' : '🎙 语音：等待中');
-    if(!activa){ b.textContent = '🎙 语音：关'; b.style.background = '#1a2230'; b.style.borderColor = '#3a4a63'; b.style.color = '#c9d3e6'; }
-    else if(on){
-      b.textContent = ctx === 'general' ? '🎙 正在监听 «录制 · 拍摄球台 · 重新摆放»'
-        : ctx === 'volver' ? '🎙 正在监听 «重新摆放 · 录制 · 拍摄球台»'
-        : ctx === 'capturando' ? '🎙 语音：正在拍摄球台'
-        : ctx === 'espera' ? '🎙 语音：倒计时中'
-        : ctx === 'exportando' ? '🎙 语音：正在导出'
-        : ctx === 'preparando' ? '🎙 语音：准备摄像头'
-        : ctx === 'calibrar' ? '🎙 语音：校准中' : '🎙 正在监听';
-      b.style.background = '#1d3a4d'; b.style.borderColor = '#62d7ff'; b.style.color = '#d8f4ff';
+    b.textContent = activa ? "🎙 语音已开启" : "🔇 语音已关闭";
+    if(!activa){ b.style.background = '#1a2230'; b.style.borderColor = '#3a4a63'; b.style.color = '#c9d3e6'; }
+    else if(on){ b.style.background = '#1d3a4d'; b.style.borderColor = '#62d7ff'; b.style.color = '#d8f4ff'; }
+    else { b.style.background = '#2a1d4d'; b.style.borderColor = '#c9a4ff'; b.style.color = '#e6d8ff'; }
+    const resumen = ids('ytVozResumen');
+    const detalle = activa ? (on ? "正在监听" : pendiente.replace('🎙 ', ''))
+      + (ytVoz.volverPendiente ? " · 等待重新摆放" : '') : '';
+    if(resumen){
+      if(resumen.textContent !== detalle) resumen.textContent = detalle;
+      resumen.style.display = activa ? 'block' : 'none';
     }
-    else { b.textContent = pendiente; b.style.background = '#2a1d4d'; b.style.borderColor = '#c9a4ff'; b.style.color = '#e6d8ff'; }
+    b.title = activa ? "关闭语音指令。" + detalle + (on ? ': ' + (YT_VOZ_LETREROS[ctx] || '') : '')
+      : "开启语音指令：录制、拍摄球台或重新摆放。视频播放和录制的声音保持不变。";
     const estado = ids('ytVozEstado');
     if(estado && (estado.textContent.startsWith('正在监听：') || estado.textContent === '倒计时中，暂不接受指令。')){
       estado.textContent = !activa ? '语音已关闭。' : (on
         ? (ctx === 'espera' ? '倒计时中，暂不接受指令。' : '正在监听：' + (YT_VOZ_LETREROS[ctx] || ''))
         : pendiente.replace('🎙 ', ''));
     }
-    if(activa && ytVoz.volverPendiente) b.textContent += ' · 等待重新摆放';
     const c = ids('ytVozCheck'); if(c && c.checked !== activa) c.checked = activa;
     const barra = ids('videoReplayVozBar'), chip = ids('videoReplayVozChip');
     const modal = ids('videoReplayModal');
@@ -19315,15 +19326,10 @@ function drawStartMarks(){
         ytVozEstado('此浏览器不支持语音识别；使用 Chrome 或 Edge 以启用«重新摆放»指令。');
       } else {
         vozCheck.checked = ytVozActiva();
-        vozCheck.addEventListener('change', () => { ytVozGuardar(vozCheck.checked); ytVozChip(false); ytVozSincronizar(); if(!vozCheck.checked) ytVozEstado('语音指令已关闭。'); });
+        vozCheck.addEventListener('change', () => ytVozCambiar(vozCheck.checked));
       }
       const vozBtn = ids('ytVozBtn');
-      if(vozBtn) vozBtn.addEventListener('click', () => {
-        ytVozGuardar(!ytVozActiva());
-        ytVozChip(false);
-        ytVozSincronizar();
-        if(!ytVozActiva()) ytVozEstado('语音指令已关闭。');
-      });
+      if(vozBtn) vozBtn.addEventListener('click', () => ytVozCambiar(!ytVozActiva()));
       ytVozChip(false);
       // Vigilante: el oído sigue al estado de la app aunque nadie lo avise.
       setInterval(ytVozSincronizar, 800);
@@ -19526,7 +19532,8 @@ function drawStartMarks(){
 
 <div id="ytVozAviso" role="status" aria-live="polite" aria-atomic="true" style="display:none; position:fixed; top:16px; left:50%; transform:translateX(-50%); z-index:10010; width:max-content; max-width:calc(100vw - 32px); box-sizing:border-box; padding:10px 16px; border:1px solid #62d7ff; border-radius:12px; background:rgba(15,23,35,.96); color:#f4f2e8; font-size:clamp(16px,1.6vw,22px); line-height:1.4; text-align:center; overflow-wrap:anywhere; pointer-events:none; box-shadow:0 6px 24px rgba(0,0,0,.5);"><span id="ytVozAvisoOida" style="display:block;"></span><span id="ytVozAvisoAccion" style="display:block; font-weight:700;"></span></div>
 <div id="ytVozControl" style="position:fixed; bottom:18px; left:18px; z-index:10011; display:flex; flex-direction:column; gap:7px; width:max-content; max-width:calc(100vw - 36px);">
-<button id="ytVozBtn" type="button" title="启用语音指令：在任意界面说“录制” · 拍摄球台" aria-pressed="false" style="align-self:stretch; max-width:300px; white-space:normal; padding:10px 14px; border-radius:12px; background:#1a2230; border:1px solid #3a4a63; color:#c9d3e6; font-weight:700; font-size:14px; cursor:pointer;">🎙 语音：关</button>
+<button id="ytVozBtn" type="button" title="开启语音指令：录制、拍摄球台或重新摆放" aria-label="开启语音指令" aria-describedby="ytVozResumen" aria-pressed="false" style="align-self:stretch; max-width:220px; min-height:44px; white-space:normal; padding:9px 12px; border-radius:12px; background:#1a2230; border:1px solid #3a4a63; color:#c9d3e6; font-weight:700; font-size:14px; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.4);">🔇 语音已关闭</button>
+<span id="ytVozResumen" role="status" aria-live="polite" style="display:none; max-width:220px; font-size:12px; line-height:1.3; text-align:center; color:#d8f4ff; background:rgba(15,23,35,.94); padding:3px 6px; box-sizing:border-box; border-radius:6px;"></span>
 <span id="ytVozNivel" title="音量表显示音频电平；是否正在监听请以语音状态提示为准。" style="display:none; box-sizing:border-box; width:100%; height:14px; border-radius:7px; background:#111823; border:1px solid #3a4a63; overflow:hidden; box-shadow:0 6px 24px rgba(0,0,0,.5);"><span id="ytVozNivelBarra" style="display:block; height:100%; width:0%; background:#3a4a63; transition:width .08s linear;"></span></span>
 </div>
 <div id="ytPlaceFabBar" style="display:none; position:fixed; bottom:18px; right:18px; z-index:9400; gap:10px; align-items:stretch;">
