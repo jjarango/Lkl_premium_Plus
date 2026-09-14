@@ -17857,6 +17857,17 @@ function drawStartMarks(){
   function ytVozSoportada(){ return !!(window.SpeechRecognition || window.webkitSpeechRecognition); }
   function ytVozActiva(){ try{ return localStorage.getItem(YT_VOZ_KEY) === '1'; }catch{ return false; } }
   function ytVozGuardar(on){ try{ localStorage.setItem(YT_VOZ_KEY, on ? '1' : '0'); }catch{} }
+  // El botón y la casilla comparten el mismo interruptor de órdenes de voz.
+  // Solo se detiene la escucha; el audio de los videos y de la grabación sigue igual.
+  function ytVozCambiar(on){
+    ytVozGuardar(on);
+    if(ytVoz.avisoTimer){ clearTimeout(ytVoz.avisoTimer); ytVoz.avisoTimer = 0; }
+    const aviso = ids('ytVozAviso'); if(aviso) aviso.style.display = 'none';
+    ytVoz.ultimaOrden = ''; ytVoz.ultimaVez = 0;
+    if(!ytVozActiva()) ytVozParar(false);
+    ytVozSincronizar();
+    if(!ytVozActiva()) ytVozEstado("음성 명령이 꺼졌습니다. 명령을 다시 받으려면 버튼을 누르세요.");
+  }
   function ytVozNormalizar(s){ return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').normalize('NFC'); }
   // Extraer las órdenes en este idioma, conservando sus negaciones y tiempos.
   function ytVozRecortarFrase(s){
@@ -18317,28 +18328,28 @@ function drawStartMarks(){
     if(control) control.style.display = 'flex';
     const activa = ytVozActiva(), ctx = ytVoz.contexto;
     b.setAttribute('aria-pressed', String(activa));
-    b.title = activa ? '음성 명령 끄기' : '음성 명령 켜기: 어느 화면에서든 “녹화”라고 말하세요 · 테이블 촬영';
+    b.setAttribute('aria-label', activa ? "음성 명령 끄기" : "음성 명령 켜기");
     on = !!on && ytVoz.escuchando;
     const pendiente = ytVoz.iniciando ? '🎙 음성 기능 켜는 중…' : (ctx ? '🎙 음성 기능 다시 연결 중…' : '🎙 음성: 대기 중');
-    if(!activa){ b.textContent = '🎙 음성: 꺼짐'; b.style.background = '#1a2230'; b.style.borderColor = '#3a4a63'; b.style.color = '#c9d3e6'; }
-    else if(on){
-      b.textContent = ctx === 'general' ? '🎙 듣는 중 «녹화 · 테이블 촬영 · 다시 배치»'
-        : ctx === 'volver' ? '🎙 듣는 중 «다시 배치 · 녹화 · 테이블 촬영»'
-        : ctx === 'capturando' ? '🎙 음성: 테이블 촬영 중'
-        : ctx === 'espera' ? '🎙 음성: 카운트다운 중'
-        : ctx === 'exportando' ? '🎙 음성: 내보내는 중'
-        : ctx === 'preparando' ? '🎙 음성: 카메라 준비 중'
-        : ctx === 'calibrar' ? '🎙 음성: 보정 중' : '🎙 듣는 중';
-      b.style.background = '#1d3a4d'; b.style.borderColor = '#62d7ff'; b.style.color = '#d8f4ff';
+    b.textContent = activa ? "🎙 음성 켜짐" : "🔇 음성 꺼짐";
+    if(!activa){ b.style.background = '#1a2230'; b.style.borderColor = '#3a4a63'; b.style.color = '#c9d3e6'; }
+    else if(on){ b.style.background = '#1d3a4d'; b.style.borderColor = '#62d7ff'; b.style.color = '#d8f4ff'; }
+    else { b.style.background = '#2a1d4d'; b.style.borderColor = '#c9a4ff'; b.style.color = '#e6d8ff'; }
+    const resumen = ids('ytVozResumen');
+    const detalle = activa ? (on ? "듣는 중" : pendiente.replace('🎙 ', ''))
+      + (ytVoz.volverPendiente ? " · 공 배치 대기 중" : '') : '';
+    if(resumen){
+      if(resumen.textContent !== detalle) resumen.textContent = detalle;
+      resumen.style.display = activa ? 'block' : 'none';
     }
-    else { b.textContent = pendiente; b.style.background = '#2a1d4d'; b.style.borderColor = '#c9a4ff'; b.style.color = '#e6d8ff'; }
+    b.title = activa ? "음성 명령 끄기. " + detalle + (on ? ': ' + (YT_VOZ_LETREROS[ctx] || '') : '')
+      : "음성 명령 켜기: 녹화, 테이블 촬영 또는 다시 배치. 동영상 재생 및 녹화의 소리는 그대로 유지됩니다.";
     const estado = ids('ytVozEstado');
     if(estado && (estado.textContent.startsWith('듣는 중: ') || estado.textContent === '카운트다운 중에는 명령을 받지 않습니다.')){
       estado.textContent = !activa ? '음성 기능이 꺼졌습니다.' : (on
         ? (ctx === 'espera' ? '카운트다운 중에는 명령을 받지 않습니다.' : '듣는 중: ' + (YT_VOZ_LETREROS[ctx] || ''))
         : pendiente.replace('🎙 ', ''));
     }
-    if(activa && ytVoz.volverPendiente) b.textContent += ' · 공 배치 대기 중';
     const c = ids('ytVozCheck'); if(c && c.checked !== activa) c.checked = activa;
     const barra = ids('videoReplayVozBar'), chip = ids('videoReplayVozChip');
     const modal = ids('videoReplayModal');
@@ -19314,15 +19325,10 @@ function drawStartMarks(){
         ytVozEstado('이 브라우저는 음성 인식을 지원하지 않습니다. «다시 배치» 명령에는 Chrome 또는 Edge를 사용하십시오.');
       } else {
         vozCheck.checked = ytVozActiva();
-        vozCheck.addEventListener('change', () => { ytVozGuardar(vozCheck.checked); ytVozChip(false); ytVozSincronizar(); if(!vozCheck.checked) ytVozEstado('음성 명령 꺼짐.'); });
+        vozCheck.addEventListener('change', () => ytVozCambiar(vozCheck.checked));
       }
       const vozBtn = ids('ytVozBtn');
-      if(vozBtn) vozBtn.addEventListener('click', () => {
-        ytVozGuardar(!ytVozActiva());
-        ytVozChip(false);
-        ytVozSincronizar();
-        if(!ytVozActiva()) ytVozEstado('음성 명령 꺼짐.');
-      });
+      if(vozBtn) vozBtn.addEventListener('click', () => ytVozCambiar(!ytVozActiva()));
       ytVozChip(false);
       // Vigilante: el oído sigue al estado de la app aunque nadie lo avise.
       setInterval(ytVozSincronizar, 800);
@@ -19525,7 +19531,8 @@ function drawStartMarks(){
 
 <div id="ytVozAviso" role="status" aria-live="polite" aria-atomic="true" style="display:none; position:fixed; top:16px; left:50%; transform:translateX(-50%); z-index:10010; width:max-content; max-width:calc(100vw - 32px); box-sizing:border-box; padding:10px 16px; border:1px solid #62d7ff; border-radius:12px; background:rgba(15,23,35,.96); color:#f4f2e8; font-size:clamp(16px,1.6vw,22px); line-height:1.4; text-align:center; overflow-wrap:anywhere; pointer-events:none; box-shadow:0 6px 24px rgba(0,0,0,.5);"><span id="ytVozAvisoOida" style="display:block;"></span><span id="ytVozAvisoAccion" style="display:block; font-weight:700;"></span></div>
 <div id="ytVozControl" style="position:fixed; bottom:18px; left:18px; z-index:10011; display:flex; flex-direction:column; gap:7px; width:max-content; max-width:calc(100vw - 36px);">
-<button id="ytVozBtn" type="button" title="음성 명령 켜기: 어느 화면에서든 “녹화”라고 말하세요 · 테이블 촬영" aria-pressed="false" style="align-self:stretch; max-width:300px; white-space:normal; padding:10px 14px; border-radius:12px; background:#1a2230; border:1px solid #3a4a63; color:#c9d3e6; font-weight:700; font-size:14px; cursor:pointer;">🎙 음성: 꺼짐</button>
+<button id="ytVozBtn" type="button" title="음성 명령 켜기: 녹화, 테이블 촬영 또는 다시 배치" aria-label="음성 명령 켜기" aria-describedby="ytVozResumen" aria-pressed="false" style="align-self:stretch; max-width:220px; min-height:44px; white-space:normal; padding:9px 12px; border-radius:12px; background:#1a2230; border:1px solid #3a4a63; color:#c9d3e6; font-weight:700; font-size:14px; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.4);">🔇 음성 꺼짐</button>
+<span id="ytVozResumen" role="status" aria-live="polite" style="display:none; max-width:220px; font-size:12px; line-height:1.3; text-align:center; color:#d8f4ff; background:rgba(15,23,35,.94); padding:3px 6px; box-sizing:border-box; border-radius:6px;"></span>
 <span id="ytVozNivel" title="미터는 오디오 레벨을 표시합니다. 실제 듣기 상태는 음성 상태 표시를 확인하세요." style="display:none; box-sizing:border-box; width:100%; height:14px; border-radius:7px; background:#111823; border:1px solid #3a4a63; overflow:hidden; box-shadow:0 6px 24px rgba(0,0,0,.5);"><span id="ytVozNivelBarra" style="display:block; height:100%; width:0%; background:#3a4a63; transition:width .08s linear;"></span></span>
 </div>
 <div id="ytPlaceFabBar" style="display:none; position:fixed; bottom:18px; right:18px; z-index:9400; gap:10px; align-items:stretch;">
