@@ -18034,10 +18034,23 @@ function drawStartMarks(){
         }
       }
     }
-    // Esperar el resultado definitivo sin interrumpir la entrada de audio.
-    if(candidatas.size === 1 && res.isFinal){ ytVozLimpiarFragmento(); return candidatas.values().next().value; }
+    // DETENER completo puede actuar mientras Chrome termina la transcripción.
+    // Solo durante una grabación, con una instrucción directa y sin conflicto.
+    const detenerDirecto = ctx === 'grabando' && candidatas.size === 1
+      && candidatas.values().next().value.orden.accion === 'detener'
+      && /^(?:por favor[ ,]+)?(?:detener|deten|detene)(?:\s+y\s+revisar|\s+la\s+grabacion)?(?:[ ,]+por favor)?[.!?,;:]*$/.test(ytVozNormalizar(frase).trim())
+      && frases.every(t => !ytVozConflicto(unir(t)));
+    // GRABAR y las duraciones conservan el resultado final: una pausa no elige
+    // cinco segundos ni abre el módulo antes de completar «grabar en quince».
+    if(candidatas.size === 1 && (res.isFinal || detenerDirecto)){
+      ytVozLimpiarFragmento(); return candidatas.values().next().value;
+    }
     if(res.isFinal){
+      // Un comienzo de grabación con tiempo solo continúa en el módulo listo.
+      // Fuera de él no debe mezclarse con la próxima orden válida.
+      const pideTiempo = /^gra[bv]\w*\b.*\ben$/.test(ytVozRecortarFrase(frase));
       ytVoz.fragmento = candidatas.size === 0 && ytVozPuedeContinuar(frase)
+        && (!pideTiempo || ctx === 'grabar' || ctx === 'grabarVolver')
         ? { texto:ytVozRecortarFrase(frase), indice, ctx, inicio:previo ? previo.inicio : ahora } : null;
     }
     return { frase, ambigua:!!conflicto || candidatas.size > 1, prevista:!res.isFinal && candidatas.size === 1 ? candidatas.values().next().value.orden : null, motivo:conflicto || (candidatas.size > 1
@@ -18411,11 +18424,9 @@ function drawStartMarks(){
     try{
       const rec = new SR();
       let servicio = false, audio = false, confirmado = false;
-      let ultimoFinal = -1, ultimoIndice = -1, descartarHasta = -1;
+      let ultimoFinal = -1, ultimoEjecutado = -1;
       ytVoz.rec = rec; ytVoz.iniciando = true; ytVoz.escuchando = false; ytVoz.desde = Date.now();
       ytVozFijarContexto(ytVozContexto()); ytVozLimpiarFragmento(); ytVozLimpiarActividad(); ytVoz.renovarPendiente = false;
-      let versionResultados = ytVoz.versionContexto;
-      let contextoResultados = ytVoz.contexto, contextoPendiente = null;
       rec.lang = 'es-CO'; rec.continuous = true; rec.interimResults = true; rec.maxAlternatives = 3;
       const confirmar = () => {
         if(ytVoz.rec !== rec || ytVoz.cerrando === rec || !servicio || !audio || ytVoz.escuchando) return;
@@ -18454,31 +18465,23 @@ function drawStartMarks(){
         const ctx = ytVozContexto();
         ytVoz.ultimaActividad = Date.now(); ytVoz.ultimoResultado = Date.now(); ytVoz.fallos = 0;
         ytVozFijarContexto(ctx);
-        if(versionResultados !== ytVoz.versionContexto){
-          if(ultimoIndice > ultimoFinal){
-            descartarHasta = ultimoIndice;
-            if(!contextoPendiente) contextoPendiente = contextoResultados;
-          }
-          contextoResultados = ctx;
-          versionResultados = ytVoz.versionContexto;
-        }
         for(let i = ev.resultIndex; i < ev.results.length; i++){
-          if(i <= ultimoFinal) continue;
+          // Un DETENER provisional aceptado no se repite al llegar su final,
+          // aunque para entonces ya se haya iniciado otra grabación.
+          if(i <= ultimoFinal || i <= ultimoEjecutado) continue;
           const res = ev.results[i];
-          ultimoIndice = Math.max(ultimoIndice, i);
           if(res.isFinal) ultimoFinal = i;
           if(!ctx){ ytVozLimpiarFragmento(); continue; }
           if(res.isFinal){ ytVozLimpiarPendiente(); ytVoz.hablando = false; ytVoz.hablaDesde = 0; ytVoz.hablaFin = Date.now(); }
           const resultado = ytVozResultado(res, i, ctx);
-          // Una orden pendiente sobrevive al cambio si conserva su acción y validez.
-          if(i <= descartarHasta){
-            const anterior = resultado.orden && ytVozInterpretar(resultado.frase, contextoPendiente);
-            if(!anterior || anterior.accion !== resultado.orden.accion || anterior.seg !== resultado.orden.seg){
-              ytVozLimpiarFragmento(); continue;
-            }
-          } else contextoPendiente = null;
+          // La orden vale según la fase actual. El segmento de Chrome puede
+          // haber empezado durante una cuenta regresiva o en otra pantalla.
           if(!res.isFinal) ytVozSeguirPendiente(resultado, i);
-          if(resultado.orden){ ytVozEjecutar(resultado.orden, resultado.frase); return; }
+          if(resultado.orden){
+            ultimoEjecutado = i;
+            ytVozLimpiarPendiente();
+            ytVozEjecutar(resultado.orden, resultado.frase); return;
+          }
           // La conversación y los resultados provisionales permanecen en silencio.
         }
       };
