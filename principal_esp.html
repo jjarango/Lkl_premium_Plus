@@ -18036,6 +18036,22 @@ function drawStartMarks(){
     if(/^(?:no|nunca|tampoco)(?:\s+(?:por|favor|quiero|que|debe|debes|vaya|vayas|a|lo|hagas)){0,7}$/.test(t)) return true;
     return /^(?:por favor\s+)?(?:capturar(?:\s+la)?|gra[bv]\w*(?:\s+(?:la|una|otra|el|un|en|con|los|las|a|de))*|v(?:olver|uelve|uelva|olve)(?:\s+a)?|descarg\w*(?:\s+con)?)$/.test(t);
   }
+  function ytVozClaveOrden(orden){
+    return ['grabarJugada','grabarOtra'].includes(orden.accion) ? 'abrirGrabacion'
+      : orden.accion + (orden.seg ? ':' + orden.seg : '');
+  }
+  // El texto ya utilizado puede ampliarse o corregirse sin cerrar el resultado.
+  // Solo se retira su prefijo reconocido; una negación nueva nunca se retira.
+  function ytVozTextoNuevo(texto, anterior){
+    if(!anterior) return texto;
+    const t = ytVozRecortarFrase(texto), a = ytVozRecortarFrase(anterior);
+    const palabras = Array.from(t.matchAll(/[a-z0-9]+/g)), previas = Array.from(a.matchAll(/[a-z0-9]+/g));
+    const igual = p => /^gra[bv]ar?$/.test(p) ? 'grabar' : (/^deten(?:er|e)?$/.test(p) ? 'detener' : p);
+    if(!previas.length || palabras.length < previas.length
+      || !previas.every((p,i) => igual(p[0]) === igual(palabras[i][0]))) return texto;
+    const ultima = palabras[previas.length - 1];
+    return t.slice(ultima.index + ultima[0].length).trim();
+  }
   function ytVozResultado(res, indice, ctx){
     const ahora = Date.now();
     let previo = ytVoz.fragmento;
@@ -18061,19 +18077,22 @@ function drawStartMarks(){
     // Actuar sobre palabras completas, aunque vengan repetidas o rodeadas
     // de conversación. Nunca sobre una negación ni alternativas contradictorias.
     const unica = candidatas.size === 1 ? candidatas.values().next().value : null;
-    const coinciden = unica && frases.every(t => {
-      const o = ytVozInterpretar(unir(t), ctx);
-      return o && o.accion === unica.orden.accion && o.seg === unica.orden.seg;
+    const principal = ytVozInterpretar(frase, ctx), R = ytVozReglas();
+    const contradice = frases.slice(1).some(texto => {
+      const t = ytVozRecortarFrase(unir(texto));
+      const esOrden = ['capturarMesa','volver','detener','reproducir','descargar','grabarJugada','grabarOtra','grabarEn'].some(k => R[k].test(t)) || /\bgra[bv]ar?\b/.test(t);
+      // Una alternativa sin orden no veta una primera interpretación clara.
+      return esOrden && !!(ytVozConflicto(t) || ytVozConflicto(frase + ' ' + t));
     });
-    const detenerDirecto = ctx === 'grabando' && unica && unica.orden.accion === 'detener'
-      && coinciden && frases.every(t => /\bdeten(?:er|e)?\b/.test(ytVozNormalizar(t))
-        && !/\b(?:y|o|en)\s*$/.test(ytVozNormalizar(t)));
-    // Abrir la cámara es independiente de elegir la cuenta regresiva.
-    // «Graba» y «grabá» tienen el mismo valor; nunca eligen un tiempo por sí solas.
+    const principalClara = unica && principal && !contradice
+      && principal.accion === unica.orden.accion && principal.seg === unica.orden.seg;
+    const detenerDirecto = ctx === 'grabando' && principalClara && principal.accion === 'detener'
+      && /\bdeten(?:er|e)?\b/.test(ytVozNormalizar(frase))
+      && !/\b(?:y|o|en)\s*$/.test(ytVozNormalizar(frase));
     const abrirDirecto = ['general','volver','revisar','revisarVolver'].includes(ctx)
-      && unica && ['grabarJugada','grabarOtra'].includes(unica.orden.accion)
-      && coinciden && frases.every(t => ytVozReglas().grabarCorto.test(ytVozRecortarFrase(unir(t))));
-    if(unica && (res.isFinal || detenerDirecto || abrirDirecto)){
+      && principalClara && ['grabarJugada','grabarOtra'].includes(principal.accion)
+      && R.grabarCorto.test(ytVozRecortarFrase(frase));
+    if(unica && !contradice && (res.isFinal || detenerDirecto || abrirDirecto)){
       ytVozLimpiarFragmento(); return { ...unica, aperturaRapida:!res.isFinal && abrirDirecto };
     }
     if(res.isFinal){
@@ -18084,7 +18103,7 @@ function drawStartMarks(){
         && (!pideTiempo || ctx === 'grabar' || ctx === 'grabarVolver')
         ? { texto:ytVozRecortarFrase(frase), indice, ctx, inicio:previo ? previo.inicio : ahora } : null;
     }
-    return { frase, ambigua:!!conflicto || candidatas.size > 1, prevista:!res.isFinal && candidatas.size === 1 ? candidatas.values().next().value.orden : null, motivo:conflicto || (candidatas.size > 1
+    return { frase, ambigua:!!conflicto || contradice || candidatas.size > 1, prevista:!res.isFinal && !contradice && candidatas.size === 1 ? candidatas.values().next().value.orden : null, motivo:conflicto || (contradice || candidatas.size > 1
       ? 'Sin acción: el reconocedor propuso órdenes distintas. Repita una sola.'
       : ((ctx === 'grabar' || ctx === 'grabarVolver') && ytVozReglas().grabarCorto.test(ytVozRecortarFrase(frase))
         ? 'El módulo ya está listo. Diga «grabar en cinco, diez o quince».'
@@ -18289,6 +18308,7 @@ function drawStartMarks(){
         ytVozAceptar(frase, videoReplay.mode === 'calibrate'
           ? 'Cámara abierta. Confirme las esquinas antes de grabar.'
           : 'Cámara lista. Diga «grabar en cinco, diez o quince».');
+        return true;
       } else if(abierto && abierto.classList.contains('active')){
         const estado = ids('videoReplayStatus');
         ytVozAvisar(frase, estado && estado.textContent ? estado.textContent : 'No se pudo abrir la cámara para grabar.', 'warn');
@@ -18352,7 +18372,11 @@ function drawStartMarks(){
     // Se conserva la misma sesión de voz. Confirmar la acción, no solo el texto.
     try{
       if(orden.accion === 'capturarMesa'){ await ytVozCapturarMesa(frase); return; }
-      if(orden.accion === 'grabarJugada'){ await ytVozAbrirGrabacion(frase); return; }
+      if(orden.accion === 'grabarJugada'){
+        const iniciada = await ytVozAbrirGrabacion(frase);
+        if(!iniciada){ ytVoz.ultimaOrden = ''; ytVoz.ultimaVez = 0; }
+        return !!iniciada;
+      }
       let iniciada = false, mensaje = '';
       if(orden.accion === 'reproducir'){
         const v = ids('videoReplayPlayback'), velocidad = ids('videoReplaySpeed');
@@ -18383,6 +18407,7 @@ function drawStartMarks(){
         const estado = ids('videoReplayStatus');
         ytVozAvisar(frase, 'La acción no comenzó. ' + (estado && estado.textContent ? estado.textContent : 'Revise el estado del módulo.'), 'warn');
       }
+      return iniciada;
     }catch(error){
       ytVoz.ultimaOrden = ''; ytVoz.ultimaVez = 0;
       ytVozAvisar(frase, 'No se pudo ejecutar la orden: ' + (error && error.message ? error.message : error), 'warn');
@@ -18456,7 +18481,26 @@ function drawStartMarks(){
     try{
       const rec = new SR();
       let servicio = false, audio = false, confirmado = false;
-      let ultimoFinal = -1, ultimoEjecutado = -1, aperturaRapida = null;
+      let ultimoFinal = -1, aperturaRapida = null;
+      // Una acción atendida no consume todo el resultado provisional de Chrome.
+      const atendidos = new Map();
+      const ejecutar = (registro, resultado, texto) => {
+        const clave = ytVozClaveOrden(resultado.orden);
+        if(registro.hechas.has(clave) || registro.pendientes.has(clave)){
+          ytVozRegistrar(texto, 'Esta acción ya fue atendida en esta transcripción.', 'Sin acción');
+          return null;
+        }
+        registro.pendientes.add(clave);
+        const anterior = registro.texto;
+        registro.texto = texto;
+        const promesa = ytVozEjecutar(resultado.orden, resultado.frase);
+        promesa.then(iniciada => {
+          registro.pendientes.delete(clave);
+          if(iniciada) registro.hechas.add(clave);
+          else if(registro.texto === texto) registro.texto = anterior;
+        });
+        return promesa;
+      };
       ytVoz.rec = rec; ytVoz.iniciando = true; ytVoz.escuchando = false; ytVoz.desde = Date.now();
       ytVozFijarContexto(ytVozContexto()); ytVozLimpiarFragmento(); ytVozLimpiarActividad(); ytVoz.renovarPendiente = false;
       rec.lang = 'es-CO'; rec.continuous = true; rec.interimResults = true; rec.maxAlternatives = 3;
@@ -18496,63 +18540,73 @@ function drawStartMarks(){
         ytVozLimpiarFragmento(); // Un sonido sin texto no demuestra una orden fallida.
       };
       rec.onresult = ev => {
-        if(ytVoz.rec !== rec || !confirmado) return;
-        const ctx = ytVozContexto();
+        if(ytVoz.rec !== rec || !confirmado || !ytVozActiva()) return;
         ytVoz.ultimaActividad = Date.now(); ytVoz.ultimoResultado = Date.now(); ytVoz.fallos = 0;
-        ytVozFijarContexto(ctx);
+        let nuevoFinal = ultimoFinal;
         for(let i = ev.resultIndex; i < ev.results.length; i++){
           if(i <= ultimoFinal) continue;
           const res = ev.results[i];
-          if(res.isFinal) ultimoFinal = i;
+          if(res.isFinal) nuevoFinal = Math.max(nuevoFinal, i);
+          const ctx = ytVozContexto(); ytVozFijarContexto(ctx);
           if(!ctx){ ytVozLimpiarFragmento(); aperturaRapida = null; continue; }
-          if(i <= ultimoEjecutado){
-            // La confirmación tardía no repite una acción provisional.
-            // Solo se permite completar su misma frase con un tiempo definitivo.
-            const apertura = aperturaRapida;
-            if(res.isFinal && apertura && apertura.indice === i){
-              ytVozLimpiarFragmento();
-              const fin = ytVozResultado(res, i, 'grabar');
-              ytVozLimpiarFragmento();
-              if(fin.orden && fin.orden.accion === 'grabarEn'){
-                ytVozRegistrar(fin.frase, 'Tiempo completo recibido; esperando que termine de abrirse la cámara.', 'Final', ctx);
-                apertura.promesa.then(() => {
-                  if(aperturaRapida !== apertura) return;
-                  aperturaRapida = null;
-                  if(!ytVozActiva() || ytVoz.rec !== rec || apertura.solicitud !== ytVoz.solicitudModulo
-                    || !['grabar','grabarVolver'].includes(ytVozContexto())){
-                    ytVozRegistrar(fin.frase, 'Tiempo no ejecutado: cambió la pantalla o la cámara no está lista.', 'Sin acción'); return;
-                  }
-                  ytVozEjecutar(fin.orden, fin.frase);
-                });
-              } else {
+          let registro = atendidos.get(i);
+          if(!registro){ registro = { hechas:new Set(), pendientes:new Set(), texto:'' }; atendidos.set(i, registro); }
+          const texto = String(res[0] && res[0].transcript || '').trim();
+          if(res.isFinal){ ytVozLimpiarPendiente(); ytVoz.hablando = false; ytVoz.hablaDesde = 0; ytVoz.hablaFin = Date.now(); }
+          // Si «grabar» abrió la cámara, su misma frase puede terminar con un
+          // tiempo. Solo el tiempo definitivo inicia la cuenta, cuando esté lista.
+          const apertura = aperturaRapida;
+          if(res.isFinal && apertura && apertura.indice === i){
+            const previo = ytVoz.fragmento; ytVozLimpiarFragmento();
+            const fin = ytVozResultado(res, i, 'grabar');
+            ytVoz.fragmento = previo;
+            if(fin.orden && fin.orden.accion === 'grabarEn'){
+              ytVozRegistrar(fin.frase, 'Tiempo completo recibido; esperando que termine de abrirse la cámara.', 'Final', ctx);
+              apertura.promesa.then(iniciada => {
+                if(aperturaRapida !== apertura) return;
                 aperturaRapida = null;
-                ytVozRegistrar(fin.frase, 'Apertura ya atendida; no se inició ninguna cuenta regresiva. ' + (fin.ambigua ? fin.motivo : ''), 'Final', ctx);
-              }
+                if(!iniciada || !ytVozActiva() || ytVoz.rec !== rec || apertura.solicitud !== ytVoz.solicitudModulo
+                  || !['grabar','grabarVolver'].includes(ytVozContexto())){
+                  ytVozRegistrar(fin.frase, 'Tiempo no ejecutado: cambió la pantalla o la cámara no está lista.', 'Sin acción'); return;
+                }
+                ejecutar(registro, fin, texto);
+              });
+              continue;
             }
+          }
+          const nuevas = Array.from(res, alt => ({ transcript:ytVozTextoNuevo(alt.transcript, registro.texto) }));
+          nuevas.isFinal = res.isFinal;
+          if(nuevas.length && !String(nuevas[0].transcript || '').trim() && registro.texto){
+            // Si la primera interpretación solo confirma lo ya atendido,
+            // una alternativa secundaria no se convierte en una orden nueva.
+            if(res.isFinal) ytVozRegistrar(texto, 'Confirmación de una orden ya atendida; no se repite la acción.', 'Final', ctx);
             continue;
           }
-          if(res.isFinal){ ytVozLimpiarPendiente(); ytVoz.hablando = false; ytVoz.hablaDesde = 0; ytVoz.hablaFin = Date.now(); }
-          const resultado = ytVozResultado(res, i, ctx);
-          // La orden vale según la fase actual. El segmento de Chrome puede
-          // haber empezado durante una cuenta regresiva o en otra pantalla.
+          const resultado = ytVozResultado(nuevas, i, ctx);
           if(!res.isFinal) ytVozSeguirPendiente(resultado, i);
           if(resultado.orden){
-            ultimoEjecutado = i;
             ytVozLimpiarPendiente();
-            aperturaRapida = null;
-            ytVozRegistrar(resultado.frase, 'Orden identificada; comprobando que pueda ejecutarse.', res.isFinal ? 'Final' : 'Provisional', ctx);
-            const promesa = ytVozEjecutar(resultado.orden, resultado.frase);
-            if(resultado.aperturaRapida) aperturaRapida = { indice:i, promesa, solicitud:ytVoz.solicitudModulo };
-            return;
+            ytVozRegistrar(texto, 'Orden identificada; comprobando que pueda ejecutarse.', res.isFinal ? 'Final' : 'Provisional', ctx);
+            const promesa = ejecutar(registro, resultado, texto);
+            if(promesa){
+              aperturaRapida = resultado.aperturaRapida ? { indice:i, promesa, solicitud:ytVoz.solicitudModulo } : null;
+            }
+            // No esperar operaciones de cámara ni salir: DETENER y los demás
+            // resultados del mismo aviso se atienden en esta misma pasada.
+            continue;
           }
-          // El historial se consulta a petición; no produce avisos ni pausas.
           if(res.isFinal || resultado.prevista || resultado.ambigua || ytVozPuedeContinuar(resultado.frase)){
-            ytVozRegistrar(resultado.frase, resultado.prevista && !resultado.ambigua
-              ? 'Orden provisional: esperando el texto definitivo, sin interrumpir el micrófono.'
-              : resultado.motivo, res.isFinal ? 'Final' : 'Provisional', ctx);
+            ytVozRegistrar(texto, !resultado.frase && registro.texto
+              ? 'Confirmación de una orden ya atendida; no se repite la acción.'
+              : (resultado.prevista && !resultado.ambigua
+                ? 'Orden provisional: esperando el texto definitivo, sin interrumpir el micrófono.'
+                : resultado.motivo), res.isFinal ? 'Final' : 'Provisional', ctx);
           }
-          // La conversación y los resultados provisionales permanecen en silencio.
         }
+        ultimoFinal = nuevoFinal;
+        // Los resultados definitivos no vuelven a cambiar. Conservar solo
+        // el seguimiento provisional y la promesa de apertura si sigue pendiente.
+        for(const indice of atendidos.keys()) if(indice <= ultimoFinal) atendidos.delete(indice);
       };
       rec.onerror = ev => {
         if(ytVoz.rec !== rec) return;
