@@ -1986,7 +1986,7 @@
 <div class="small" id="ytVozEstado" style="margin-top:4px; color:#9aa3b2;">При включённом голосовом управлении скажите «записать» в любом разделе, чтобы открыть модуль записи. Кнопка внизу показывает, когда приложение слушает, и позволяет выключить голос. В модуле используйте команды «записать через пять, десять или пятнадцать», «стоп и просмотр», «воспроизвести», «записать» для подготовки новой записи или «скачать с данными» — в зависимости от текущего этапа. Скажите «снять стол» в любом разделе, чтобы сделать снимок и проверить позиции. Когда это возможно, используются углы, сохранённые в текущем сеансе; проверьте шары и нажмите «Применить позиции к приложению». Команда «вернуть шары» восстанавливает последнюю подтверждённую позицию из любого раздела, даже если фиолетовая кнопка скрыта. Позиция сохраняется после выхода из тренировки и заменяется при применении другой. Если идёт съёмка, запись или экспорт, команда дожидается завершения операции. Открытие модуля не запускает запись автоматически. Голос использует речевой сервис Chrome (нужен интернет) и микрофон Windows по умолчанию: выберите там Logitech Brio. Когда модуль записи готов, можно сказать просто «пять», «десять» или «пятнадцать».</div>
 <details id="ytVozHistorialPanel" style="margin-top:10px;">
 <summary style="cursor:pointer;">История голосовых команд</summary>
-<p class="small">Просмотрите после тренировки. Последние 300 текстовых записей хранятся только пока эта страница открыта; звук не сохраняется. Нажмите «Обновить», чтобы увидеть последние записи.</p>
+<p class="small">Пока эта страница открыта, сохраняются до 1000 записей о речи, распознанных текстах и действиях, а также последние 200 состояний подключения; звук не сохраняется. Включены предварительные тексты и события обнаружения речи с точностью времени до миллисекунд. Номер сеанса и результата позволяет проследить одну команду. Нажмите «Обновить», чтобы увидеть последние записи.</p>
 <textarea id="ytVozHistorialTexto" aria-label="История голосовых команд" readonly rows="10" style="width:100%; box-sizing:border-box; resize:vertical; font:inherit; font-size:13px;"></textarea>
 <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:6px;"><button id="ytVozHistorialActualizar" type="button">Обновить</button><button id="ytVozHistorialBorrar" type="button">Очистить историю</button></div>
 </details>
@@ -17862,18 +17862,30 @@ function drawStartMarks(){
   const ytVoz = { rec:null, iniciando:false, escuchando:false, reintento:0, desde:0, ultimoTic:0, contexto:null, versionContexto:0, fragmento:null, avisoTimer:0, abriendoModulo:false, capturandoMesa:false, volviendo:false, volverPendiente:null, volverTrasCalibrar:false, solicitudModulo:0, retorno:null, cerrando:null, cierreTimer:0, renovarPendiente:false, ultimaActividad:0, ultimoResultado:0, hablando:false, hablaDesde:0, hablaFin:0, pendienteDesde:0, pendienteFrase:'', indiceProvisional:-1, ordenProvisional:'', cambioOrden:0, prefijoProvisional:false, sinAudioDesde:0, ultimoAvisoConexion:0, ultimoDespertar:0, fallos:0, ultimaOrden:'', ultimaVez:0 };
   // Diagnóstico acotado en memoria: no graba audio ni envía datos adicionales.
   const ytVozHistorial = [];
-  function ytVozRegistrar(frase, detalle, tipo="Состояние", contexto=ytVozContexto()){
+  let ytVozSesionDiagnostico = 0;
+  function ytVozRegistrar(frase, detalle, tipo="Состояние", contexto=ytVozContexto(), datos=null){
     const texto = String(frase || '').replace(/\s+/g, ' ').trim().slice(-400);
-    const anterior = ytVozHistorial[ytVozHistorial.length - 1];
-    if(anterior && anterior.texto === texto && anterior.detalle === detalle && anterior.tipo === tipo && anterior.contexto === contexto) return;
-    ytVozHistorial.push({ hora:new Date().toLocaleTimeString("ru-RU", {hour12:false}), texto, detalle, tipo, contexto });
-    if(ytVozHistorial.length > 300) ytVozHistorial.shift();
+    const fecha = new Date();
+    const registro = { hora:fecha.toLocaleTimeString("ru-RU", {hour12:false}) + '.' + String(fecha.getMilliseconds()).padStart(3, '0'), texto, detalle, tipo, contexto, ...(datos || {}) };
+    ytVozHistorial.push(registro);
+    // Las reconexiones conservan su propia cuota; no expulsan las palabras
+    // y acciones de una prueba. Todo sigue acotado y solo en esta página.
+    const estado = tipo === "Состояние";
+    const limite = estado ? 200 : 1000;
+    if(ytVozHistorial.filter(r => (r.tipo === "Состояние") === estado).length > limite){
+      const i = ytVozHistorial.findIndex(r => (r.tipo === "Состояние") === estado);
+      if(i >= 0) ytVozHistorial.splice(i, 1);
+    }
+    return registro;
   }
   function ytVozVerHistorial(){
     const caja = ids('ytVozHistorialTexto'); if(!caja) return;
     caja.value = ytVozHistorial.length ? ytVozHistorial.map(r =>
       r.hora + ' · ' + r.tipo + ' · ' + (YT_VOZ_LETREROS[r.contexto] || "голосовые команды отключены")
-      + (r.texto ? "\nРаспознано: «" + r.texto + '»' : '') + '\n' + r.detalle
+      + (r.sesion ? "\nСсылка: сеанс " + r.sesion + (Number.isInteger(r.indice) ? " · результат " + (r.indice + 1) : '') : '')
+      + (r.texto ? "\nРаспознано: «" + r.texto + '»' : '')
+      + (r.alternativas && r.alternativas.length ? "\nДругие варианты распознавания: " + r.alternativas.map(t => '«' + t + '»').join(' · ') : '')
+      + '\n' + r.detalle
     ).join('\n\n') : "На этой странице пока нет записей.";
     caja.scrollTop = caja.scrollHeight;
   }
@@ -18065,7 +18077,7 @@ function drawStartMarks(){
     const principal = ytVozInterpretar(frase, ctx), R = ytVozReglas();
     // La primera interpretación clara de DETENER basta, también provisional.
     // Una alternativa negada sigue siendo motivo para esperar otra orden.
-    const detenerNegado = frases.some(texto => {
+    const detenerNegado = ctx === 'grabando' && frases.some(texto => {
       const t = ytVozRecortarFrase(unir(texto));
       return R.detener.test(t) && R.negacion.test(t);
     });
@@ -18088,7 +18100,10 @@ function drawStartMarks(){
     const unica = candidatas.size === 1 ? candidatas.values().next().value : null;
     const contradice = frases.slice(1).some(texto => {
       const t = ytVozRecortarFrase(unir(texto));
-      const esOrden = ['capturarMesa','volver','detener','reproducir','descargar','grabarJugada','grabarOtra','grabarEn'].some(k => R[k].test(t)) || R.grabarCorto.test(t) || Array.from(t.matchAll(R.tiempos)).length > 0;
+      // Solo las órdenes disponibles en esta pantalla pueden vetar la principal.
+      const esOrden = [["capturarMesa","снять стол"],["volver","вернуть шары"],["detener","стоп"],["reproducir","воспроизвести"],["descargar","скачать с данными"],["grabarJugada","записать позицию"],["grabarOtra","записать еще позицию"],["grabarEn","записать через пять"]].some(([regla, ejemplo]) => R[regla].test(t) && !!ytVozInterpretar(ejemplo, ctx))
+        || (/(?<![\p{L}\p{N}])(?:записать|запиши|запись)(?![\p{L}\p{N}])/u.test(t) && !!ytVozInterpretar("записать", ctx))
+        || (Array.from(t.matchAll(R.tiempos)).length > 0 && ['grabar','grabarVolver'].includes(ctx));
       // Una alternativa sin orden no veta una primera interpretación clara.
       return esOrden && !!(ytVozConflicto(t) || ytVozConflicto(frase + ' ' + t));
     });
@@ -18440,13 +18455,13 @@ function drawStartMarks(){
     else if(on){ b.style.background = '#1d3a4d'; b.style.borderColor = '#62d7ff'; b.style.color = '#d8f4ff'; }
     else { b.style.background = '#2a1d4d'; b.style.borderColor = '#c9a4ff'; b.style.color = '#e6d8ff'; }
     const resumen = ids('ytVozResumen');
-    const detalle = activa ? (on ? "Слушаю" : pendiente.replace('🎙 ', ''))
+    const detalle = activa ? (on ? "Слушаю: " + (YT_VOZ_LETREROS[ctx] || '') : pendiente.replace('🎙 ', ''))
       + (ytVoz.volverPendiente ? " · расстановка ожидает" : '') : '';
     if(resumen){
       if(resumen.textContent !== detalle) resumen.textContent = detalle;
       resumen.style.display = activa ? 'block' : 'none';
     }
-    b.title = activa ? "Выключить голосовые команды. " + detalle + (on ? ': ' + (YT_VOZ_LETREROS[ctx] || '') : '')
+    b.title = activa ? "Выключить голосовые команды. " + detalle
       : "Включить голосовые команды: записать, снять стол или вернуть шары. Звук при воспроизведении видео и записи сохраняется.";
     const estado = ids('ytVozEstado');
     if(estado && (estado.textContent.startsWith('Слушаю: ') || estado.textContent === 'Идёт отсчёт; команды временно не принимаются.')){
@@ -18488,6 +18503,31 @@ function drawStartMarks(){
       const rec = new SR();
       let servicio = false, audio = false, confirmado = false;
       let ultimoFinal = -1, aperturaRapida = null, paradaRapida = null;
+      // Observadores del diagnóstico: nunca deciden qué orden se ejecuta.
+      const sesion = ++ytVozSesionDiagnostico;
+      const registrarTexto = (res, indice, detalle, ctx=ytVozContexto()) => {
+        const textos = Array.from(res, alt => String(alt.transcript || '').replace(/\s+/g, ' ').trim().slice(-400));
+        return ytVozRegistrar(textos[0] || '', detalle, res.isFinal ? "Итог" : "Предварительно", ctx,
+          { sesion, indice, alternativas:textos.slice(1, 3) });
+      };
+      const detalleResultado = (resultado, indice, defecto) => {
+        const R = ytVozReglas(), t = ytVozRecortarFrase(resultado.frase);
+        const accion = resultado.orden && resultado.orden.accion;
+        const apertura = aperturaRapida && aperturaRapida.indice === indice
+          && aperturaRapida.solicitud === ytVoz.solicitudModulo
+          && (!accion || accion === 'grabarJugada' || accion === 'grabarOtra')
+          && (R.grabarCorto.test(t) || R.grabarJugada.test(t) || R.grabarOtra.test(t)) ? aperturaRapida : null;
+        const parada = paradaRapida && paradaRapida.indice === indice
+          && (!accion || accion === 'detener') && R.detener.test(t) ? paradaRapida : null;
+        const anterior = apertura || parada;
+        if(!anterior) return defecto;
+        const nombre = apertura ? "Действие «открыть модуль»" : "Действие «остановить запись»";
+        const estado = anterior.diagnostico === 'ejecutada'
+          ? nombre + " уже выполнено и подтверждено."
+          : nombre + " уже запрошено; подтверждение ещё ожидается.";
+        return estado + " Этот текст обновляет тот же результат распознавания речи."
+          + (R.negacion.test(t) ? " Обновление содержит отрицание, полученное после запроса." : '');
+      };
       // Solo las acciones adelantadas necesitan seguimiento hasta su resultado
       // final. La parada queda ligada al grabador que realmente se detuvo.
       const ejecutar = (resultado, indice) => {
@@ -18496,12 +18536,14 @@ function drawStartMarks(){
         if(!abre && accion !== 'grabarEn') aperturaRapida = null;
         if(abre && aperturaRapida && aperturaRapida.indice === indice) return null;
         if(accion === 'detener' && paradaRapida && (paradaRapida.indice === indice || paradaRapida.grabador === videoReplay.recorder)) return null;
-        const parada = accion === 'detener' ? { indice, grabador:videoReplay.recorder } : null;
+        const parada = accion === 'detener' ? { indice, grabador:videoReplay.recorder, diagnostico:'pendiente' } : null;
         if(parada) paradaRapida = parada;
         const promesa = ytVozEjecutar(resultado.orden, resultado.frase);
-        const apertura = abre ? { indice, promesa, solicitud:ytVoz.solicitudModulo } : null;
+        const apertura = abre ? { indice, promesa, solicitud:ytVoz.solicitudModulo, diagnostico:'pendiente' } : null;
         if(apertura) aperturaRapida = apertura;
         promesa.then(iniciada => {
+          if(parada) parada.diagnostico = iniciada ? 'ejecutada' : 'no confirmada';
+          if(apertura) apertura.diagnostico = iniciada ? 'ejecutada' : 'no confirmada';
           if(!iniciada && paradaRapida === parada) paradaRapida = null;
           if(!iniciada && aperturaRapida === apertura) aperturaRapida = null;
         });
@@ -18516,7 +18558,7 @@ function drawStartMarks(){
         if(!ctx){ ytVozParar(false); return; }
         confirmado = true; ytVoz.iniciando = false; ytVoz.escuchando = true; ytVoz.desde = Date.now();
         ytVoz.ultimaActividad = Date.now(); ytVoz.sinAudioDesde = 0;
-        ytVozRegistrar('', "Chrome подтвердил работу службы и поступление звука.");
+        ytVozRegistrar('', "Chrome подтвердил работу службы и поступление звука.", "Состояние", ytVozContexto(), { sesion });
         ytVozFijarContexto(ctx); ytVozChip(true); ytVozMedidorArrancar();
         ytVozEstado(ctx === 'espera' ? "Идёт отсчёт; команды временно не принимаются." : "Слушаю: " + (YT_VOZ_LETREROS[ctx] || ''));
       };
@@ -18525,7 +18567,7 @@ function drawStartMarks(){
       rec.onaudiostart = () => { if(ytVoz.rec !== rec) return; audio = true; confirmar(); };
       rec.onaudioend = () => {
         if(ytVoz.rec !== rec) return;
-        ytVozRegistrar('', "Chrome перестал получать звук; ожидаемый текст ещё может поступить.");
+        ytVozRegistrar('', "Chrome перестал получать звук; ожидаемый текст ещё может поступить.", "Состояние", ytVozContexto(), { sesion });
         audio = false; ytVoz.iniciando = false; ytVoz.escuchando = false;
         if(!ytVoz.sinAudioDesde) ytVoz.sinAudioDesde = Date.now();
         ytVozChip(false);
@@ -18534,30 +18576,50 @@ function drawStartMarks(){
       rec.onspeechstart = () => {
         if(ytVoz.rec !== rec || ytVoz.cerrando) return;
         ytVoz.hablando = true; ytVoz.hablaDesde = Date.now(); ytVoz.hablaFin = 0; ytVoz.ultimaActividad = Date.now();
+        ytVozRegistrar('', "Chrome обнаружил начало речи; слова ещё не подтверждены.", "Обнаружение речи", ytVozContexto(), { sesion });
       };
       rec.onspeechend = () => {
         if(ytVoz.rec !== rec) return;
         ytVoz.hablando = false; ytVoz.hablaFin = Date.now(); ytVoz.ultimaActividad = Date.now();
+        ytVozRegistrar('', "Chrome обнаружил конец речи; ожидаемые результаты распознавания ещё могут поступить.", "Обнаружение речи", ytVozContexto(), { sesion });
       };
       rec.onnomatch = () => {
         if(ytVoz.rec !== rec || !ytVozActiva()) return;
         ytVozLimpiarPendiente(); ytVoz.hablaDesde = 0; ytVoz.ultimaActividad = Date.now();
-        ytVozRegistrar('', "Chrome получил звук, но не вернул распознанных слов.");
+        ytVozRegistrar('', "Chrome получил звук, но не вернул распознанных слов.", "Состояние", ytVozContexto(), { sesion });
         ytVozLimpiarFragmento(); // Un sonido sin texto no demuestra una orden fallida.
       };
       rec.onresult = ev => {
-        if(ytVoz.rec !== rec || !confirmado || !ytVozActiva()) return;
+        if(ytVoz.rec !== rec || !confirmado || !ytVozActiva()){
+          if(ytVozActiva()){
+            const motivo = ytVoz.rec !== rec ? "Текст получен из уже неактивного сеанса; он не обрабатывается."
+              : "Текст получен до подтверждения прослушивания; он не обрабатывается.";
+            for(let i = ev.resultIndex; i < ev.results.length; i++) registrarTexto(ev.results[i], i, motivo);
+          }
+          return;
+        }
         ytVoz.ultimaActividad = Date.now(); ytVoz.ultimoResultado = Date.now(); ytVoz.fallos = 0;
+        // El índice provisional puede desaparecer y reutilizarse. Tampoco
+        // pertenece a la misma apertura después de cerrar o cambiar el módulo.
+        if(aperturaRapida && (aperturaRapida.solicitud !== ytVoz.solicitudModulo
+          || aperturaRapida.indice >= ev.results.length)) aperturaRapida = null;
         let nuevoFinal = ultimoFinal;
         for(let i = ev.resultIndex; i < ev.results.length; i++){
           // Una cuenta recién iniciada invalida todos los resultados antiguos.
           if(ytVoz.rec !== rec || !ytVozActiva()) break;
-          if(i <= ultimoFinal) continue;
+          if(i <= ultimoFinal){
+            registrarTexto(ev.results[i], i, "Этот окончательный результат уже обработан; повторная оценка не выполняется.");
+            continue;
+          }
           const res = ev.results[i];
           if(res.isFinal) nuevoFinal = Math.max(nuevoFinal, i);
           const ctx = ytVozContexto(); ytVozFijarContexto(ctx);
-          if(!ctx){ ytVozLimpiarFragmento(); continue; }
+          if(!ctx){
+            registrarTexto(res, i, "Текст получен без доступного контекста голосовых команд; он не обрабатывается.", ctx);
+            ytVozLimpiarFragmento(); continue;
+          }
           const texto = String(res[0] && res[0].transcript || '').trim();
+          const registro = registrarTexto(res, i, "Текст распознавания получен; ожидается оценка.", ctx);
           if(res.isFinal){ ytVozLimpiarPendiente(); ytVoz.hablando = false; ytVoz.hablaDesde = 0; ytVoz.hablaFin = Date.now(); }
           // «Grabar» puede abrir la cámara antes de completarse «grabar en quince».
           // Conservar únicamente ese tiempo final hasta que la cámara esté lista.
@@ -18567,7 +18629,7 @@ function drawStartMarks(){
             const fin = ytVozResultado(res, i, 'grabar');
             ytVoz.fragmento = previo;
             if(fin.orden && fin.orden.accion === 'grabarEn'){
-              ytVozRegistrar(fin.frase, "Время задержки получено полностью; ожидается открытие камеры.", "Итог", ctx);
+              registro.detalle = "Время задержки получено полностью; ожидается открытие камеры.";
               apertura.promesa.then(iniciada => {
                 if(aperturaRapida !== apertura) return;
                 if(!iniciada || !ytVozActiva() || ytVoz.rec !== rec || apertura.solicitud !== ytVoz.solicitudModulo
@@ -18579,6 +18641,7 @@ function drawStartMarks(){
               continue;
             }
             if(ytVozReglas().grabarCorto.test(ytVozRecortarFrase(texto))){
+              registro.detalle = detalleResultado({ frase:texto }, i, registro.detalle);
               ytVozLimpiarFragmento(); continue;
             }
           }
@@ -18586,23 +18649,22 @@ function drawStartMarks(){
           if(!res.isFinal) ytVozSeguirPendiente(resultado, i);
           if(resultado.orden){
             ytVozLimpiarPendiente();
-            ytVozRegistrar(texto, "Команда определена; проверяется возможность выполнения.", res.isFinal ? "Итог" : "Предварительно", ctx);
+            registro.detalle = detalleResultado(resultado, i, "Команда определена; проверяется возможность выполнения.");
             ejecutar(resultado, i);
             // No esperar la cámara: atender también las demás órdenes del aviso.
             continue;
           }
-          if(res.isFinal || resultado.prevista || resultado.ambigua || ytVozPuedeContinuar(resultado.frase)){
-            ytVozRegistrar(texto, resultado.prevista && !resultado.ambigua
-              ? "Предварительная команда: ожидание итогового текста без отключения микрофона."
-              : resultado.motivo, res.isFinal ? "Итог" : "Предварительно", ctx);
-          }
+          registro.detalle = detalleResultado(resultado, i, resultado.prevista && !resultado.ambigua
+            ? "Предварительная команда: ожидание итогового текста без отключения микрофона."
+            : (res.isFinal ? resultado.motivo
+              : "Предварительный текст пока не принят. " + (resultado.motivo || "В нём пока нет слов.")));
         }
         ultimoFinal = nuevoFinal;
       };
       rec.onerror = ev => {
         if(ytVoz.rec !== rec) return;
         if(ytVoz.cerrando === rec) return;
-        ytVozRegistrar('', "Ошибка от Chrome: " + (ev.error || "без подробностей") + '.');
+        ytVozRegistrar('', "Ошибка от Chrome: " + (ev.error || "без подробностей") + '.', "Состояние", ytVozContexto(), { sesion });
         ytVoz.iniciando = false; ytVoz.escuchando = false; ytVozLimpiarFragmento(); ytVozChip(false);
         if(ev.error !== 'no-speech' && ev.error !== 'aborted') ytVoz.fallos = Math.min(ytVoz.fallos + 1, 5);
         if(ev.error && !['no-speech','aborted','not-allowed','service-not-allowed'].includes(ev.error)){
@@ -18623,7 +18685,7 @@ function drawStartMarks(){
       };
       rec.onend = () => {
         if(ytVoz.rec !== rec && ytVoz.cerrando !== rec) return;
-        ytVozRegistrar('', ytVozActiva() ? "Chrome завершил сеанс; прослушивание будет восстановлено." : "Голосовой сеанс закрыт.");
+        ytVozRegistrar('', ytVozActiva() ? "Chrome завершил сеанс; прослушивание будет восстановлено." : "Голосовой сеанс закрыт.", "Состояние", ytVozContexto(), { sesion });
         ytVozFinalizarSesion(rec);
       };
       ytVozChip(false); ytVozEstado("Включение распознавания речи…");
