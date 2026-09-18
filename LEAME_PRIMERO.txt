@@ -1,0 +1,100 @@
+PRUEBA DE VOZ LOCAL EN ESPAÑOL — VOSK
+Aplicación de billar de Juan José Arango
+18 de septiembre de 2026
+
+ARCHIVOS ENTREGADOS
+
+1. principal_esp.html — aplicación completa con reconocimiento local de voz.
+2. vosk-browser-0.0.8-billar.js — motor de reconocimiento.
+3. vosk-es-0.42-parte-1.bin — primera parte del modelo español.
+4. vosk-es-0.42-parte-2.bin — segunda parte del mismo modelo.
+5. LICENCIAS_VOSK.txt — créditos, procedencia y licencias de los componentes.
+6. LEAME_PRIMERO.txt — estas instrucciones.
+
+Todos están preparados para estar en LA MISMA CARPETA que principal_esp.html.
+No cambie los nombres, no descomprima los archivos BIN y no intente unirlos:
+la aplicación los carga y reúne automáticamente.
+Cada archivo está por debajo del límite de 25 MiB para subirlo desde GitHub.
+
+CÓMO SUBIRLOS A GITHUB
+
+1. Entre a su repositorio y abra la carpeta que actualmente contiene
+   principal_esp.html.
+2. Use Add file > Upload files (Agregar archivo > Cargar archivos).
+   Suba primero los archivos auxiliares: el JS, los dos BIN y las licencias.
+   Puede subir también este archivo de instrucciones. Confirme los cambios
+   con Commit changes. Puede hacerlo uno por uno, como acostumbra.
+3. Después suba principal_esp.html a esa misma carpeta, reemplazando la versión
+   publicada, y confirme el cambio. No necesita modificar el index.html.
+4. Espere a que GitHub Pages termine de actualizar su sitio.
+5. Abra la dirección habitual de su aplicación publicada, terminada en
+   principal_esp.html. En Windows puede usar Ctrl+F5 para cargar el HTML nuevo.
+
+IMPORTANTE PARA ABRIR LA PRUEBA
+
+Use la página publicada de GitHub Pages, cuya dirección empieza por https.
+La pantalla de GitHub donde se ve el código del archivo no ejecuta la app.
+Abrir el HTML descargado con doble clic no permite cargar este motor local;
+en ese caso la aplicación muestra la indicación correspondiente.
+No necesita instalar Vosk ni herramientas de programación en Windows.
+
+PRIMERA ACTIVACIÓN
+
+Pulse el botón de voz inferior izquierdo si está silenciado y autorice el
+micrófono cuando lo pida el navegador. Seleccione la Brio como micrófono
+predeterminado del sistema/navegador, como en la versión anterior.
+
+La primera activación carga aproximadamente 46 MB entre el motor y el modelo.
+Mientras carga, verá el estado de preparación. Espere a «Escuchando».
+Si el navegador pide una interacción para activar el audio, toque la pantalla.
+Los archivos del modelo se guardan en el almacenamiento del navegador cuando
+este lo permite. Si limpia los datos del sitio, se descargarán otra vez.
+
+Una vez cargado el motor, el reconocimiento de órdenes se realiza en este
+computador y no utiliza el servicio de transcripción de Chrome. Esto no cambia
+las necesidades de internet de YouTube ni de las demás funciones de la app.
+
+ÓRDENES Y CONTROLES
+
+Se conservan las órdenes y su disponibilidad según la pantalla:
+- GRABAR, GRABA o GRABÁ: abrir/preparar el módulo de grabación.
+- CINCO, DIEZ o QUINCE: elegir la cuenta cuando la cámara esté lista.
+  También se admite «grabar en cinco/diez/quince».
+- DETENER: detener la grabación activa. Se mantienen las variantes previstas.
+- CAPTURAR MESA y VOLVER A COLOCAR: funciones globales ya existentes.
+- REPRODUCIR y DESCARGAR CON DATOS: en la revisión, cuando correspondan.
+
+Se conservan las protecciones para frases negadas como «no detener».
+Los tiempos esperan el resultado completo para no confundir cinco con quince.
+El botón para silenciar detiene la entrada de órdenes, sin silenciar videos
+ni cambiar el audio de una grabación. La cuenta regresiva no reinicia la voz.
+El indicador inferior muestra las órdenes disponibles y el nivel del mismo
+micrófono que está procesando Vosk.
+
+Si falta un archivo o no se concede permiso al micrófono, el indicador muestra
+el problema. Después de corregirlo, pulse «Reintentar voz».
+
+COMPROBACIONES Y ALCANCE
+
+Se verificaron las reglas y transiciones de las órdenes, la conservación de
+los cálculos y funciones ajenas a la voz y la integridad del modelo entregado.
+Se probó Vosk real con voces sintéticas en español, además del ciclo de abrir,
+elegir cinco segundos, grabar y detener en Chrome y Edge, con cámara y entrada
+de audio de prueba. Se comprobó silenciar y reactivar.
+
+Estas pruebas NO equivalen a una práctica real con su voz y la Brio instalada
+en la mesa. Esa comprobación sigue pendiente, especialmente a distancia, con
+conversación, ruido, fanfarria y durante una sesión prolongada.
+
+El historial discreto de órdenes continúa en «Entrenar desde YouTube y otras
+fuentes». Guarda texto en memoria, no grabaciones de voz. Si encuentra una falla,
+allí se puede revisar qué entendió Vosk y qué acción aceptó la aplicación.
+
+Solo se entrega la versión española. Las otras versiones no se modificaron.
+Su archivo original se conserva sin cambios. No se accedió a su repositorio
+ni se publicó nada en GitHub.
+
+FUENTES
+https://github.com/ccoreilly/vosk-browser
+https://alphacephei.com/vosk/models
+https://docs.github.com/es/repositories/working-with-files/managing-files/adding-a-file-to-a-repository
