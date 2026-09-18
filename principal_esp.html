@@ -1983,7 +1983,7 @@
 <button class="cameraCaptureBtn" id="ytCaptureBtn" type="button" style="width:100%;">Capturar posición desde video, PDF o imagen</button>
 <div aria-live="polite" class="cameraCaptureStatus" id="ytStatus" role="status" style="margin-top:10px;">Sin captura todavía.</div>
 <label style="display:flex; gap:10px; align-items:center; margin-top:10px; cursor:pointer;"><input id="ytVozCheck" type="checkbox"/> <span>Activar órdenes de voz: «grabar» y «capturar mesa» desde cualquier sección</span></label>
-<div class="small" id="ytVozEstado" style="margin-top:4px; color:#9aa3b2;">Con la voz activada, diga «grabar» desde cualquier sección para abrir el módulo de grabación, o «capturar mesa» para tomar una fotografía y revisar las posiciones. La captura reutiliza las esquinas de la sesión cuando corresponde; revise las bolas y pulse «Aplicar posiciones a la app». El control inferior indica cuándo la app está escuchando y permite apagar la voz. Dentro del módulo listo, diga «cinco», «diez» o «quince» (también «grabar en cinco, diez o quince»), «detener y revisar», «reproducir», «grabar» para preparar otra grabación o «descargar con datos», según el momento. «Volver a colocar» recupera la última posición confirmada desde cualquier sección, aunque el botón morado esté oculto. Esa posición se conserva al salir del entrenamiento y se sustituye al aplicar otra. Si hay una captura, grabación o exportación en marcha, la petición espera a que termine. La voz no graba video por sí sola. Reconoce las órdenes en este computador con Vosk y el micrófono predeterminado de Windows: elija allí la Logitech Brio. La primera activación carga el modelo español; espere hasta que el indicador diga «Escuchando». Después de cargarlo, el reconocimiento no envía audio a un servicio de transcripción. Para usar la voz local, abra la aplicación publicada por https.</div>
+<div class="small" id="ytVozEstado" style="margin-top:4px; color:#9aa3b2;">Con la voz activada, diga «grabar» desde cualquier sección para abrir el módulo de grabación, o «capturar mesa» para tomar una fotografía y revisar las posiciones. La captura reutiliza las esquinas de la sesión cuando corresponde; revise las bolas y pulse «Aplicar posiciones a la app». El control inferior indica cuándo la app está escuchando y permite apagar la voz. Dentro del módulo listo, diga «cinco», «diez» o «quince» (también «grabar en cinco, diez o quince»), «detener y revisar», «reproducir», «grabar» para preparar otra grabación o «descargar con datos», según el momento. «Volver a colocar» recupera la última posición confirmada desde cualquier sección, aunque el botón morado esté oculto. Esa posición se conserva al salir del entrenamiento y se sustituye al aplicar otra. Si hay una captura, grabación o exportación en marcha, la petición espera a que termine. La voz no graba video por sí sola. Usa el servicio de voz de Chrome (necesita internet) y el micrófono predeterminado de Windows: elija allí la Logitech Brio.</div>
 <details id="ytVozHistorialPanel" style="margin-top:10px;">
 <summary style="cursor:pointer;">Historial de órdenes de voz</summary>
 <p class="small">Revíselo después de practicar. Conserva los últimos 300 registros de texto solo mientras esta página está abierta; no guarda audio. Pulse «Actualizar» para ver lo más reciente.</p>
@@ -2100,7 +2100,7 @@
 </div>
 <div id="videoReplayVozBar" style="display:none; align-items:center; gap:10px; padding:8px 12px; border-radius:12px; background:#1d3a4d; border:1px solid #62d7ff; color:#d8f4ff; font-weight:700; font-size:14px;">
 <span id="videoReplayVozChip" style="white-space:normal; min-width:0;">🎙 Voz: en espera</span>
-<span id="videoReplayVozNivel" title="Nivel del mismo micrófono que recibe Vosk; la escucha se confirma al procesar audio" style="flex:1 1 120px; min-width:80px; height:12px; border-radius:6px; background:#111823; border:1px solid #3a4a63; overflow:hidden;"><span id="videoReplayVozNivelBarra" style="display:block; height:100%; width:0%; background:#3a4a63; transition:width .08s linear;"></span></span>
+<span id="videoReplayVozNivel" title="Nivel de audio del medidor; la escucha se confirma en el letrero de voz" style="flex:1 1 120px; min-width:80px; height:12px; border-radius:6px; background:#111823; border:1px solid #3a4a63; overflow:hidden;"><span id="videoReplayVozNivelBarra" style="display:block; height:100%; width:0%; background:#3a4a63; transition:width .08s linear;"></span></span>
 </div>
 <div class="videoReplayGroup" id="videoReplayRecordPanel" style="display:none">
 <h3><span class="videoRecDot" id="videoReplayRecDot" style="display:none"></span>Grabación</h3>
@@ -17854,8 +17854,9 @@ function drawStartMarks(){
   // Orden de voz «volver a colocar»: con la casilla activa, mientras
   // el botón morado de volver esté visible (y no haya colocación,
   // marcado ni grabación abiertos), la app escucha con el reconocedor
-  // local de Vosk y, al oír la orden, hace lo mismo que el clic. Acuse de
-  // recibo con la campanada. La escucha no se reinicia por las pausas.
+  // de Chrome y, al oír la orden, hace lo mismo que el clic. Acuse de
+  // recibo con la campanada; perro guardián porque Chrome apaga el
+  // reconocedor tras unos segundos de silencio.
   // =======================================================
   const YT_VOZ_KEY = 'ytVozOrdenV1';
   const ytVoz = { rec:null, iniciando:false, escuchando:false, reintento:0, desde:0, ultimoTic:0, contexto:null, versionContexto:0, fragmento:null, avisoTimer:0, abriendoModulo:false, capturandoMesa:false, volviendo:false, volverPendiente:null, volverTrasCalibrar:false, solicitudModulo:0, retorno:null, cerrando:null, cierreTimer:0, renovarPendiente:false, ultimaActividad:0, ultimoResultado:0, hablando:false, hablaDesde:0, hablaFin:0, pendienteDesde:0, pendienteFrase:'', indiceProvisional:-1, ordenProvisional:'', cambioOrden:0, prefijoProvisional:false, sinAudioDesde:0, ultimoAvisoConexion:0, ultimoDespertar:0, fallos:0, ultimaOrden:'', ultimaVez:0 };
@@ -17876,13 +17877,12 @@ function drawStartMarks(){
     ).join('\n\n') : 'Todavía no hay registros en esta página.';
     caja.scrollTop = caja.scrollHeight;
   }
-  function ytVozSoportada(){ return !!(window.WebAssembly && window.Worker && (window.AudioContext || window.webkitAudioContext) && window.AudioWorkletNode && navigator.mediaDevices && navigator.mediaDevices.getUserMedia); }
+  function ytVozSoportada(){ return !!(window.SpeechRecognition || window.webkitSpeechRecognition); }
   function ytVozActiva(){ try{ return localStorage.getItem(YT_VOZ_KEY) === '1'; }catch{ return false; } }
   function ytVozGuardar(on){ try{ localStorage.setItem(YT_VOZ_KEY, on ? '1' : '0'); }catch{} }
   // El botón y la casilla comparten el mismo interruptor de órdenes de voz.
   // Solo se detiene la escucha; el audio de los videos y de la grabación sigue igual.
   function ytVozCambiar(on){
-    ytVosk.error = ""; ytVosk.estado = "";
     ytVozGuardar(on);
     ytVozRegistrar('', on ? 'Órdenes de voz activadas.' : 'Órdenes de voz silenciadas.');
     if(ytVoz.avisoTimer){ clearTimeout(ytVoz.avisoTimer); ytVoz.avisoTimer = 0; }
@@ -18056,7 +18056,7 @@ function drawStartMarks(){
     const principal = ytVozInterpretar(frase, ctx), R = ytVozReglas();
     // La primera interpretación clara de DETENER basta, también provisional.
     // Una alternativa negada sigue siendo motivo para esperar otra orden.
-    const detenerNegado = frases.some(texto => {
+    const detenerNegado = ctx === 'grabando' && frases.some(texto => {
       const t = ytVozRecortarFrase(unir(texto));
       return R.detener.test(t) && /\b(no|nunca|tampoco)\b/.test(t);
     });
@@ -18079,8 +18079,17 @@ function drawStartMarks(){
     const unica = candidatas.size === 1 ? candidatas.values().next().value : null;
     const contradice = frases.slice(1).some(texto => {
       const t = ytVozRecortarFrase(unir(texto));
-      const esOrden = ['capturarMesa','volver','detener','reproducir','descargar','grabarJugada','grabarOtra','grabarEn'].some(k => R[k].test(t)) || /\bgra[bv]ar?\b/.test(t) || /\b(5|cinco|10|diez|15|quince)\b/.test(t);
-      // Una alternativa sin orden no veta una primera interpretación clara.
+      // Solo las órdenes interpretables en esta pantalla pueden vetar la
+      // principal. Se conserva el veto por negación o ambigüedad relevante.
+      const esOrden = [
+        ['capturarMesa','capturar mesa'], ['volver','volver a colocar'],
+        ['detener','detener'], ['reproducir','reproducir'],
+        ['descargar','descargar con datos'], ['grabarJugada','grabar jugada'],
+        ['grabarOtra','grabar otra jugada'], ['grabarEn','grabar en cinco']
+      ].some(([regla, ejemplo]) => R[regla].test(t) && !!ytVozInterpretar(ejemplo, ctx))
+        || (/\bgra[bv]ar?\b/.test(t) && !!ytVozInterpretar('grabar', ctx))
+        || (/\b(5|cinco|10|diez|15|quince)\b/.test(t) && ['grabar','grabarVolver'].includes(ctx));
+      // Una alternativa sin orden disponible no veta la interpretación clara.
       return esOrden && !!(ytVozConflicto(t) || ytVozConflicto(frase + ' ' + t));
     });
     const principalClara = unica && principal && !contradice
@@ -18359,13 +18368,14 @@ function drawStartMarks(){
     const boton = ids(destinos[orden.accion]);
     if(!boton || boton.disabled){ ytVozAvisar(frase, 'El control de esa orden no está disponible en este momento.', 'warn'); return; }
     const ahora = Date.now(), clave = orden.accion + (orden.seg ? ':' + orden.seg : '');
+    if(orden.accion !== 'detener' && ytVoz.ultimaOrden === clave && ahora - ytVoz.ultimaVez < 2000){ ytVozRegistrar(frase, 'Repetición inmediata de la misma orden; no se ejecuta dos veces.', 'Sin acción'); return; }
     if(orden.accion === 'reproducir'){
       const v = ids('videoReplayPlayback');
       if(v && !v.paused){ ytVozRegistrar(frase, 'La reproducción ya está en marcha.', 'Sin acción'); return; }
     }
     if(orden.accion !== 'detener'){ ytVoz.volverPendiente = null; ytVoz.volverTrasCalibrar = false; }
     ytVoz.ultimaOrden = clave; ytVoz.ultimaVez = ahora;
-    // Confirmar la acción real; la escucha local continúa también durante la cuenta.
+    // Confirmar la acción real. Solo el inicio de la cuenta renueva la escucha.
     try{
       if(orden.accion === 'capturarMesa'){ await ytVozCapturarMesa(frase); return; }
       if(orden.accion === 'grabarJugada'){
@@ -18424,9 +18434,8 @@ function drawStartMarks(){
     b.setAttribute('aria-pressed', String(activa));
     b.setAttribute('aria-label', activa ? 'Silenciar órdenes de voz' : 'Activar órdenes de voz');
     on = !!on && ytVoz.escuchando;
-    const pendiente = '🎙 ' + (ytVosk.error || ytVosk.estado || (ytVoz.iniciando ? 'Preparando voz local…' : 'Voz local en espera')); 
-    b.textContent = ytVosk.error && activa ? '🎙 Reintentar voz' : (activa ? '🎙 Voz activada' : '🔇 Voz silenciada');
-    if(ytVosk.error && activa) b.setAttribute('aria-label', 'Reintentar reconocimiento de voz local');
+    const pendiente = ytVoz.iniciando ? '🎙 Activando voz…' : (ctx ? '🎙 Reconectando voz…' : '🎙 Voz: en espera');
+    b.textContent = activa ? '🎙 Voz activada' : '🔇 Voz silenciada';
     if(!activa){ b.style.background = '#1a2230'; b.style.borderColor = '#3a4a63'; b.style.color = '#c9d3e6'; }
     else if(on){ b.style.background = '#1d3a4d'; b.style.borderColor = '#62d7ff'; b.style.color = '#d8f4ff'; }
     else { b.style.background = '#2a1d4d'; b.style.borderColor = '#c9a4ff'; b.style.color = '#e6d8ff'; }
@@ -18438,8 +18447,7 @@ function drawStartMarks(){
       resumen.style.display = activa ? 'block' : 'none';
     }
     b.title = activa ? 'Silenciar órdenes de voz. ' + detalle
-      : 'Activar órdenes de voz local: grabar, capturar mesa o volver a colocar. El audio de los videos y de las grabaciones se mantiene.';
-    if(ytVosk.error && activa) b.title = 'Reintentar voz local. ' + ytVosk.error;
+      : 'Activar órdenes de voz: grabar, capturar mesa o volver a colocar. El audio de los videos y de las grabaciones se mantiene.';
     const estado = ids('ytVozEstado');
     if(estado && /^(Escuchando:|Cuenta regresiva; órdenes en pausa\.)/.test(estado.textContent)){
       estado.textContent = !activa ? 'Voz desactivada.' : (on
@@ -18468,303 +18476,309 @@ function drawStartMarks(){
     }catch{}
   }
   function ytVozOrden(){ ytVozEjecutar({ accion:'volver' }); }
-  // Vosk local: audio continuo en un AudioWorklet y reconocimiento en un Worker.
-  // No se usa SpeechRecognition ni se envía audio a un servicio de transcripción.
-  const ytVosk = { modelo:null, carga:null, biblioteca:null, estado:'', error:'', numero:0 };
-  const YT_VOSK_PARTES = [{"nombre": "vosk-es-0.42-parte-1.bin", "bytes": 20971520, "sha256": "d4cca28fea6f5e8abd6eefe7d7a33ce59f0e463c82e6aa84d9ccf812c2cb3ebf"}, {"nombre": "vosk-es-0.42-parte-2.bin", "bytes": 18845774, "sha256": "18e73dfcdae46e2cabede67d0e74ffd79a85c3b81dfe0098841b6a230e3a97b0"}];
-  // Se conserva el vocabulario español del modelo: forzar solo las órdenes
-  // puede convertir conversación ajena en comandos. Las reglas de la app
-  // seleccionan después las instrucciones válidas en cada pantalla.
-  const ytVozMedidor = { stream:null, ctx:null, timer:0 };
-  function ytVoskEstado(mensaje){
-    ytVosk.estado = mensaje;
-    if(ytVozActiva()){ ytVozEstado(mensaje); ytVozChip(ytVoz.escuchando); }
+  function ytVozReintentar(){
+    if(ytVoz.reintento || ytVoz.rec || ytVoz.cerrando || !ytVozDebeEscuchar()) return;
+    const demora = Math.min(8000, 400 * Math.pow(2, Math.min(ytVoz.fallos, 5)));
+    ytVoz.reintento = setTimeout(() => { ytVoz.reintento = 0; ytVozArrancar(); }, demora);
   }
-  async function ytVoskBiblioteca(){
-    if(window.Vosk) return;
-    if(!ytVosk.biblioteca){
-      ytVosk.biblioteca = new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = new URL('vosk-browser-0.0.8-billar.js', document.baseURI).href;
-        script.onload = () => window.Vosk ? resolve() : reject(new Error('El archivo del motor Vosk no es válido.'));
-        script.onerror = () => { script.remove(); reject(new Error('Falta vosk-browser-0.0.8-billar.js junto al HTML.')); };
-        document.head.appendChild(script);
-      }).catch(error => { ytVosk.biblioteca = null; throw error; });
-    }
-    return ytVosk.biblioteca;
-  }
-  async function ytVoskParte(parte, numero){
-    const url = new URL(parte.nombre, document.baseURI).href;
-    let cache = null, respuesta = null;
-    try{ cache = await caches.open('billar-vosk-es-042-v1'); respuesta = await cache.match(url); }catch{}
-    const comprobar = async respuesta => {
-      const bytes = await respuesta.arrayBuffer();
-      if(bytes.byteLength !== parte.bytes) return null;
-      const hash = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)), x => x.toString(16).padStart(2,'0')).join('');
-      return hash === parte.sha256 ? bytes : null;
-    };
-    if(respuesta){
-      const bytes = await comprobar(respuesta);
-      if(bytes) return bytes;
-      try{ await cache.delete(url); }catch{}
-    }
-    ytVoskEstado('Cargando español: archivo ' + numero + ' de ' + YT_VOSK_PARTES.length + '…');
-    const cancelador = new AbortController(), limite = setTimeout(() => cancelador.abort(), 120000);
+  function ytVozArrancar(){
+    if(ytVoz.rec || ytVoz.cerrando || ytVoz.iniciando || ytVoz.reintento || !ytVozDebeEscuchar()) return;
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     try{
-      respuesta = await fetch(url, { signal:cancelador.signal, cache:'no-cache' });
-      if(!respuesta.ok) throw new Error('Falta ' + parte.nombre + ' junto al HTML (HTTP ' + respuesta.status + ').');
-      const bytes = await comprobar(respuesta);
-      if(!bytes) throw new Error(parte.nombre + ' está incompleto o no corresponde a esta versión. Vuelva a subirlo.');
-      if(cache){ try{ await cache.put(url, new Response(bytes, {headers:{'Content-Type':'application/octet-stream'}})); }catch{} }
-      return bytes;
-    }catch(error){
-      if(error && error.name === 'AbortError') throw new Error('La descarga de ' + parte.nombre + ' tardó demasiado. Revise la conexión y pulse «Reintentar voz».');
-      if(error instanceof TypeError) throw new Error('No se pudo cargar ' + parte.nombre + '. Revise la conexión y que esté junto al HTML, y pulse «Reintentar voz».');
-      throw error;
-    }finally{ clearTimeout(limite); }
-  }
-  async function ytVoskModelo(){
-    if(ytVosk.modelo && ytVosk.modelo.ready) return ytVosk.modelo;
-    if(ytVosk.carga) return ytVosk.carga;
-    ytVosk.carga = (async () => {
-      if(location.protocol === 'file:') throw new Error('Para usar Vosk, abra la aplicación publicada en GitHub Pages (https), no el HTML con doble clic.');
-      ytVoskEstado('Cargando motor de voz local…');
-      await ytVoskBiblioteca();
-      const partes = [];
-      for(let i=0; i<YT_VOSK_PARTES.length; i++) partes.push(await ytVoskParte(YT_VOSK_PARTES[i], i+1));
-      ytVoskEstado('Preparando reconocimiento en español…');
-      const url = URL.createObjectURL(new Blob(partes, {type:'application/gzip'}));
-      let modelo;
-      try{
-        modelo = new Vosk.Model(url, -1);
-        await new Promise((resolve, reject) => {
-          const limite = setTimeout(() => reject(new Error('El modelo español no terminó de cargar. Pulse «Reintentar voz».')), 120000);
-          modelo.on('load', mensaje => { clearTimeout(limite); mensaje.result ? resolve() : reject(new Error('No se pudo preparar el modelo español.')); });
-          modelo.on('error', mensaje => { clearTimeout(limite); reject(new Error(mensaje.error || 'No se pudo cargar Vosk.')); });
-          // Fallos de WebAssembly/Worker también deben salir de «cargando».
-          modelo.worker.addEventListener('error', evento => { clearTimeout(limite); reject(new Error(evento.message || 'El navegador no pudo iniciar Vosk.')); });
-        });
-        ytVosk.modelo = modelo;
-        return modelo;
-      }catch(error){ if(modelo){ try{ modelo.terminate(); modelo.worker.terminate(); }catch{} } throw error; }
-      finally{ URL.revokeObjectURL(url); }
-    })().catch(error => { ytVosk.carga = null; throw error; });
-    return ytVosk.carga;
-  }
-  function ytVoskNivel(rms){
-    const pct = Math.min(100, Math.round(Math.sqrt(rms) * 200));
-    const color = pct > 85 ? '#ffb347' : (pct > 8 ? '#37e37c' : '#3a4a63');
-    for(const b of [ids('ytVozNivelBarra'), ids('videoReplayVozNivelBarra')]){
-      if(b){ b.style.width = pct + '%'; b.style.background = color; }
-    }
-  }
-  function ytVoskVigente(s){ return ytVoz.rec === s && !s.cerrada && ytVozActiva(); }
-  function ytVoskFallo(s, error, invalidar=false){
-    if(!ytVoskVigente(s)) return;
-    let mensaje = error && error.message ? error.message : String(error || 'No se pudo iniciar el reconocimiento.');
-    if(error && error.name === 'NotAllowedError') mensaje = 'Permita el micrófono en este sitio y pulse «Reintentar voz».';
-    if(error && error.name === 'NotFoundError') mensaje = 'No se encontró un micrófono. Conéctelo y pulse «Reintentar voz».';
-    ytVozRegistrar('', mensaje, 'Error local');
-    ytVozParar(false);
-    if(invalidar && ytVosk.modelo){
-      try{ ytVosk.modelo.terminate(); ytVosk.modelo.worker.terminate(); }catch{}
-      ytVosk.modelo = null; ytVosk.carga = null;
-    }
-    ytVosk.error = mensaje;
-    ytVoskEstado(mensaje);
-  }
-  function ytVoskConfirmar(s){
-    const pista = s.stream && s.stream.getAudioTracks()[0];
-    const listo = ytVoskVigente(s) && s.confirmada && s.ctx && s.ctx.state === 'running'
-      && pista && pista.readyState === 'live' && !pista.muted;
-    ytVoz.escuchando = !!listo;
-    ytVoz.iniciando = !listo;
-    if(listo){ ytVosk.estado = ''; ytVoz.fallos = 0; }
-    ytVozChip(listo);
-  }
-  function ytVoskEnviar(s){
-    if(!ytVoskVigente(s) || s.enVuelo || !s.cola.length) return;
-    const item = s.cola.shift();
-    s.enVuelo = item; s.envio = performance.now();
-    try{ s.motor.acceptWaveformFloat(item.datos, s.ctx.sampleRate); }
-    catch(error){ ytVoskFallo(s, error); }
-  }
-  function ytVoskOrden(s, texto, final){
-    const completo = String(texto || '').replace(/\[unk\]/g, ' ruido ').replace(/\s+/g,' ').trim();
-    const normal = ytVozNormalizar(completo);
-    if(!completo){ if(final){ s.consumido = ''; s.apertura = null; s.segmento++; } return; }
-    const ctx = ytVozContexto(); ytVozFijarContexto(ctx);
-    if(!ctx) return;
-    let frase = completo;
-    if(s.consumido){
-      if(normal === s.consumido) frase = '';
-      else if(normal.startsWith(s.consumido + ' ')) frase = completo.slice(s.consumido.length).trim();
-      // Una revisión de la hipótesis ya ejecutada no es otra orden.
-      else if(!final) return;
-      else frase = '';
-    }
-    // Si «grabar» abrió pronto, completar «grabar en quince» con su resultado final.
-    const apertura = s.apertura;
-    if(final && apertura && apertura.segmento === s.segmento){
-      const match = ytVozRecortarFrase(completo).match(ytVozReglas().grabarEn);
-      if(match && !ytVozConflicto(completo)){
-        const orden = {accion:'grabarEn', seg:ytVozReglas().numero[match[1]]};
-        apertura.promesa.then(iniciada => {
-          if(!iniciada || !ytVoskVigente(s) || apertura.solicitud !== ytVoz.solicitudModulo
-            || !['grabar','grabarVolver'].includes(ytVozContexto())) return;
-          ytVozEjecutar(orden, completo);
-        });
-        frase = '';
-      }
-    }
-    if(frase){
-      const res = [{transcript:frase}]; res.isFinal = final;
-      const resultado = ytVozResultado(res, s.segmento, ctx);
-      if(resultado.orden){
-        ytVozRegistrar(frase, 'Orden local identificada; comprobando la acción.', final ? 'Final local' : 'Provisional local', ctx);
-        s.consumido = normal;
-        ytVozLimpiarFragmento();
+      const rec = new SR();
+      let servicio = false, audio = false, confirmado = false;
+      let ultimoFinal = -1, aperturaRapida = null, paradaRapida = null;
+      // Solo las acciones adelantadas necesitan seguimiento hasta su resultado
+      // final. La parada queda ligada al grabador que realmente se detuvo.
+      const ejecutar = (resultado, indice) => {
+        const accion = resultado.orden.accion;
+        const abre = accion === 'grabarJugada' || accion === 'grabarOtra';
+        if(!abre && accion !== 'grabarEn') aperturaRapida = null;
+        if(abre && aperturaRapida && aperturaRapida.indice === indice) return null;
+        if(accion === 'detener' && paradaRapida && (paradaRapida.indice === indice || paradaRapida.grabador === videoReplay.recorder)) return null;
+        const parada = accion === 'detener' ? { indice, grabador:videoReplay.recorder } : null;
+        if(parada) paradaRapida = parada;
         const promesa = ytVozEjecutar(resultado.orden, resultado.frase);
-        if(['grabarJugada','grabarOtra'].includes(resultado.orden.accion)){
-          s.apertura = {segmento:s.segmento, promesa, solicitud:ytVoz.solicitudModulo};
-        }
-      } else if(final){
-        ytVozRegistrar(frase, resultado.motivo, 'Final local', ctx);
-      }
-    }
-    if(final){ s.consumido = ''; s.apertura = null; s.segmento++; }
-  }
-  async function ytVozArrancar(){
-    if(ytVoz.rec || ytVoz.iniciando || ytVosk.error || !ytVozDebeEscuchar()) return;
-    const s = {numero:++ytVosk.numero, cerrada:false, ctx:null, stream:null, motor:null, cola:[], enVuelo:null,
-      segmento:0, consumido:'', apertura:null, confirmada:false, ultimoAudio:0, muestras:0, procesadas:0};
-    ytVoz.rec = s; ytVoz.iniciando = true; ytVoz.escuchando = false;
-    ytVozLimpiarFragmento(); ytVozLimpiarPendiente();
-    ytVoskEstado('Preparando voz local…');
-    try{
-      if(location.protocol === 'file:') throw new Error('Para usar Vosk, abra la aplicación publicada en GitHub Pages (https), no el HTML con doble clic.');
-      const AC = window.AudioContext || window.webkitAudioContext;
-      s.ctx = new AC({sampleRate:16000});
-      // Se solicita durante el clic cuando lo hay; nunca se reproduce el micrófono.
-      s.ctx.resume().catch(() => {});
-      s.stream = await navigator.mediaDevices.getUserMedia({audio:{channelCount:1, echoCancellation:false, noiseSuppression:false, autoGainControl:false}});
-      if(!ytVoskVigente(s)){ s.stream.getTracks().forEach(t=>t.stop()); return; }
-      ytVozMedidor.stream = s.stream; ytVozMedidor.ctx = s.ctx;
-      const modelo = await ytVoskModelo();
-      if(!ytVoskVigente(s)) return;
-      const obra = `class BillarMicrofono extends AudioWorkletProcessor {
-        constructor(){super();this.buffer=new Float32Array(2048);this.indice=0;}
-        process(inputs){const c=inputs[0]&&inputs[0][0];if(c){for(let i=0;i<c.length;i++){
-          this.buffer[this.indice++]=c[i];if(this.indice===this.buffer.length){
-            const datos=this.buffer;let suma=0;for(let k=0;k<datos.length;k++)suma+=datos[k]*datos[k];
-            this.port.postMessage({datos,rms:Math.sqrt(suma/datos.length)},[datos.buffer]);
-            this.buffer=new Float32Array(2048);this.indice=0;
+        const apertura = abre ? { indice, promesa, solicitud:ytVoz.solicitudModulo } : null;
+        if(apertura) aperturaRapida = apertura;
+        promesa.then(iniciada => {
+          if(!iniciada && paradaRapida === parada) paradaRapida = null;
+          if(!iniciada && aperturaRapida === apertura) aperturaRapida = null;
+        });
+        return promesa;
+      };
+      ytVoz.rec = rec; ytVoz.iniciando = true; ytVoz.escuchando = false; ytVoz.desde = Date.now();
+      ytVozFijarContexto(ytVozContexto()); ytVozLimpiarFragmento(); ytVozLimpiarActividad(); ytVoz.renovarPendiente = false;
+      rec.lang = 'es-CO'; rec.continuous = true; rec.interimResults = true; rec.maxAlternatives = 3;
+      const confirmar = () => {
+        if(ytVoz.rec !== rec || ytVoz.cerrando === rec || !servicio || !audio || ytVoz.escuchando) return;
+        const ctx = ytVozContexto();
+        if(!ctx){ ytVozParar(false); return; }
+        confirmado = true; ytVoz.iniciando = false; ytVoz.escuchando = true; ytVoz.desde = Date.now();
+        ytVoz.ultimaActividad = Date.now(); ytVoz.sinAudioDesde = 0;
+        ytVozRegistrar('', 'Chrome confirmó el servicio y la entrada de audio.');
+        ytVozFijarContexto(ctx); ytVozChip(true); ytVozMedidorArrancar();
+        ytVozEstado(ctx === 'espera' ? 'Cuenta regresiva; órdenes en pausa.' : 'Escuchando: ' + (YT_VOZ_LETREROS[ctx] || ''));
+      };
+      // Solicitar start() no confirma la escucha: se esperan ambos eventos.
+      rec.onstart = () => { if(ytVoz.rec !== rec) return; servicio = true; confirmar(); };
+      rec.onaudiostart = () => { if(ytVoz.rec !== rec) return; audio = true; confirmar(); };
+      rec.onaudioend = () => {
+        if(ytVoz.rec !== rec) return;
+        ytVozRegistrar('', 'Chrome dejó de recibir audio; puede entregar aún el texto pendiente.');
+        audio = false; ytVoz.iniciando = false; ytVoz.escuchando = false;
+        if(!ytVoz.sinAudioDesde) ytVoz.sinAudioDesde = Date.now();
+        ytVozChip(false);
+        // Todavía puede llegar el resultado final de lo ya capturado.
+      };
+      rec.onspeechstart = () => {
+        if(ytVoz.rec !== rec || ytVoz.cerrando) return;
+        ytVoz.hablando = true; ytVoz.hablaDesde = Date.now(); ytVoz.hablaFin = 0; ytVoz.ultimaActividad = Date.now();
+      };
+      rec.onspeechend = () => {
+        if(ytVoz.rec !== rec) return;
+        ytVoz.hablando = false; ytVoz.hablaFin = Date.now(); ytVoz.ultimaActividad = Date.now();
+      };
+      rec.onnomatch = () => {
+        if(ytVoz.rec !== rec || !ytVozActiva()) return;
+        ytVozLimpiarPendiente(); ytVoz.hablaDesde = 0; ytVoz.ultimaActividad = Date.now();
+        ytVozRegistrar('', 'Chrome recibió sonido, pero no devolvió palabras reconocidas.');
+        ytVozLimpiarFragmento(); // Un sonido sin texto no demuestra una orden fallida.
+      };
+      rec.onresult = ev => {
+        if(ytVoz.rec !== rec || !confirmado || !ytVozActiva()) return;
+        ytVoz.ultimaActividad = Date.now(); ytVoz.ultimoResultado = Date.now(); ytVoz.fallos = 0;
+        // El índice provisional puede desaparecer y reutilizarse. Tampoco
+        // pertenece a la misma apertura después de cerrar o cambiar el módulo.
+        if(aperturaRapida && (aperturaRapida.solicitud !== ytVoz.solicitudModulo
+          || aperturaRapida.indice >= ev.results.length)) aperturaRapida = null;
+        let nuevoFinal = ultimoFinal;
+        for(let i = ev.resultIndex; i < ev.results.length; i++){
+          // Una cuenta recién iniciada invalida todos los resultados antiguos.
+          if(ytVoz.rec !== rec || !ytVozActiva()) break;
+          if(i <= ultimoFinal) continue;
+          const res = ev.results[i];
+          if(res.isFinal) nuevoFinal = Math.max(nuevoFinal, i);
+          const ctx = ytVozContexto(); ytVozFijarContexto(ctx);
+          if(!ctx){ ytVozLimpiarFragmento(); continue; }
+          const texto = String(res[0] && res[0].transcript || '').trim();
+          if(res.isFinal){ ytVozLimpiarPendiente(); ytVoz.hablando = false; ytVoz.hablaDesde = 0; ytVoz.hablaFin = Date.now(); }
+          // «Grabar» puede abrir la cámara antes de completarse «grabar en quince».
+          // Conservar únicamente ese tiempo final hasta que la cámara esté lista.
+          const apertura = aperturaRapida;
+          if(res.isFinal && apertura && apertura.indice === i && !['grabando','espera'].includes(ctx)){
+            const previo = ytVoz.fragmento; ytVozLimpiarFragmento();
+            const fin = ytVozResultado(res, i, 'grabar');
+            ytVoz.fragmento = previo;
+            if(fin.orden && fin.orden.accion === 'grabarEn'){
+              ytVozRegistrar(fin.frase, 'Tiempo completo recibido; esperando que termine de abrirse la cámara.', 'Final', ctx);
+              apertura.promesa.then(iniciada => {
+                if(aperturaRapida !== apertura) return;
+                if(!iniciada || !ytVozActiva() || ytVoz.rec !== rec || apertura.solicitud !== ytVoz.solicitudModulo
+                  || !['grabar','grabarVolver'].includes(ytVozContexto())){
+                  ytVozRegistrar(fin.frase, 'Tiempo no ejecutado: cambió la pantalla o la cámara no está lista.', 'Sin acción'); return;
+                }
+                ejecutar(fin, i);
+              });
+              continue;
+            }
           }
-        }}return true;}
-      } registerProcessor('billar-microfono',BillarMicrofono);`;
-      const url = URL.createObjectURL(new Blob([obra], {type:'application/javascript'}));
-      try{ await s.ctx.audioWorklet.addModule(url); }finally{ URL.revokeObjectURL(url); }
-      if(!ytVoskVigente(s)) return;
-      s.motor = new modelo.KaldiRecognizer(s.ctx.sampleRate);
-      s.motor.setWords(true);
-      const recibir = (mensaje, final) => {
-        if(!ytVoskVigente(s)) return;
-        if(s.enVuelo){ s.procesadas += s.enVuelo.datos.length; s.enVuelo = null; }
-        if(!s.confirmada){
-          s.confirmada = true;
-          ytVozRegistrar('', 'Vosk está procesando el audio del micrófono en este computador.');
-          ytVoskConfirmar(s);
+          const resultado = ytVozResultado(res, i, ctx);
+          if(!res.isFinal) ytVozSeguirPendiente(resultado, i);
+          if(resultado.orden){
+            ytVozLimpiarPendiente();
+            ytVozRegistrar(texto, 'Orden identificada; comprobando que pueda ejecutarse.', res.isFinal ? 'Final' : 'Provisional', ctx);
+            ejecutar(resultado, i);
+            // No esperar la cámara: atender también las demás órdenes del aviso.
+            continue;
+          }
+          if(res.isFinal || resultado.prevista || resultado.ambigua || ytVozPuedeContinuar(resultado.frase)){
+            ytVozRegistrar(texto, resultado.prevista && !resultado.ambigua
+              ? 'Orden provisional: esperando el texto definitivo, sin interrumpir el micrófono.'
+              : resultado.motivo, res.isFinal ? 'Final' : 'Provisional', ctx);
+          }
         }
-        else if(!ytVoz.escuchando && s.ctx.state === 'running') ytVoskConfirmar(s);
-        if(ytVoz.escuchando) ytVoskOrden(s, final ? mensaje.result.text : mensaje.result.partial, final);
-        ytVoskEnviar(s);
+        ultimoFinal = nuevoFinal;
       };
-      s.motor.on('partialresult', m => recibir(m, false));
-      s.motor.on('result', m => recibir(m, true));
-      s.motor.on('error', m => ytVoskFallo(s, new Error(m.error), true));
-      s.errorMotor = e => ytVoskFallo(s, new Error(e.detail && e.detail.error || 'Falló el motor local. Pulse «Reintentar voz».'), true);
-      modelo.addEventListener('error', s.errorMotor);
-      s.errorWorker = e => ytVoskFallo(s, new Error(e.message || 'El motor local dejó de responder.'), true);
-      modelo.worker.addEventListener('error', s.errorWorker);
-      s.nodo = new AudioWorkletNode(s.ctx, 'billar-microfono', {numberOfInputs:1, numberOfOutputs:1, outputChannelCount:[1]});
-      s.nodo.port.onmessage = evento => {
-        if(!ytVoskVigente(s)) return;
-        const item = evento.data;
-        s.ultimoAudio = performance.now(); s.muestras += item.datos.length;
-        ytVoskNivel(item.rms);
-        s.cola.push(item);
-        // No ejecutar órdenes antiguas tras acumular segundos de audio: informar
-        // de falta de rendimiento, sin descartarlo ni reiniciar a escondidas.
-        if(s.cola.length * 2048 / s.ctx.sampleRate > 4){
-          ytVoskFallo(s, new Error('Este computador no está procesando la voz a tiempo. Cierre otras aplicaciones y pulse «Reintentar voz».'), true); return;
+      rec.onerror = ev => {
+        if(ytVoz.rec !== rec) return;
+        if(ytVoz.cerrando === rec) return;
+        ytVozRegistrar('', 'Error comunicado por Chrome: ' + (ev.error || 'sin detalle') + '.');
+        ytVoz.iniciando = false; ytVoz.escuchando = false; ytVozLimpiarFragmento(); ytVozChip(false);
+        if(ev.error !== 'no-speech' && ev.error !== 'aborted') ytVoz.fallos = Math.min(ytVoz.fallos + 1, 5);
+        if(ev.error && !['no-speech','aborted','not-allowed','service-not-allowed'].includes(ev.error)){
+          const mensaje = ev.error === 'audio-capture'
+            ? 'No se pudo acceder al micrófono para las órdenes de voz.'
+            : 'La escucha no ha podido recuperarse. Revise la conexión y el permiso del micrófono.';
+          ytVozAvisarFallo(mensaje, ev.error === 'audio-capture');
         }
-        ytVoskEnviar(s);
+        if(ev.error === 'not-allowed' || ev.error === 'service-not-allowed'){
+          ytVozAvisar('', 'Chrome no permite usar el micrófono. Autorice el permiso del sitio y vuelva a activar la voz.', 'warn');
+          ytVozGuardar(false);
+          const c = ids('ytVozCheck'); if(c) c.checked = false;
+          ytVozParar(false);
+          ytVozEstado('Chrome no permitió el micrófono: la orden de voz queda apagada. Revise el permiso del sitio y vuelva a activar la casilla.');
+        } else {
+          ytVozParar(true);
+        }
       };
-      s.nodo.onprocessorerror = () => ytVoskFallo(s, new Error('Se interrumpió la entrada de audio. Pulse «Reintentar voz».'));
-      s.fuente = s.ctx.createMediaStreamSource(s.stream);
-      s.fuente.connect(s.nodo); s.nodo.connect(s.ctx.destination); // La salida del Worklet es silencio.
-      const pista = s.stream.getAudioTracks()[0];
-      pista.onended = () => ytVoskFallo(s, new Error('El micrófono se desconectó. Revíselo y pulse «Reintentar voz».'));
-      pista.onmute = () => { if(ytVoskVigente(s)){ ytVoskEstado('El micrófono dejó de entregar audio.'); ytVoskConfirmar(s); } };
-      pista.onunmute = () => { if(ytVoskVigente(s)) ytVoskConfirmar(s); };
-      s.ctx.onstatechange = () => {
-        if(!ytVoskVigente(s)) return;
-        if(s.ctx.state !== 'running') ytVoskEstado('Pulse la pantalla para reanudar la voz local.');
-        ytVoskConfirmar(s);
+      rec.onend = () => {
+        if(ytVoz.rec !== rec && ytVoz.cerrando !== rec) return;
+        ytVozRegistrar('', ytVozActiva() ? 'Chrome terminó la sesión; se recuperará la escucha.' : 'Sesión de voz cerrada.');
+        ytVozFinalizarSesion(rec);
       };
-      if(s.ctx.state !== 'running') ytVoskEstado('Pulse la pantalla para activar la voz local.');
-      else ytVoskEstado('Comprobando la entrada de audio…');
-      ytVozChip(false);
-    }catch(error){ ytVoskFallo(s, error); }
+      ytVozChip(false); ytVozEstado('Activando reconocimiento de voz…');
+      rec.start();
+    }catch(error){
+      ytVoz.fallos = Math.min(ytVoz.fallos + 1, 5);
+      ytVozParar(false);
+      const msg = 'No se pudo activar la voz: ' + (error && error.message ? error.message : error);
+      ytVozEstado(msg); ytVozAvisarFallo(msg); ytVozReintentar();
+    }
   }
-  function ytVozMedidorArrancar(){
-    const s = ytVoz.rec;
-    if(s && s.ctx && s.ctx.state === 'suspended') s.ctx.resume().catch(() => {});
+  // Medidor de nivel del micrófono: barrita junto al botón, viva solo
+  // mientras el oído está encendido, para distinguir «no me oye» (barra
+  // quieta al hablar: problema de Windows o del micrófono) de «no me
+  // entiende» (barra viva y sin reconocer: problema del reconocedor).
+  const ytVozMedidor = { stream:null, ctx:null, timer:0 };
+  async function ytVozMedidorArrancar(){
+    if(ytVozMedidor.stream){
+      if(ytVozMedidor.stream.getAudioTracks().some(t => t.readyState === 'live') && ytVozMedidor.ctx && ytVozMedidor.ctx.state !== 'closed'){
+        if(ytVozMedidor.ctx.state === 'suspended') ytVozMedidor.ctx.resume().catch(() => {});
+        return;
+      }
+      ytVozMedidorParar();
+    }
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+    const rec = ytVoz.rec;
+    try{
+      const stream = await navigator.mediaDevices.getUserMedia({ audio:{ echoCancellation:false, noiseSuppression:false, autoGainControl:false } });
+      if(!ytVoz.escuchando || ytVoz.rec !== rec || ytVozMedidor.stream){ stream.getTracks().forEach(t => t.stop()); return; }
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if(!AC){ stream.getTracks().forEach(t => t.stop()); return; }
+      const ctx = new AC();
+      if(ctx.state === 'suspended') ctx.resume().catch(() => {});
+      const analizador = ctx.createAnalyser();
+      analizador.fftSize = 1024;
+      ctx.createMediaStreamSource(stream).connect(analizador);
+      ytVozMedidor.stream = stream; ytVozMedidor.ctx = ctx;
+      const datos = new Float32Array(analizador.fftSize);
+      const caja = ids('ytVozNivel'), barra = ids('ytVozNivelBarra');
+      if(caja) caja.style.display = '';
+      ytVozMedidor.timer = setInterval(() => {
+        analizador.getFloatTimeDomainData(datos);
+        let s = 0;
+        for(let i = 0; i < datos.length; i++) s += datos[i] * datos[i];
+        const rms = Math.sqrt(s / datos.length);
+        // Escala perceptual: voz normal a un par de metros ronda la mitad.
+        const pct = Math.min(100, Math.round(Math.sqrt(rms) * 200));
+        const color = pct > 85 ? '#ffb347' : (pct > 8 ? '#37e37c' : '#3a4a63');
+        for(const b of [barra, ids('videoReplayVozNivelBarra')]){ if(b){ b.style.width = pct + '%'; b.style.background = color; } }
+      }, 100);
+    }catch{}
   }
   function ytVozMedidorParar(){
-    ytVozMedidor.stream = null; ytVozMedidor.ctx = null;
-    const caja = ids('ytVozNivel'); if(caja) caja.style.display = 'none';
-    ytVoskNivel(0);
+    if(ytVozMedidor.timer){ clearInterval(ytVozMedidor.timer); ytVozMedidor.timer = 0; }
+    if(ytVozMedidor.stream){ try{ ytVozMedidor.stream.getTracks().forEach(t => t.stop()); }catch{} ytVozMedidor.stream = null; }
+    if(ytVozMedidor.ctx){ try{ ytVozMedidor.ctx.close(); }catch{} ytVozMedidor.ctx = null; }
+    const caja = ids('ytVozNivel'), barra = ids('ytVozNivelBarra');
+    if(caja) caja.style.display = 'none';
+    for(const b of [barra, ids('videoReplayVozNivelBarra')]) if(b) b.style.width = '0%';
+    const vb = ids('videoReplayVozBar'); if(vb) vb.style.display = 'none';
   }
-  function ytVozParar(){
-    const s = ytVoz.rec;
-    ytVoz.rec = null; ytVoz.iniciando = false; ytVoz.escuchando = false;
-    if(s){
-      s.cerrada = true; s.cola.length = 0;
-      if(s.nodo){ s.nodo.port.onmessage = null; s.nodo.disconnect(); s.nodo.port.close(); }
-      if(s.fuente) s.fuente.disconnect();
-      if(s.motor){ try{ s.motor.remove(); }catch{} }
-      if(ytVosk.modelo){
-        ytVosk.modelo.removeEventListener('error', s.errorMotor);
-        ytVosk.modelo.worker.removeEventListener('error', s.errorWorker);
-      }
-      if(s.stream) s.stream.getTracks().forEach(t => { t.onended = t.onmute = t.onunmute = null; t.stop(); });
-      if(s.ctx){ s.ctx.onstatechange = null; s.ctx.close().catch(() => {}); }
+  function ytVozLimpiarActividad(){
+    ytVoz.hablando = false; ytVoz.hablaDesde = 0; ytVoz.hablaFin = 0;
+    ytVozLimpiarPendiente(); ytVoz.sinAudioDesde = 0;
+    ytVoz.ultimoResultado = 0; ytVoz.ultimaActividad = Date.now();
+  }
+  function ytVozFinalizarSesion(rec){
+    if(ytVoz.rec !== rec && ytVoz.cerrando !== rec) return;
+    if(ytVoz.cierreTimer){ clearTimeout(ytVoz.cierreTimer); ytVoz.cierreTimer = 0; }
+    if(ytVoz.rec === rec) ytVoz.rec = null;
+    if(ytVoz.cerrando === rec) ytVoz.cerrando = null;
+    rec.onstart = rec.onaudiostart = rec.onaudioend = rec.onspeechstart = rec.onspeechend = rec.onnomatch = rec.onend = rec.onresult = rec.onerror = null;
+    ytVoz.iniciando = false; ytVoz.escuchando = false; ytVoz.renovarPendiente = false;
+    ytVozLimpiarFragmento(); ytVozLimpiarActividad(); ytVozChip(false);
+    ytVozReintentar();
+  }
+  function ytVozCerrar(mantenerMedidor, conservarResultado){
+    if(ytVoz.reintento){ clearTimeout(ytVoz.reintento); ytVoz.reintento = 0; }
+    const rec = ytVoz.rec || ytVoz.cerrando;
+    const teniaResultado = ytVoz.rec === rec;
+    ytVoz.iniciando = false; ytVoz.escuchando = false;
+    if(!conservarResultado){ ytVoz.rec = null; ytVozLimpiarFragmento(); ytVozLimpiarActividad(); }
+    ytVozChip(false);
+    if(!mantenerMedidor) ytVozMedidorParar();
+    if(!rec) return;
+    if(ytVoz.cerrando === rec){
+      // Si ya se aceptó la orden o se apagó la voz, no aceptar más resultados.
+      if(!conservarResultado && teniaResultado){ try{ if(rec.abort) rec.abort(); }catch{} }
+      return;
     }
-    ytVozLimpiarFragmento(); ytVozLimpiarPendiente(); ytVozMedidorParar(); ytVozChip(false);
+    ytVoz.cerrando = rec;
+    // Esperar end antes de abrir otra sesión. Si Chrome no cierra, abortar
+    // y darle un segundo plazo; los eventos tardíos de esa sesión se ignoran.
+    ytVoz.cierreTimer = setTimeout(() => {
+      if(ytVoz.cerrando !== rec) return;
+      ytVoz.rec = null;
+      ytVozLimpiarFragmento(); ytVozLimpiarActividad();
+      ytVoz.cierreTimer = setTimeout(() => {
+        if(ytVoz.cerrando !== rec) return;
+        ytVozFinalizarSesion(rec);
+      }, 2000);
+      try{ if(rec.abort) rec.abort(); else rec.stop(); }catch{}
+    }, 2500);
+    try{ if(conservarResultado || !rec.abort) rec.stop(); else rec.abort(); }catch{}
   }
+  function ytVozParar(mantenerMedidor){ ytVozCerrar(mantenerMedidor, false); }
   function ytVozPrepararCuenta(){
-    // Vosk conserva el mismo micrófono y reconocedor durante la cuenta y la toma.
-    ytVozLimpiarFragmento();
-    ytVozRegistrar('', 'Cuenta iniciada; la escucha local continúa sin reiniciarse.');
+    if(!ytVozActiva() || !ytVozSoportada()) return;
+    // Una sola renovación, después de aceptar el tiempo completo. La cuenta
+    // continúa y el medidor conserva su audio; no se reinicia por conversación.
+    ytVozRegistrar('', 'Cuenta iniciada: renovación única para escuchar detener.');
+    ytVoz.fallos = 0;
+    ytVozParar(true);
     ytVozSincronizar();
   }
+  function ytVozAvisarFallo(mensaje, inmediato=false){
+    if(!inmediato && ytVoz.fallos < 3) return;
+    if(ytVoz.ultimoAvisoConexion && Date.now() - ytVoz.ultimoAvisoConexion < 30000) return;
+    ytVoz.ultimoAvisoConexion = Date.now();
+    ytVozAvisar('', mensaje, 'warn');
+  }
+  function ytVozReconectar(motivo, conservarResultado=true){
+    if(ytVoz.cerrando || !ytVoz.rec) return;
+    ytVozEstado('Recuperando la escucha…');
+    ytVozCerrar(true, conservarResultado);
+  }
+  // Recuperar una sesión que no abre o cuya entrada de audio terminó.
+  // El silencio, las frases largas y los cambios de pantalla no la reinician.
   function ytVozSincronizar(){
     ytVozContinuarVolver();
+    const ahora = Date.now();
     const ctx = ytVozContexto(); ytVozFijarContexto(ctx);
-    if(!ctx){ if(ytVoz.rec) ytVozParar(); else ytVozChip(false); return; }
-    if(!ytVoz.rec && !ytVoz.iniciando && !ytVosk.error) ytVozArrancar();
-    const s = ytVoz.rec;
-    if(s && s.confirmada && s.ctx && s.ctx.state === 'running' && s.ultimoAudio && performance.now()-s.ultimoAudio > 8000){
-      ytVoz.escuchando = false; ytVoskEstado('La entrada de audio está en pausa. Pulse la pantalla para reanudar.');
+    if(!ctx){
+      if(ytVoz.rec || ytVoz.cerrando || ytVoz.iniciando || ytVoz.reintento) ytVozParar(false);
+      else ytVozChip(false);
+      return;
     }
+    if(ytVoz.rec && !ytVoz.cerrando){
+      if(ytVoz.iniciando && ahora - ytVoz.desde > 15000){
+        ytVoz.fallos = Math.min(ytVoz.fallos + 1, 5);
+        ytVozAvisarFallo('La escucha no ha podido iniciarse. Revise la conexión y el permiso del micrófono.');
+        ytVozReconectar('inicio sin confirmar', false);
+      } else if(ytVoz.sinAudioDesde && ahora - ytVoz.sinAudioDesde > 2500){
+        ytVozReconectar('entrada de audio terminada');
+      }
+    }
+    if(!ytVoz.rec && !ytVoz.cerrando && !ytVoz.reintento) ytVozArrancar();
     ytVozChip(ytVoz.escuchando);
   }
   function ytVozDespertar(){
     if(!ytVozDebeEscuchar()) return;
-    ytVozMedidorArrancar(); ytVozSincronizar();
+    if(ytVoz.escuchando) ytVozMedidorArrancar();
+    ytVozSincronizar();
   }
-
   function ytActualizarFab(modo){
     const fab = ids('ytPlaceFab');
     if(!fab) return;
@@ -19448,21 +19462,18 @@ function drawStartMarks(){
     if(vozCheck){
       if(!ytVozSoportada()){
         vozCheck.disabled = true;
-        ytVozEstado('Este navegador no permite iniciar la voz local. Abra la aplicación publicada por https en un navegador actualizado.');
+        ytVozEstado('Este navegador no ofrece reconocimiento de voz; use Chrome o Edge para la orden «volver a colocar».');
       } else {
         vozCheck.checked = ytVozActiva();
         vozCheck.addEventListener('change', () => ytVozCambiar(vozCheck.checked));
       }
       const vozBtn = ids('ytVozBtn');
-      if(vozBtn) vozBtn.addEventListener('click', () => ytVozCambiar(ytVosk.error ? true : !ytVozActiva()));
+      if(vozBtn) vozBtn.addEventListener('click', () => ytVozCambiar(!ytVozActiva()));
       ytVozChip(false);
       // Vigilante: el oído sigue al estado de la app aunque nadie lo avise.
       setInterval(ytVozSincronizar, 800);
       document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible') ytVozDespertar(); });
       window.addEventListener('focus', ytVozDespertar);
-      document.addEventListener('pointerdown', () => { if(ytVozActiva()) ytVozMedidorArrancar(); }, {passive:true});
-      document.addEventListener('keydown', () => { if(ytVozActiva()) ytVozMedidorArrancar(); });
-      window.addEventListener('pagehide', () => ytVozParar());
       window.addEventListener('resize', ytVozUbicarControl);
     }
     if(fab) fab.addEventListener('click', () => {
@@ -19662,7 +19673,7 @@ function drawStartMarks(){
 <div id="ytVozControl" style="position:fixed; bottom:18px; left:18px; z-index:10011; display:flex; flex-direction:column; gap:7px; width:max-content; max-width:calc(100vw - 36px);">
 <button id="ytVozBtn" type="button" title="Activar órdenes de voz: grabar, capturar mesa o volver a colocar" aria-label="Activar órdenes de voz" aria-describedby="ytVozResumen" aria-pressed="false" style="align-self:stretch; max-width:220px; min-height:44px; white-space:normal; padding:9px 12px; border-radius:12px; background:#1a2230; border:1px solid #3a4a63; color:#c9d3e6; font-weight:700; font-size:14px; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.4);">🔇 Voz silenciada</button>
 <span id="ytVozResumen" role="status" aria-live="polite" style="display:none; max-width:220px; font-size:12px; line-height:1.3; text-align:center; color:#d8f4ff; background:rgba(15,23,35,.94); padding:3px 6px; box-sizing:border-box; border-radius:6px;"></span>
-<span id="ytVozNivel" title="Nivel del mismo micrófono que recibe Vosk; la escucha se confirma al procesar audio" style="display:none; box-sizing:border-box; width:100%; height:14px; border-radius:7px; background:#111823; border:1px solid #3a4a63; overflow:hidden; box-shadow:0 6px 24px rgba(0,0,0,.5);"><span id="ytVozNivelBarra" style="display:block; height:100%; width:0%; background:#3a4a63; transition:width .08s linear;"></span></span>
+<span id="ytVozNivel" title="Nivel de audio del medidor; la escucha se confirma en el letrero de voz" style="display:none; box-sizing:border-box; width:100%; height:14px; border-radius:7px; background:#111823; border:1px solid #3a4a63; overflow:hidden; box-shadow:0 6px 24px rgba(0,0,0,.5);"><span id="ytVozNivelBarra" style="display:block; height:100%; width:0%; background:#3a4a63; transition:width .08s linear;"></span></span>
 </div>
 <div id="ytPlaceFabBar" style="display:none; position:fixed; bottom:18px; right:18px; z-index:9400; gap:10px; align-items:stretch;">
 <button id="ytPlaceFab" type="button" style="background:#2a1d4d; color:#e6d8ff; border:1px solid #c9a4ff; border-radius:14px; padding:14px 18px; font-size:16px; font-weight:700; box-shadow:0 6px 24px rgba(0,0,0,.5);">¿Colocar las bolas en la mesa real?</button>
