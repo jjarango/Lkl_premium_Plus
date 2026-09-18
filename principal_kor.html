@@ -1986,7 +1986,7 @@
 <div class="small" id="ytVozEstado" style="margin-top:4px; color:#9aa3b2;">음성 기능을 켜면 어느 화면에서든 “녹화”라고 말해 녹화 모듈을 열 수 있습니다. 하단 버튼은 앱이 듣고 있는지 표시하며 음성 기능을 끌 수도 있습니다. 모듈 안에서는 상황에 맞게 “오 초 후 녹화”, “십 초 후 녹화”, “십오 초 후 녹화”, “정지 그리고 검토”, “재생”, “데이터와 함께 다운로드”라고 말하세요. 다음 녹화를 준비하려면 “녹화”라고 말하세요. 어느 화면에서든 “테이블 촬영”이라고 말하면 사진을 찍고 공 위치를 확인할 수 있습니다. 조건이 맞으면 이번 세션에서 저장한 모서리를 재사용합니다. 공 위치를 확인한 뒤 “공 위치 적용”을 눌러 주세요. “다시 배치”는 보라색 버튼이 숨겨져 있어도 어느 화면에서든 마지막으로 확정한 공 위치를 불러옵니다. 연습을 종료해도 이 위치는 유지되며 새 위치를 적용할 때 바뀝니다. 촬영, 녹화 또는 내보내기가 진행 중이면 해당 작업이 끝날 때까지 명령 실행을 기다립니다. 모듈을 열어도 녹화가 자동으로 시작되지는 않습니다. 음성 기능은 Chrome 음성 서비스(인터넷 연결 필요)와 Windows 기본 마이크를 사용합니다. Windows에서 Logitech Brio를 기본 마이크로 선택하세요. 녹화 모듈이 준비되면 “오”, “십” 또는 “십오”라고만 말해도 됩니다.</div>
 <details id="ytVozHistorialPanel" style="margin-top:10px;">
 <summary style="cursor:pointer;">음성 명령 기록</summary>
-<p class="small">연습 후 확인하세요. 이 페이지가 열려 있는 동안에만 최근 300개의 텍스트 기록을 보관하며, 오디오는 저장하지 않습니다. “새로 고침”을 눌러 최신 기록을 확인하세요.</p>
+<p class="small">이 페이지가 열려 있는 동안에만 음성, 인식 텍스트 및 동작 기록을 최대 1000개, 최근 연결 상태 기록을 200개까지 보관합니다. 오디오는 저장하지 않습니다. 임시 인식 텍스트와 음성 감지 기록을 밀리초 단위 시각과 함께 표시합니다. 세션 및 결과 번호로 동일한 명령을 추적할 수 있습니다. 최신 기록을 보려면 “새로 고침”을 누르세요.</p>
 <textarea id="ytVozHistorialTexto" aria-label="음성 명령 기록" readonly rows="10" style="width:100%; box-sizing:border-box; resize:vertical; font:inherit; font-size:13px;"></textarea>
 <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:6px;"><button id="ytVozHistorialActualizar" type="button">새로 고침</button><button id="ytVozHistorialBorrar" type="button">기록 지우기</button></div>
 </details>
@@ -17863,18 +17863,30 @@ function drawStartMarks(){
   const ytVoz = { rec:null, iniciando:false, escuchando:false, reintento:0, desde:0, ultimoTic:0, contexto:null, versionContexto:0, fragmento:null, avisoTimer:0, abriendoModulo:false, capturandoMesa:false, volviendo:false, volverPendiente:null, volverTrasCalibrar:false, solicitudModulo:0, retorno:null, cerrando:null, cierreTimer:0, renovarPendiente:false, ultimaActividad:0, ultimoResultado:0, hablando:false, hablaDesde:0, hablaFin:0, pendienteDesde:0, pendienteFrase:'', indiceProvisional:-1, ordenProvisional:'', cambioOrden:0, prefijoProvisional:false, sinAudioDesde:0, ultimoAvisoConexion:0, ultimoDespertar:0, fallos:0, ultimaOrden:'', ultimaVez:0 };
   // Diagnóstico acotado en memoria: no graba audio ni envía datos adicionales.
   const ytVozHistorial = [];
-  function ytVozRegistrar(frase, detalle, tipo="상태", contexto=ytVozContexto()){
+  let ytVozSesionDiagnostico = 0;
+  function ytVozRegistrar(frase, detalle, tipo="상태", contexto=ytVozContexto(), datos=null){
     const texto = String(frase || '').replace(/\s+/g, ' ').trim().slice(-400);
-    const anterior = ytVozHistorial[ytVozHistorial.length - 1];
-    if(anterior && anterior.texto === texto && anterior.detalle === detalle && anterior.tipo === tipo && anterior.contexto === contexto) return;
-    ytVozHistorial.push({ hora:new Date().toLocaleTimeString("ko-KR", {hour12:false}), texto, detalle, tipo, contexto });
-    if(ytVozHistorial.length > 300) ytVozHistorial.shift();
+    const fecha = new Date();
+    const registro = { hora:fecha.toLocaleTimeString("ko-KR", {hour12:false}) + '.' + String(fecha.getMilliseconds()).padStart(3, '0'), texto, detalle, tipo, contexto, ...(datos || {}) };
+    ytVozHistorial.push(registro);
+    // Las reconexiones conservan su propia cuota; no expulsan las palabras
+    // y acciones de una prueba. Todo sigue acotado y solo en esta página.
+    const estado = tipo === "상태";
+    const limite = estado ? 200 : 1000;
+    if(ytVozHistorial.filter(r => (r.tipo === "상태") === estado).length > limite){
+      const i = ytVozHistorial.findIndex(r => (r.tipo === "상태") === estado);
+      if(i >= 0) ytVozHistorial.splice(i, 1);
+    }
+    return registro;
   }
   function ytVozVerHistorial(){
     const caja = ids('ytVozHistorialTexto'); if(!caja) return;
     caja.value = ytVozHistorial.length ? ytVozHistorial.map(r =>
       r.hora + ' · ' + r.tipo + ' · ' + (YT_VOZ_LETREROS[r.contexto] || "음성 명령 꺼짐")
-      + (r.texto ? "\n인식: «" + r.texto + '»' : '') + '\n' + r.detalle
+      + (r.sesion ? "\n참조: 세션 " + r.sesion + (Number.isInteger(r.indice) ? " · 결과 " + (r.indice + 1) : '') : '')
+      + (r.texto ? "\n인식: «" + r.texto + '»' : '')
+      + (r.alternativas && r.alternativas.length ? "\n다른 인식 후보: " + r.alternativas.map(t => '«' + t + '»').join(' · ') : '')
+      + '\n' + r.detalle
     ).join('\n\n') : "아직 이 페이지에 기록이 없습니다.";
     caja.scrollTop = caja.scrollHeight;
   }
@@ -18066,7 +18078,7 @@ function drawStartMarks(){
     const principal = ytVozInterpretar(frase, ctx), R = ytVozReglas();
     // La primera interpretación clara de DETENER basta, también provisional.
     // Una alternativa negada sigue siendo motivo para esperar otra orden.
-    const detenerNegado = frases.some(texto => {
+    const detenerNegado = ctx === 'grabando' && frases.some(texto => {
       const t = ytVozRecortarFrase(unir(texto));
       return R.detener.test(t) && R.negacion.test(t);
     });
@@ -18089,7 +18101,10 @@ function drawStartMarks(){
     const unica = candidatas.size === 1 ? candidatas.values().next().value : null;
     const contradice = frases.slice(1).some(texto => {
       const t = ytVozRecortarFrase(unir(texto));
-      const esOrden = ['capturarMesa','volver','detener','reproducir','descargar','grabarJugada','grabarOtra','grabarEn'].some(k => R[k].test(t)) || R.grabarCorto.test(t) || Array.from(t.matchAll(R.tiempos)).length > 0;
+      // Solo las órdenes disponibles en esta pantalla pueden vetar la principal.
+      const esOrden = [["capturarMesa","테이블 촬영"],["volver","다시 배치"],["detener","정지"],["reproducir","재생"],["descargar","데이터와 함께 다운로드"],["grabarJugada","샷 녹화"],["grabarOtra","다른 샷 녹화"],["grabarEn","녹화 오 초"]].some(([regla, ejemplo]) => R[regla].test(t) && !!ytVozInterpretar(ejemplo, ctx))
+        || (/(?<![가-힣])(?:녹화|촬영)(?![가-힣])/u.test(t) && !!ytVozInterpretar("녹화", ctx))
+        || (Array.from(t.matchAll(R.tiempos)).length > 0 && ['grabar','grabarVolver'].includes(ctx));
       // Una alternativa sin orden no veta una primera interpretación clara.
       return esOrden && !!(ytVozConflicto(t) || ytVozConflicto(frase + ' ' + t));
     });
@@ -18441,13 +18456,13 @@ function drawStartMarks(){
     else if(on){ b.style.background = '#1d3a4d'; b.style.borderColor = '#62d7ff'; b.style.color = '#d8f4ff'; }
     else { b.style.background = '#2a1d4d'; b.style.borderColor = '#c9a4ff'; b.style.color = '#e6d8ff'; }
     const resumen = ids('ytVozResumen');
-    const detalle = activa ? (on ? "듣는 중" : pendiente.replace('🎙 ', ''))
+    const detalle = activa ? (on ? "듣는 중: " + (YT_VOZ_LETREROS[ctx] || '') : pendiente.replace('🎙 ', ''))
       + (ytVoz.volverPendiente ? " · 공 배치 대기 중" : '') : '';
     if(resumen){
       if(resumen.textContent !== detalle) resumen.textContent = detalle;
       resumen.style.display = activa ? 'block' : 'none';
     }
-    b.title = activa ? "음성 명령 끄기. " + detalle + (on ? ': ' + (YT_VOZ_LETREROS[ctx] || '') : '')
+    b.title = activa ? "음성 명령 끄기. " + detalle
       : "음성 명령 켜기: 녹화, 테이블 촬영 또는 다시 배치. 동영상 재생 및 녹화의 소리는 그대로 유지됩니다.";
     const estado = ids('ytVozEstado');
     if(estado && (estado.textContent.startsWith('듣는 중: ') || estado.textContent === '카운트다운 중에는 명령을 받지 않습니다.')){
@@ -18489,6 +18504,31 @@ function drawStartMarks(){
       const rec = new SR();
       let servicio = false, audio = false, confirmado = false;
       let ultimoFinal = -1, aperturaRapida = null, paradaRapida = null;
+      // Observadores del diagnóstico: nunca deciden qué orden se ejecuta.
+      const sesion = ++ytVozSesionDiagnostico;
+      const registrarTexto = (res, indice, detalle, ctx=ytVozContexto()) => {
+        const textos = Array.from(res, alt => String(alt.transcript || '').replace(/\s+/g, ' ').trim().slice(-400));
+        return ytVozRegistrar(textos[0] || '', detalle, res.isFinal ? "최종" : "임시", ctx,
+          { sesion, indice, alternativas:textos.slice(1, 3) });
+      };
+      const detalleResultado = (resultado, indice, defecto) => {
+        const R = ytVozReglas(), t = ytVozRecortarFrase(resultado.frase);
+        const accion = resultado.orden && resultado.orden.accion;
+        const apertura = aperturaRapida && aperturaRapida.indice === indice
+          && aperturaRapida.solicitud === ytVoz.solicitudModulo
+          && (!accion || accion === 'grabarJugada' || accion === 'grabarOtra')
+          && (R.grabarCorto.test(t) || R.grabarJugada.test(t) || R.grabarOtra.test(t)) ? aperturaRapida : null;
+        const parada = paradaRapida && paradaRapida.indice === indice
+          && (!accion || accion === 'detener') && R.detener.test(t) ? paradaRapida : null;
+        const anterior = apertura || parada;
+        if(!anterior) return defecto;
+        const nombre = apertura ? "모듈 열기" : "녹화 중지";
+        const estado = anterior.diagnostico === 'ejecutada'
+          ? nombre + " 작업은 이미 실행되었으며 확인되었습니다."
+          : nombre + " 작업은 이미 요청되었으며 아직 확인을 기다리고 있습니다.";
+        return estado + " 이 텍스트는 동일한 음성 인식 결과의 갱신입니다."
+          + (R.negacion.test(t) ? " 갱신된 텍스트에 요청 이후 수신된 부정 표현이 포함되어 있습니다." : '');
+      };
       // Solo las acciones adelantadas necesitan seguimiento hasta su resultado
       // final. La parada queda ligada al grabador que realmente se detuvo.
       const ejecutar = (resultado, indice) => {
@@ -18497,12 +18537,14 @@ function drawStartMarks(){
         if(!abre && accion !== 'grabarEn') aperturaRapida = null;
         if(abre && aperturaRapida && aperturaRapida.indice === indice) return null;
         if(accion === 'detener' && paradaRapida && (paradaRapida.indice === indice || paradaRapida.grabador === videoReplay.recorder)) return null;
-        const parada = accion === 'detener' ? { indice, grabador:videoReplay.recorder } : null;
+        const parada = accion === 'detener' ? { indice, grabador:videoReplay.recorder, diagnostico:'pendiente' } : null;
         if(parada) paradaRapida = parada;
         const promesa = ytVozEjecutar(resultado.orden, resultado.frase);
-        const apertura = abre ? { indice, promesa, solicitud:ytVoz.solicitudModulo } : null;
+        const apertura = abre ? { indice, promesa, solicitud:ytVoz.solicitudModulo, diagnostico:'pendiente' } : null;
         if(apertura) aperturaRapida = apertura;
         promesa.then(iniciada => {
+          if(parada) parada.diagnostico = iniciada ? 'ejecutada' : 'no confirmada';
+          if(apertura) apertura.diagnostico = iniciada ? 'ejecutada' : 'no confirmada';
           if(!iniciada && paradaRapida === parada) paradaRapida = null;
           if(!iniciada && aperturaRapida === apertura) aperturaRapida = null;
         });
@@ -18517,7 +18559,7 @@ function drawStartMarks(){
         if(!ctx){ ytVozParar(false); return; }
         confirmado = true; ytVoz.iniciando = false; ytVoz.escuchando = true; ytVoz.desde = Date.now();
         ytVoz.ultimaActividad = Date.now(); ytVoz.sinAudioDesde = 0;
-        ytVozRegistrar('', "Chrome에서 서비스와 오디오 입력을 확인했습니다.");
+        ytVozRegistrar('', "Chrome에서 서비스와 오디오 입력을 확인했습니다.", "상태", ytVozContexto(), { sesion });
         ytVozFijarContexto(ctx); ytVozChip(true); ytVozMedidorArrancar();
         ytVozEstado(ctx === 'espera' ? "카운트다운 중에는 명령을 받지 않습니다." : "듣는 중: " + (YT_VOZ_LETREROS[ctx] || ''));
       };
@@ -18526,7 +18568,7 @@ function drawStartMarks(){
       rec.onaudiostart = () => { if(ytVoz.rec !== rec) return; audio = true; confirmar(); };
       rec.onaudioend = () => {
         if(ytVoz.rec !== rec) return;
-        ytVozRegistrar('', "Chrome의 오디오 수신이 끝났습니다. 대기 중인 텍스트는 아직 도착할 수 있습니다.");
+        ytVozRegistrar('', "Chrome의 오디오 수신이 끝났습니다. 대기 중인 텍스트는 아직 도착할 수 있습니다.", "상태", ytVozContexto(), { sesion });
         audio = false; ytVoz.iniciando = false; ytVoz.escuchando = false;
         if(!ytVoz.sinAudioDesde) ytVoz.sinAudioDesde = Date.now();
         ytVozChip(false);
@@ -18535,30 +18577,50 @@ function drawStartMarks(){
       rec.onspeechstart = () => {
         if(ytVoz.rec !== rec || ytVoz.cerrando) return;
         ytVoz.hablando = true; ytVoz.hablaDesde = Date.now(); ytVoz.hablaFin = 0; ytVoz.ultimaActividad = Date.now();
+        ytVozRegistrar('', "Chrome이 말소리의 시작을 감지했습니다. 아직 확인된 단어는 없습니다.", "음성 감지", ytVozContexto(), { sesion });
       };
       rec.onspeechend = () => {
         if(ytVoz.rec !== rec) return;
         ytVoz.hablando = false; ytVoz.hablaFin = Date.now(); ytVoz.ultimaActividad = Date.now();
+        ytVozRegistrar('', "Chrome이 말소리의 끝을 감지했습니다. 아직 대기 중인 인식 텍스트가 도착할 수 있습니다.", "음성 감지", ytVozContexto(), { sesion });
       };
       rec.onnomatch = () => {
         if(ytVoz.rec !== rec || !ytVozActiva()) return;
         ytVozLimpiarPendiente(); ytVoz.hablaDesde = 0; ytVoz.ultimaActividad = Date.now();
-        ytVozRegistrar('', "Chrome에서 소리를 받았지만 인식된 단어가 없습니다.");
+        ytVozRegistrar('', "Chrome에서 소리를 받았지만 인식된 단어가 없습니다.", "상태", ytVozContexto(), { sesion });
         ytVozLimpiarFragmento(); // Un sonido sin texto no demuestra una orden fallida.
       };
       rec.onresult = ev => {
-        if(ytVoz.rec !== rec || !confirmado || !ytVozActiva()) return;
+        if(ytVoz.rec !== rec || !confirmado || !ytVozActiva()){
+          if(ytVozActiva()){
+            const motivo = ytVoz.rec !== rec ? "더 이상 활성 상태가 아닌 세션에서 텍스트를 받았습니다. 처리하지 않습니다."
+              : "듣기 상태가 확인되기 전에 텍스트를 받았습니다. 처리하지 않습니다.";
+            for(let i = ev.resultIndex; i < ev.results.length; i++) registrarTexto(ev.results[i], i, motivo);
+          }
+          return;
+        }
         ytVoz.ultimaActividad = Date.now(); ytVoz.ultimoResultado = Date.now(); ytVoz.fallos = 0;
+        // El índice provisional puede desaparecer y reutilizarse. Tampoco
+        // pertenece a la misma apertura después de cerrar o cambiar el módulo.
+        if(aperturaRapida && (aperturaRapida.solicitud !== ytVoz.solicitudModulo
+          || aperturaRapida.indice >= ev.results.length)) aperturaRapida = null;
         let nuevoFinal = ultimoFinal;
         for(let i = ev.resultIndex; i < ev.results.length; i++){
           // Una cuenta recién iniciada invalida todos los resultados antiguos.
           if(ytVoz.rec !== rec || !ytVozActiva()) break;
-          if(i <= ultimoFinal) continue;
+          if(i <= ultimoFinal){
+            registrarTexto(ev.results[i], i, "이 최종 결과는 이미 처리되었습니다. 다시 평가하지 않습니다.");
+            continue;
+          }
           const res = ev.results[i];
           if(res.isFinal) nuevoFinal = Math.max(nuevoFinal, i);
           const ctx = ytVozContexto(); ytVozFijarContexto(ctx);
-          if(!ctx){ ytVozLimpiarFragmento(); continue; }
+          if(!ctx){
+            registrarTexto(res, i, "음성 명령을 사용할 수 없는 상황에서 텍스트를 받았습니다. 처리하지 않습니다.", ctx);
+            ytVozLimpiarFragmento(); continue;
+          }
           const texto = String(res[0] && res[0].transcript || '').trim();
+          const registro = registrarTexto(res, i, "인식 텍스트를 받았습니다. 평가 대기 중입니다.", ctx);
           if(res.isFinal){ ytVozLimpiarPendiente(); ytVoz.hablando = false; ytVoz.hablaDesde = 0; ytVoz.hablaFin = Date.now(); }
           // «Grabar» puede abrir la cámara antes de completarse «grabar en quince».
           // Conservar únicamente ese tiempo final hasta que la cámara esté lista.
@@ -18568,7 +18630,7 @@ function drawStartMarks(){
             const fin = ytVozResultado(res, i, 'grabar');
             ytVoz.fragmento = previo;
             if(fin.orden && fin.orden.accion === 'grabarEn'){
-              ytVozRegistrar(fin.frase, "대기 시간을 완전히 인식했습니다. 카메라가 열릴 때까지 기다립니다.", "최종", ctx);
+              registro.detalle = "대기 시간을 완전히 인식했습니다. 카메라가 열릴 때까지 기다립니다.";
               apertura.promesa.then(iniciada => {
                 if(aperturaRapida !== apertura) return;
                 if(!iniciada || !ytVozActiva() || ytVoz.rec !== rec || apertura.solicitud !== ytVoz.solicitudModulo
@@ -18580,6 +18642,7 @@ function drawStartMarks(){
               continue;
             }
             if(ytVozReglas().grabarCorto.test(ytVozRecortarFrase(texto))){
+              registro.detalle = detalleResultado({ frase:texto }, i, registro.detalle);
               ytVozLimpiarFragmento(); continue;
             }
           }
@@ -18587,23 +18650,22 @@ function drawStartMarks(){
           if(!res.isFinal) ytVozSeguirPendiente(resultado, i);
           if(resultado.orden){
             ytVozLimpiarPendiente();
-            ytVozRegistrar(texto, "명령을 확인했습니다. 실행 가능한지 확인합니다.", res.isFinal ? "최종" : "임시", ctx);
+            registro.detalle = detalleResultado(resultado, i, "명령을 확인했습니다. 실행 가능한지 확인합니다.");
             ejecutar(resultado, i);
             // No esperar la cámara: atender también las demás órdenes del aviso.
             continue;
           }
-          if(res.isFinal || resultado.prevista || resultado.ambigua || ytVozPuedeContinuar(resultado.frase)){
-            ytVozRegistrar(texto, resultado.prevista && !resultado.ambigua
-              ? "임시 명령입니다. 마이크를 중단하지 않고 최종 텍스트를 기다립니다."
-              : resultado.motivo, res.isFinal ? "최종" : "임시", ctx);
-          }
+          registro.detalle = detalleResultado(resultado, i, resultado.prevista && !resultado.ambigua
+            ? "임시 명령입니다. 마이크를 중단하지 않고 최종 텍스트를 기다립니다."
+            : (res.isFinal ? resultado.motivo
+              : "임시 인식 텍스트가 아직 수락되지 않았습니다. " + (resultado.motivo || "아직 단어가 없습니다.")));
         }
         ultimoFinal = nuevoFinal;
       };
       rec.onerror = ev => {
         if(ytVoz.rec !== rec) return;
         if(ytVoz.cerrando === rec) return;
-        ytVozRegistrar('', "Chrome 오류: " + (ev.error || "상세 정보 없음") + '.');
+        ytVozRegistrar('', "Chrome 오류: " + (ev.error || "상세 정보 없음") + '.', "상태", ytVozContexto(), { sesion });
         ytVoz.iniciando = false; ytVoz.escuchando = false; ytVozLimpiarFragmento(); ytVozChip(false);
         if(ev.error !== 'no-speech' && ev.error !== 'aborted') ytVoz.fallos = Math.min(ytVoz.fallos + 1, 5);
         if(ev.error && !['no-speech','aborted','not-allowed','service-not-allowed'].includes(ev.error)){
@@ -18624,7 +18686,7 @@ function drawStartMarks(){
       };
       rec.onend = () => {
         if(ytVoz.rec !== rec && ytVoz.cerrando !== rec) return;
-        ytVozRegistrar('', ytVozActiva() ? "Chrome에서 세션을 종료했습니다. 듣기를 복구합니다." : "음성 세션이 종료되었습니다.");
+        ytVozRegistrar('', ytVozActiva() ? "Chrome에서 세션을 종료했습니다. 듣기를 복구합니다." : "음성 세션이 종료되었습니다.", "상태", ytVozContexto(), { sesion });
         ytVozFinalizarSesion(rec);
       };
       ytVozChip(false); ytVozEstado("음성 인식 시작 중…");
