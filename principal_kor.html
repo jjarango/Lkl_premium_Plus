@@ -2139,6 +2139,13 @@
 <button class="cameraCaptureBtn" id="videoReplayExportBtn" style="margin:0" type="button">데이터 포함 다운로드</button>
 </div>
 </div>
+<div class="videoReplayGroup" id="videoReplayTracePanel" style="display:none">
+<h3>실제 궤적</h3>
+<label style="display:flex; gap:8px; align-items:flex-start; cursor:pointer;"><input id="videoReplayTraceChk" style="width:auto; margin-top:4px" type="checkbox" aria-describedby="videoReplayTraceStatus"/> <span class="small">가장 먼저 움직인 공 추적(이번 녹화만)</span></label>
+<p class="small" id="videoReplayTraceStatus" role="status" aria-live="polite" style="margin:8px 0 0;">이번 녹화를 분석하려면 선택하세요. 앱이 가장 먼저 움직인 공을 선택합니다. 분석 중에는 이 탭을 화면에 표시해 두세요.</p>
+<div id="videoReplayTraceChoice" style="display:none; margin-top:8px;"><label class="small" for="videoReplayTraceBall">자동으로 확실하게 선택할 수 없습니다. 추적할 공을 선택하세요:</label><select id="videoReplayTraceBall" style="margin-top:6px; width:100%;"><option value="">공 선택…</option><option value="white">흰 공</option><option value="yellow">노란 공</option><option value="red">빨간 공</option></select></div>
+<div class="videoReplayRow" style="margin-top:8px;"><button id="videoReplayTraceCancel" type="button" style="display:none">분석 취소</button><button id="videoReplayTraceRetry" type="button" style="display:none">다시 분석</button></div>
+</div>
 <div class="videoReplayGroup" id="videoReplayDewarpPanel">
 <label class="small" style="display:flex; align-items:center; gap:8px; cursor:pointer;"><input id="videoReplayDewarpChk" type="checkbox"> 렌즈 보정(곧은 테이블)</label>
 <label class="small" style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-top:6px;"><input id="videoReplayRectifyChk" type="checkbox"> 정사영 보기(직사각형 테이블)</label>
@@ -15347,6 +15354,421 @@ function drawStartMarks(){
     return homographyFromFourPoints(src, dst);
   }
 
+  // Seguimiento posterior: posiciones observadas en la imagen girada, sin
+  // enderezar. Se proyectan al dibujar, igual que el cuadro que las contiene.
+  const videoReplayTrace = {
+    enabled:false, busy:false, status:'idle', points:[], url:null, meta:null,
+    controller:null, job:0, progress:0, message:'', missing:0, samples:0,
+    tracks:null, metrics:null, paused:false
+  };
+
+  function videoReplayTraceUi(){
+    const tr = videoReplayTrace, box = ids('videoReplayTracePanel');
+    if(box) box.style.display = ['record','replay'].includes(videoReplay.mode) ? '' : 'none';
+    const chk = ids('videoReplayTraceChk');
+    if(chk){ chk.checked = tr.enabled; chk.disabled = !!videoReplay.exporting; }
+    const note = ids('videoReplayTraceStatus');
+    if(note){
+      note.textContent = !tr.enabled ? "이번 녹화에만 추적을 적용합니다. 앱이 가장 먼저 움직인 공을 선택하며, 시스템 계산용 수구 선택은 바뀌지 않습니다."
+        : tr.paused ? "분석이 일시 정지되었습니다. 이 탭으로 돌아오면 계속됩니다."
+        : (tr.busy ? "첫 움직임과 궤적 분석 중… " + tr.progress + "%. 이 탭을 화면에 표시해 두세요. 취소할 수 있습니다."
+          : (tr.message || "녹화를 멈추면 가장 먼저 움직인 공을 추적합니다. 세 공이 모두 멈춘 상태에서 녹화를 시작하세요."));
+    }
+    const cancel = ids('videoReplayTraceCancel');
+    if(cancel) cancel.style.display = tr.busy ? '' : 'none';
+    const retry = ids('videoReplayTraceRetry');
+    if(retry){
+      retry.style.display = tr.enabled && !tr.busy && videoReplay.mode === 'replay' && videoReplay.blobUrl ? '' : 'none';
+      retry.disabled = !!videoReplay.exporting;
+    }
+    const choice = ids('videoReplayTraceChoice');
+    if(choice) choice.style.display = tr.enabled && tr.status === 'choice' ? '' : 'none';
+    const exportBtn = ids('videoReplayExportBtn');
+    if(exportBtn) exportBtn.disabled = !!videoReplay.exporting || (tr.enabled && (tr.busy || tr.status==='choice'));
+  }
+
+  function videoReplayTraceCancel(notify=false){
+    const tr = videoReplayTrace;
+    tr.job++;
+    if(tr.controller) tr.controller.abort();
+    tr.controller = null;
+    if(tr.busy){
+      tr.busy = false; tr.status = 'cancelled';
+      tr.message = notify ? "분석이 취소되었습니다. 다시 분석하거나 추적을 해제하여 실제 궤적 없이 내보낼 수 있습니다." : '';
+    }
+    videoReplayTraceUi();
+  }
+
+  function videoReplayTraceReset(){
+    videoReplayTraceCancel();
+    Object.assign(videoReplayTrace, {status:'idle', points:[], url:null, meta:null, message:'', progress:0, missing:0, samples:0,tracks:null,metrics:null,paused:false});
+    const choice = ids('videoReplayTraceBall'); if(choice) choice.value = '';
+    videoReplayTraceUi();
+  }
+
+  function videoReplayTraceNewRecording(){
+    videoReplayTraceReset();
+    videoReplayTrace.enabled = false;
+    videoReplayTraceUi();
+  }
+
+  function videoReplayTracePrepare(){
+    videoReplayTraceReset();
+    const c = videoReplay.calib;
+    videoReplayTrace.meta = {
+      cue:null, position:null,
+      calib:c ? {corners:c.corners.map(p => ({...p})), k1:Number.isFinite(c.k1) ? c.k1 : 0} : null
+    };
+    videoReplayTraceUi();
+  }
+
+  function videoReplayTraceWait(video, event, signal, action, timeout=12000){
+    return new Promise((resolve, reject) => {
+      let timer;
+      const done = error => {
+        clearTimeout(timer); video.removeEventListener(event, ok); video.removeEventListener('error', fail);
+        signal.removeEventListener('abort', abort);
+        error ? reject(error) : resolve();
+      };
+      const ok = () => done(), fail = () => done(new Error("공을 추적하기 위한 영상을 읽을 수 없습니다."));
+      const abort = () => done(new DOMException("분석 취소됨", 'AbortError'));
+      if(signal.aborted){ abort(); return; }
+      video.addEventListener(event, ok, {once:true}); video.addEventListener('error', fail, {once:true});
+      signal.addEventListener('abort', abort, {once:true});
+      timer = setTimeout(() => done(new Error("영상 프레임을 읽는 데 시간이 너무 오래 걸렸습니다. 다시 분석해 보세요.")), timeout);
+      try{ action(); }catch(error){ done(error); }
+    });
+  }
+
+  function videoReplayTraceGeometry(meta, w, h){
+    const corners = meta.calib.corners.slice(0,4), aspect = w/h, k1 = meta.calib.k1;
+    const poly = corners.map(p => videoUndistortPoint(p, k1, aspect));
+    const mask = new Uint8Array(w*h);
+    for(let y=0; y<h; y++) for(let x=0; x<w; x++){
+      const p = videoUndistortPoint({x:(x+.5)/w,y:(y+.5)/h}, k1, aspect);
+      if(pointInPolygon(p.x,p.y,poly)) mask[y*w+x] = 1;
+    }
+    const width = (Math.hypot((corners[1].x-corners[0].x)*w,(corners[1].y-corners[0].y)*h)
+      + Math.hypot((corners[2].x-corners[3].x)*w,(corners[2].y-corners[3].y)*h))/2;
+    const radius = Math.max(3, width * 3.075 / 284);
+    const world = [{x:0,y:0},{x:TABLE.W,y:0},{x:TABLE.W,y:TABLE.H},{x:0,y:TABLE.H}];
+    const H = homographyFromFourPoints(world, corners);
+    const guess = H && meta.position ? applyHomography(H, meta.position) : null;
+    return {mask,w,h,radius,width,guess:guess ? {x:guess.x*w,y:guess.y*h} : null,
+      color:new Uint8Array(w*h), eroded:new Uint8Array(w*h), queue:new Int32Array(w*h)};
+  }
+
+  function videoReplayTraceCandidates(data, geom, cue, region){
+    const {w,h,mask,color,eroded,queue,radius} = geom;
+    const x0=Math.max(1,Math.floor(region ? region.x0 : 1)),x1=Math.min(w-1,Math.ceil(region ? region.x1 : w-1));
+    const y0=Math.max(1,Math.floor(region ? region.y0 : 1)),y1=Math.min(h-1,Math.ceil(region ? region.y1 : h-1));
+    // Solo se limpian y recorren las filas de la ventana de búsqueda.
+    for(let y=y0-1;y<=y1;y++){
+      color.fill(0,y*w+x0-1,y*w+x1+1); eroded.fill(0,y*w+x0-1,y*w+x1+1);
+    }
+    for(let y=y0;y<y1;y++) for(let x=x0;x<x1;x++){
+      const p=y*w+x;
+      if(!mask[p]) continue;
+      const i=p*4,r=data[i],g=data[i+1],b=data[i+2];
+      const yes = cue === 'red' ? r>115 && r>g*1.55 && r>b*1.45
+        : cue === 'yellow'
+        ? r>145 && g>100 && b<145 && r>b*1.55 && g>b*1.4 && r-g<115
+        : Math.min(r,g,b)>132 && Math.max(r,g,b)-Math.min(r,g,b)<72;
+      if(yes) color[p]=1;
+    }
+    // Una erosión corta separa reflejos y líneas delgadas del cuerpo de la bola.
+    for(let y=y0;y<y1;y++) for(let x=x0;x<x1;x++){
+      const p=y*w+x;
+      if(color[p] && color[p-1] && color[p+1] && color[p-w] && color[p+w]) eroded[p]=1;
+    }
+    const expected = Math.PI*Math.max(2,radius-1)**2, candidates=[];
+    for(let yy=y0;yy<y1;yy++) for(let xx=x0;xx<x1;xx++){
+      const start=yy*w+xx;
+      if(!eroded[start]) continue;
+      let head=0,tail=1,n=0,sx=0,sy=0,minX=w,minY=h,maxX=0,maxY=0;
+      queue[0]=start; eroded[start]=0;
+      while(head<tail){
+        const p=queue[head++],x=p%w,y=(p/w)|0;
+        n++;sx+=x;sy+=y;minX=Math.min(minX,x);maxX=Math.max(maxX,x);minY=Math.min(minY,y);maxY=Math.max(maxY,y);
+        for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++){
+          const xx=x+dx,yy=y+dy;
+          if(xx<x0||xx>=x1||yy<y0||yy>=y1) continue;
+          const q=yy*w+xx;
+          if(eroded[q]){ eroded[q]=0;queue[tail++]=q; }
+        }
+      }
+      if(n<expected*.16||n>expected*3.2) continue;
+      const bw=maxX-minX+1,bh=maxY-minY+1,ratio=Math.max(bw/bh,bh/bw),fill=n/(bw*bh);
+      if(ratio>4.2||Math.min(bw,bh)<radius*.45||fill<.30) continue;
+      const quality=Math.abs(Math.log(n/expected))*.6+Math.log(ratio)*.9+(1-fill)*.7;
+      candidates.push({x:sx/n+.5,y:sy/n+.5,area:n,quality});
+    }
+    return candidates;
+  }
+
+  function videoReplayTraceChoose(candidates, last, previous, t, geom){
+    const {radius,width,guess} = geom;
+    const elapsed=last ? t-last.t : 0;
+    const gate=last ? radius*4+width*4*Math.min(.35,elapsed) : Infinity;
+    const ranked=[];
+    for(const p of candidates){
+      const d=last ? Math.hypot(p.x-last.x,p.y-last.y) : 0;
+      if(last && elapsed<.35 && d>gate) continue;
+      let score=p.quality;
+      if(last && elapsed<.35){
+        score += d/(radius*5+width*elapsed*2);
+        if(previous && last.t>previous.t && elapsed<.12){
+          const k=Math.min(2,elapsed/(last.t-previous.t));
+          const predicted={x:last.x+(last.x-previous.x)*k,y:last.y+(last.y-previous.y)*k};
+          score += Math.min(2,Math.hypot(p.x-predicted.x,p.y-predicted.y)/(radius*5+width*elapsed))*0.25;
+        }
+      } else if(!last && guess) score += Math.min(1,Math.hypot(p.x-guess.x,p.y-guess.y)/width)*.45;
+      ranked.push({...p,score,t});
+    }
+    ranked.sort((a,b)=>a.score-b.score);
+    if(!ranked.length) return null;
+    if(ranked.length>1 && ranked[1].score-ranked[0].score<.22) return null;
+    return ranked[0];
+  }
+
+  // Lectura continua a velocidad normal: el navegador decodifica en orden.
+  // Solo se solicitan por separado cuadros que no entregó a tiempo.
+  function videoReplayTraceContinuous(video, signal, read, progress){
+    return new Promise((resolve,reject)=>{
+      let handle=0,timer=0,done=false,lastFrame=performance.now();
+      const finish=error=>{
+        if(done) return;done=true;
+        if(handle) video.cancelVideoFrameCallback(handle);
+        clearInterval(timer);video.pause();
+        video.removeEventListener('ended',end);video.removeEventListener('error',fail);
+        document.removeEventListener('visibilitychange',visibility);signal.removeEventListener('abort',abort);
+        videoReplayTrace.paused=false;
+        error ? reject(error) : resolve();
+      };
+      const abort=()=>finish(new DOMException("분석 취소됨",'AbortError'));
+      const fail=()=>finish(new Error("녹화 영상을 읽을 수 없습니다."));
+      const end=()=>finish();
+      const play=()=>video.play().catch(error=>finish(error));
+      const visibility=()=>{
+        if(done) return;
+        videoReplayTrace.paused=document.hidden;
+        if(document.hidden) video.pause();else {lastFrame=performance.now();play();}
+        videoReplayTraceUi();
+      };
+      const frame=(now,meta)=>{
+        if(done) return;
+        try{read(meta.mediaTime);progress(meta.mediaTime);lastFrame=performance.now();}
+        catch(error){finish(error);return;}
+        handle=video.requestVideoFrameCallback(frame);
+      };
+      if(signal.aborted){abort();return;}
+      signal.addEventListener('abort',abort,{once:true});video.addEventListener('ended',end,{once:true});video.addEventListener('error',fail,{once:true});
+      document.addEventListener('visibilitychange',visibility);
+      timer=setInterval(()=>{if(!document.hidden && performance.now()-lastFrame>15000) finish(new Error("브라우저가 영상 프레임 제공을 멈췄습니다. 다시 분석해 보세요."));},1000);
+      handle=video.requestVideoFrameCallback(frame);video.playbackRate=1;
+      visibility();
+    });
+  }
+
+  function videoReplayTraceBuildTrack(frames,key,geom){
+    const rows=frames.filter(f=>f[key]).map(f=>({...f[key],t:f.t}));
+    const points=[];let anchor=null,last=null,pending=null,stable=0,baseline=false,onset=null;
+    const point=(p,gap)=>({t:p.t,x:p.x/geom.w,y:p.y/geom.h,break:gap});
+    for(const p of rows){
+      const gap=last && p.t-last.t>.075;
+      if(onset===null){
+        if(!anchor){anchor=p;stable=1;pending=null;}
+        const distance=Math.hypot(p.x-anchor.x,p.y-anchor.y);
+        if(distance<geom.radius*.45){
+          stable++;if(stable>=3) baseline=true;
+          anchor={...anchor,t:p.t};pending=null;
+        } else if(baseline && distance>geom.radius*.7){
+          if(pending && p.t-pending.t<.3){
+            onset=pending.t;
+            points.push(point(anchor,true),point(pending,pending.t-anchor.t>.075),point(p,p.t-pending.t>.075));
+          } else pending=p;
+        } else if(!baseline){anchor=p;stable=1;}
+      } else points.push(point(p,!!gap));
+      last=p;
+    }
+    return {key,points,onset,baseline,rows,missing:frames.length-rows.length};
+  }
+
+  function videoReplayTraceUseBall(key,manual=false){
+    const tr=videoReplayTrace,track=tr.tracks && tr.tracks[key];
+    if(!track || tr.url!==videoReplay.blobUrl) return false;
+    let points=track.points;
+    if(manual && !points.length && track.rows.length>1){
+      const first=track.rows[0];
+      if(track.rows.some(p=>Math.hypot(p.x-first.x,p.y-first.y)>tr.metrics.radius*2)){
+        points=track.rows.map((p,i)=>({t:p.t,x:p.x/tr.metrics.width,y:p.y/tr.metrics.height,break:!i||p.t-track.rows[i-1].t>.075}));
+      }
+    }
+    tr.meta.cue=key;tr.points=points;tr.missing=track.missing;
+    tr.status='ready';
+    tr.message=points.length>1
+      ? (manual ? "선택한 공: " : "가장 먼저 움직인 공: ")+ballDisplayName(key, true)+". 궤적이 준비되었습니다. 재생하거나 “데이터 포함 다운로드”를 사용할 수 있습니다. 다음 녹화에서는 추적이 해제됩니다."
+      : "충분한 이동이 감지되지 않았습니다. 공: "+ballDisplayName(key, true)+'.';
+    if(points.length>1 && points.some((p,i)=>i>0&&p.break)) tr.message+=" 일부 구간은 안정적으로 추적되지 않아 선으로 연결하지 않았습니다.";
+    videoReplayTraceUi();return true;
+  }
+
+  async function videoReplayTraceAnalyze(){
+    const tr=videoReplayTrace;
+    if(!tr.enabled||videoReplay.mode!=='replay'||!videoReplay.blobUrl||videoReplay.exporting||tr.busy) return false;
+    videoReplayTraceCancel();
+    const job=tr.job,url=videoReplay.blobUrl,meta=tr.meta;
+    if(!meta||!meta.calib||meta.calib.corners.length<4){
+      tr.status='error';tr.message="이번 녹화의 보정 정보가 저장되지 않았습니다. 카메라를 보정한 뒤 새 샷을 녹화하세요.";videoReplayTraceUi();return false;
+    }
+    const controller=new AbortController(),signal=controller.signal,started=performance.now();
+    Object.assign(tr,{controller,busy:true,status:'working',progress:0,points:[],url:null,message:'',missing:0,samples:0,tracks:null,paused:false});
+    const manual=ids('videoReplayTraceBall');if(manual) manual.value='';
+    videoReplayTraceUi();
+    const video=document.createElement('video');video.muted=true;video.volume=0;video.playsInline=true;video.preload='auto';
+    const canvas=document.createElement('canvas');
+    try{
+      await videoReplayTraceWait(video,'loadeddata',signal,()=>{video.src=url;video.load();});
+      if(!Number.isFinite(video.duration)||video.duration<=0) await videoReplayTraceWait(video,'seeked',signal,()=>{video.currentTime=1e6;});
+      const duration=video.duration;
+      if(!Number.isFinite(duration)||duration<=0) throw new Error("영상 길이를 확인할 수 없습니다.");
+      if(video.currentTime>0) await videoReplayTraceWait(video,'seeked',signal,()=>{video.currentTime=0;});
+      const scale=Math.min(1,960/video.videoWidth);
+      canvas.width=Math.max(2,Math.round(video.videoWidth*scale));canvas.height=Math.max(2,Math.round(video.videoHeight*scale));
+      const w=canvas.width,h=canvas.height,g=canvas.getContext('2d',{willReadFrequently:true});
+      const geom=videoReplayTraceGeometry(meta,w,h),keys=['white','yellow','red'],frames=[],last={},previous={};
+      let lastUi=0,cpuMs=0,fullSearches=0,localSearches=0;
+      const valid=()=>{
+        if(signal.aborted||tr.job!==job||videoReplay.blobUrl!==url) throw new DOMException("분석 취소됨",'AbortError');
+      };
+      const read=(t,repair=false)=>{
+        valid();if(frames.some(f=>Math.abs(f.t-t)<.004)) return;
+        const start=performance.now(),frame={t};
+        g.setTransform(-1,0,0,-1,w,h);g.drawImage(video,0,0,w,h);g.setTransform(1,0,0,1,0,0);
+        const data=g.getImageData(0,0,w,h).data;
+        for(const key of keys){
+          let prior=last[key],prev=previous[key];
+          if(repair){
+            const earlier=frames.filter(f=>f.t<t&&f[key]).sort((a,b)=>a.t-b.t);
+            prior=earlier.length?{...earlier.at(-1)[key],t:earlier.at(-1).t}:null;
+            prev=earlier.length>1?{...earlier.at(-2)[key],t:earlier.at(-2).t}:null;
+          }
+          let found=null;
+          if(prior && t-prior.t<.25){
+            const margin=geom.radius*3+geom.width*1.5*Math.max(1/30,t-prior.t);
+            const region={x0:prior.x-margin,y0:prior.y-margin,x1:prior.x+margin,y1:prior.y+margin};
+            found=videoReplayTraceChoose(videoReplayTraceCandidates(data,geom,key,region),prior,prev,t,geom);localSearches++;
+          }
+          if(!found){
+            // La misma distancia máxima que admite el selector limita la
+            // búsqueda ampliada; no hace falta examinar el resto de la mesa.
+            const gap=prior ? t-prior.t : Infinity;
+            const margin=geom.radius*6+geom.width*4*Math.min(.35,gap);
+            const region=prior&&gap<.35 ? {x0:prior.x-margin,y0:prior.y-margin,x1:prior.x+margin,y1:prior.y+margin} : null;
+            found=videoReplayTraceChoose(videoReplayTraceCandidates(data,geom,key,region),prior,prev,t,geom);
+            if(region) localSearches++;else fullSearches++;
+          }
+          frame[key]=found;
+          if(found&&!repair){previous[key]=prior;last[key]=found;}
+        }
+        frames.push(frame);cpuMs+=performance.now()-start;
+      };
+      const progress=t=>{
+        if(performance.now()-lastUi>250){tr.progress=Math.min(94,Math.round(t/duration*94));videoReplayTraceUi();lastUi=performance.now();}
+      };
+      let repaired=0,method='continua';read(0);
+      if(typeof video.requestVideoFrameCallback==='function'){
+        await videoReplayTraceContinuous(video,signal,read,progress);valid();
+        const ordered=[...frames].sort((a,b)=>a.t-b.t),missing=[];
+        for(let i=1;i<ordered.length;i++){
+          if(ordered[i].t-ordered[i-1].t>.065){
+            for(let t=ordered[i-1].t+1/30;t<ordered[i].t-.015;t+=1/30) missing.push(t);
+          }
+        }
+        if(!ordered.length||duration-ordered.at(-1).t>.05) missing.push(Math.max(0,duration-.003));
+        for(let i=0;i<missing.length;i++){
+          valid();await videoReplayTraceWait(video,'seeked',signal,()=>{video.currentTime=missing[i];});read(missing[i],true);repaired++;
+          tr.progress=94+Math.round((i+1)/missing.length*5);videoReplayTraceUi();
+        }
+      } else {
+        // Compatibilidad: el método anterior solo para navegadores sin lectura por cuadro.
+        method='compatible';
+        for(let t=1/30;t<duration;t+=1/30){valid();await videoReplayTraceWait(video,'seeked',signal,()=>{video.currentTime=t;});read(t);progress(t);}
+      }
+      valid();frames.sort((a,b)=>a.t-b.t);
+      const tracks=Object.fromEntries(keys.map(key=>[key,videoReplayTraceBuildTrack(frames,key,geom)]));
+      Object.assign(tr,{url,tracks,samples:frames.length,progress:100,metrics:{elapsedMs:performance.now()-started,cpuMs,duration,method,repaired,fullSearches,localSearches,width:w,height:h,radius:geom.radius}});
+      const moved=Object.values(tracks).filter(t=>t.onset!==null).sort((a,b)=>a.onset-b.onset),winner=moved[0];
+      // Se comparan las salidas, no quién se desplazó más ni el selector de sistemas.
+      const clear=winner && (!moved[1]||moved[1].onset-winner.onset>.05)
+        && keys.every(key=>tracks[key].rows.some(p=>p.t<winner.onset && winner.onset-p.t<.12));
+      if(clear) videoReplayTraceUseBall(winner.key);
+      else {
+        tr.status='choice';tr.message=winner
+          ? "두 공이 거의 동시에 움직였거나 공이 가려져 확실하게 선택할 수 없습니다. 아래에서 공을 선택하세요. 다시 분석할 필요는 없습니다."
+          : "정지 상태에서 시작된 첫 움직임을 명확하게 찾지 못했습니다. 아래에서 추적할 공을 선택할 수 있습니다.";
+      }
+      return tr.status==='ready';
+    }catch(error){
+      if(tr.job===job && error.name!=='AbortError'){tr.status='error';tr.message="추적을 완료하지 못했습니다. "+error.message;}
+      return false;
+    }finally{
+      video.pause();video.removeAttribute('src');video.load();canvas.width=canvas.height=1;
+      if(tr.job===job){tr.busy=false;tr.controller=null;tr.paused=false;videoReplayTraceUi();}
+    }
+  }
+
+  function drawVideoReplayTrace(g,cw,ch,time,view,trace=videoReplayTrace){
+    if(!trace.enabled||trace.status!=='ready'||trace.url!==videoReplay.blobUrl||trace.points.length<2) return;
+    const calib=videoReplay.calib,aspect=cw/ch;
+    const k1=calib&&Number.isFinite(calib.k1)?calib.k1:0;
+    let H=null;
+    if(view==='rectified'){
+      if(!calib||!calib.corners) return;
+      const R=rectifiedClothRect(cw,ch);
+      H=homographyFromFourPoints(calib.corners.slice(0,4).map(p=>videoUndistortPoint(p,k1,aspect)),
+        [{x:R.x,y:R.y},{x:R.x+R.w,y:R.y},{x:R.x+R.w,y:R.y+R.h},{x:R.x,y:R.y+R.h}]);
+      if(!H) return;
+    }
+    const project=p=>{
+      const q=view==='raw'?p:videoUndistortPoint(p,k1,aspect);
+      return H?applyHomography(H,q):{x:q.x*cw,y:q.y*ch};
+    };
+    g.save();g.beginPath();g.rect(0,0,cw,ch);g.clip();g.beginPath();
+    let previous=null,hasLine=false;
+    for(const p of trace.points){
+      if(p.t>time){
+        if(previous&&!p.break&&p.t-previous.t<.08&&time>previous.t){
+          const f=(time-previous.t)/(p.t-previous.t),q=project({x:previous.x+(p.x-previous.x)*f,y:previous.y+(p.y-previous.y)*f});
+          if(q){g.lineTo(q.x,q.y);hasLine=true;}
+        }
+        break;
+      }
+      const q=project(p);
+      if(!q){previous=null;continue;}
+      if(!previous||p.break) g.moveTo(q.x,q.y);else {g.lineTo(q.x,q.y);hasLine=true;}
+      previous=p;
+    }
+    if(hasLine){g.lineJoin='round';g.lineCap='round';g.lineWidth=Math.max(2,cw/400);g.strokeStyle='rgba(255,216,45,.95)';g.stroke();}
+    g.restore();
+  }
+
+  function setupVideoReplayTrace(){
+    const tr=videoReplayTrace,chk=ids('videoReplayTraceChk');
+    if(chk) chk.addEventListener('change',()=>{
+      tr.enabled=chk.checked;
+      if(!tr.enabled) videoReplayTraceCancel();
+      else if(videoReplay.mode==='replay'&&videoReplay.blobUrl&&(tr.url!==videoReplay.blobUrl||tr.status!=='ready')) videoReplayTraceAnalyze();
+      videoReplayTraceUi();
+    });
+    ids('videoReplayTraceCancel').addEventListener('click',()=>videoReplayTraceCancel(true));
+    ids('videoReplayTraceRetry').addEventListener('click',()=>videoReplayTraceAnalyze());
+    ids('videoReplayTraceBall').addEventListener('change',event=>{
+      if(!tr.busy && !videoReplay.exporting) videoReplayTraceUseBall(event.target.value,true);
+    });
+    videoReplayTraceUi();
+  }
+
   function drawVideoReplayOverlay(g, cw, ch, opts){
     const H = videoReplayHomography(cw, ch);
     if(!H) return;
@@ -15676,6 +16098,7 @@ function drawStartMarks(){
     g.fillStyle = '#05070a';
     g.fillRect(0,0,cw,ch);
 
+    let traceView = 'raw';
     if(vw && vh){
       let pintado = false;
       // Vista rectificada: el shader aplica la cadena completa (lente +
@@ -15689,7 +16112,7 @@ function drawStartMarks(){
             const k1r = Number.isFinite(videoReplay.calib.k1) ? videoReplay.calib.k1 : 0;
             rc.render(source, Math.max(2, Math.round(cw*dpr)), Math.max(2, Math.round(ch*dpr)), k1r, cw/ch, Hh);
             g.drawImage(rc.canvas, 0, 0, cw, ch);
-            pintado = true;
+            pintado = true; traceView = 'rectified';
           }catch{}
         }
       }
@@ -15702,7 +16125,7 @@ function drawStartMarks(){
           if(dw.ok){
             try{
               dw.render(source, Math.max(2, Math.round(cw*dpr)), Math.max(2, Math.round(ch*dpr)), videoReplay.calib.k1, vw/vh);
-              cuadro = dw.canvas;
+              cuadro = dw.canvas; traceView = 'dewarped';
             }catch{}
           }
         }
@@ -15776,12 +16199,16 @@ function drawStartMarks(){
     } else if(videoReplay.mode === 'replay'){
       const chk = ids('videoReplayShowGuide');
       if(!chk || chk.checked) drawVideoReplayOverlay(g, cw, ch, {route:true, handles:false});
+      drawVideoReplayTrace(g, cw, ch, source.currentTime, traceView);
       syncVideoReplayScrub();
     }
   }
 
   function setVideoReplayMode(mode){
+    if(mode === 'record' && videoReplay.mode !== 'record') videoReplayTraceNewRecording();
     videoReplay.mode = mode;
+    if(mode !== 'replay') videoReplayTraceCancel();
+    videoReplayTraceUi();
     const visible = {
       calibrate:'videoReplayCalibPanel',
       record:'videoReplayRecordPanel',
@@ -15869,6 +16296,7 @@ function drawStartMarks(){
   }
 
   function closeVideoReplayModal(){
+    videoReplayTraceReset();
     videoReplay.apertura = (videoReplay.apertura || 0) + 1;
     const modal = ids('videoReplayModal');
     if(!modal) return;
@@ -16090,6 +16518,7 @@ function drawStartMarks(){
     videoReplay.recorder = recorder;
     recorder.ondataavailable = e => { if(e.data && e.data.size) videoReplay.chunks.push(e.data); };
     recorder.onstop = finishVideoReplayRecording;
+    videoReplayTracePrepare();
     recorder.start(250);
     videoReplay.recStartMs = Date.now();
 
@@ -16152,6 +16581,8 @@ function drawStartMarks(){
     };
     setVideoReplayMode('replay');
     setVideoReplayStatus('녹화 완료. 재생하거나 프레임 단위로 이동하거나 슬로모션으로, 계획한 조준점·도착점과 실행을 비교하십시오.', 'good');
+    if(videoReplayTrace.enabled) videoReplayTraceAnalyze();
+    else videoReplayTraceUi();
   }
 
   function videoReplayCanvasPointFromEvent(e){
@@ -16345,6 +16776,7 @@ function drawStartMarks(){
     }
     if(againBtn) againBtn.disabled = busy;
     if(downloadBtn) downloadBtn.disabled = busy;
+    videoReplayTraceUi();
   }
 
   // Exportación posterior: reproduce internamente la grabación y la vuelve a
@@ -16354,6 +16786,17 @@ function drawStartMarks(){
   // tarda unos 30 s. La pestaña debe permanecer visible mientras termina.
   async function exportVideoReplayWithOverlay(){
     if(videoReplay.exporting) return;
+    if(videoReplayTrace.enabled && videoReplay.blobUrl){
+      if(videoReplayTrace.status === 'choice'){ setVideoReplayStatus("실제 궤적에서 공을 선택하거나, 추적을 해제하여 궤적 없이 다운로드하세요."); return; }
+      if(videoReplayTrace.busy){ setVideoReplayStatus("궤적 분석이 끝난 후 내보내세요."); return; }
+      if(videoReplayTrace.url !== videoReplay.blobUrl || videoReplayTrace.status !== 'ready'){
+        if(!await videoReplayTraceAnalyze()){
+          setVideoReplayStatus("추적이 준비되지 않았습니다. 안내를 확인하거나 선택을 해제하여 실제 궤적 없이 내보내세요.", 'bad'); return;
+        }
+        if(videoReplay.exporting || videoReplay.mode !== 'replay' || !videoReplay.blobUrl) return;
+      }
+    }
+    const traceForExport = {...videoReplayTrace};
     if(!videoReplay.blobUrl){
       setVideoReplayStatus('내보낼 녹화가 없습니다.', 'bad');
       return;
@@ -16504,6 +16947,10 @@ function drawStartMarks(){
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 4000);
       ytgTimbreListo();
+      if(traceForExport.enabled && traceForExport.points.length > 1){
+        setVideoReplayStatus("다운로드한 영상 형식: " + (isMp4 ? 'MP4' : 'WebM') + ". 추적한 공의 실제 궤적이 점진적으로 표시되며 데이터가 겹쳐집니다.", 'good');
+        return;
+      }
       setVideoReplayStatus(isMp4
         ? '궤적 영상이 MP4(H.264 + AAC)로 다운로드되어 WhatsApp 전송 준비가 되었습니다. 방향 보정, 테이블 프레임, 공 링, 파란 선, 조준점, 오디오가 새겨져 있습니다.'
         : '궤적 영상이 WebM으로 다운로드되었습니다. 이 브라우저는 MP4 녹화를 제공하지 않습니다. 방향 보정과 전체 오버레이가 새겨져 있습니다. WhatsApp에는 MP4를 직접 내보내는 최신 Chrome 또는 Edge를 사용하십시오.', 'good');
@@ -16514,7 +16961,7 @@ function drawStartMarks(){
       videoReplay.exportRaf = requestAnimationFrame(drawExportFrame);
       g.fillStyle = '#05070a';
       g.fillRect(0, 0, vw, vh);
-      let pintadoExp = false;
+      let pintadoExp = false, traceView = 'raw';
       if(videoReplayRectifyActive()){
         const rce = getVideoRectifier('exportacion');
         const Hhe = rectifiedOutputHomography(vw, vh);
@@ -16523,7 +16970,7 @@ function drawStartMarks(){
             const k1e = Number.isFinite(videoReplay.calib.k1) ? videoReplay.calib.k1 : 0;
             rce.render(srcVideo, vw, vh, k1e, vw/vh, Hhe);
             g.drawImage(rce.canvas, 0, 0, vw, vh);
-            pintadoExp = true;
+            pintadoExp = true; traceView = 'rectified';
           }catch{}
         }
       }
@@ -16534,7 +16981,7 @@ function drawStartMarks(){
           if(dwe.ok){
             try{
               dwe.render(srcVideo, vw, vh, videoReplay.calib.k1, vw/vh);
-              cuadroExp = dwe.canvas;
+              cuadroExp = dwe.canvas; traceView = 'dewarped';
             }catch{}
           }
         }
@@ -16545,6 +16992,7 @@ function drawStartMarks(){
         g.restore();
       }
       drawVideoReplayOverlay(g, vw, vh, {route:true, handles:false});
+      drawVideoReplayTrace(g, vw, vh, srcVideo.currentTime, traceView, traceForExport);
       if(total){
         const pct = Math.min(100, Math.round((srcVideo.currentTime/total)*100));
         setVideoReplayStatus('데이터 포함 내보내는 중… ' + pct + ' %. 완료될 때까지 탭을 바꾸지 마십시오.');
@@ -16571,6 +17019,7 @@ function drawStartMarks(){
   }
 
   function setupVideoReplay(){
+    setupVideoReplayTrace();
     videoReplay.calib = loadVideoCalibration();
     updateVideoReplayModuleState();
 
@@ -16818,7 +17267,7 @@ function drawStartMarks(){
   setupConnectorMapButton();
 
   document.querySelectorAll('select,input').forEach(el=>{
-    if(el.classList.contains('posCm') || el.classList.contains('posRef')) return;
+    if(el.classList.contains('posCm') || el.classList.contains('posRef') || el.id === 'videoReplayTraceChk' || el.id === 'videoReplayTraceBall') return;
     el.addEventListener('input', () => recalculateAll(`control-input-${el.id || el.name || 'anon'}`));
     el.addEventListener('change', () => recalculateAll(`control-change-${el.id || el.name || 'anon'}`));
   });
