@@ -2139,6 +2139,12 @@
 <button class="cameraCaptureBtn" id="videoReplayExportBtn" style="margin:0" type="button">Descargar con datos</button>
 </div>
 </div>
+<div class="videoReplayGroup" id="videoReplayTracePanel" style="display:none">
+<h3>Trayectoria real</h3>
+<label style="display:flex; gap:8px; align-items:flex-start; cursor:pointer;"><input id="videoReplayTraceChk" style="width:auto; margin-top:4px" type="checkbox" aria-describedby="videoReplayTraceStatus"/> <span class="small">Seguir la trayectoria real de la bola tacadora</span></label>
+<p class="small" id="videoReplayTraceStatus" role="status" aria-live="polite" style="margin:8px 0 0;">Active esta opción para añadir una línea amarilla al recorrido real. El análisis se hace después de detener la grabación.</p>
+<div class="videoReplayRow" style="margin-top:8px;"><button id="videoReplayTraceCancel" type="button" style="display:none">Cancelar análisis</button><button id="videoReplayTraceRetry" type="button" style="display:none">Analizar de nuevo</button></div>
+</div>
 <div class="videoReplayGroup" id="videoReplayDewarpPanel">
 <label class="small" style="display:flex; align-items:center; gap:8px; cursor:pointer;"><input id="videoReplayDewarpChk" type="checkbox"> Enderezar lente (mesa recta)</label>
 <label class="small" style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-top:6px;"><input id="videoReplayRectifyChk" type="checkbox"> Vista rectificada (mesa rectangular)</label>
@@ -15346,6 +15352,288 @@ function drawStartMarks(){
     return homographyFromFourPoints(src, dst);
   }
 
+  // Seguimiento posterior: posiciones observadas en la imagen girada, sin
+  // enderezar. Se proyectan al dibujar, igual que el cuadro que las contiene.
+  const videoReplayTrace = {
+    enabled:false, busy:false, status:'idle', points:[], url:null, meta:null,
+    controller:null, job:0, progress:0, message:'', missing:0, samples:0
+  };
+
+  function videoReplayTraceUi(){
+    const tr = videoReplayTrace, box = ids('videoReplayTracePanel');
+    if(box) box.style.display = ['record','replay'].includes(videoReplay.mode) ? '' : 'none';
+    const chk = ids('videoReplayTraceChk');
+    if(chk){ chk.checked = tr.enabled; chk.disabled = !!videoReplay.exporting; }
+    const note = ids('videoReplayTraceStatus');
+    if(note){
+      const cue = tr.meta ? tr.meta.cue : cueBallKeyFromControls(controls());
+      note.textContent = !tr.enabled ? 'Active esta opción para añadir una línea amarilla al recorrido real. El análisis se hace después de detener la grabación.'
+        : (tr.busy ? 'Analizando la bola ' + ballDisplayName(cue) + '… ' + tr.progress + ' %. Puede cancelar el análisis.'
+          : (tr.message || 'Se seguirá la bola ' + ballDisplayName(cue) + ' al terminar la grabación.'));
+    }
+    const cancel = ids('videoReplayTraceCancel');
+    if(cancel) cancel.style.display = tr.busy ? '' : 'none';
+    const retry = ids('videoReplayTraceRetry');
+    if(retry){
+      retry.style.display = tr.enabled && !tr.busy && videoReplay.mode === 'replay' && videoReplay.blobUrl ? '' : 'none';
+      retry.disabled = !!videoReplay.exporting;
+    }
+    const exportBtn = ids('videoReplayExportBtn');
+    if(exportBtn) exportBtn.disabled = !!videoReplay.exporting || (tr.enabled && tr.busy);
+  }
+
+  function videoReplayTraceCancel(notify=false){
+    const tr = videoReplayTrace;
+    tr.job++;
+    if(tr.controller) tr.controller.abort();
+    tr.controller = null;
+    if(tr.busy){
+      tr.busy = false; tr.status = 'cancelled';
+      tr.message = notify ? 'Análisis cancelado. Puede analizar de nuevo o desactivar el seguimiento para exportar sin él.' : '';
+    }
+    videoReplayTraceUi();
+  }
+
+  function videoReplayTraceReset(){
+    videoReplayTraceCancel();
+    Object.assign(videoReplayTrace, {status:'idle', points:[], url:null, meta:null, message:'', progress:0, missing:0, samples:0});
+    videoReplayTraceUi();
+  }
+
+  function videoReplayTracePrepare(){
+    videoReplayTraceReset();
+    const cue = cueBallKeyFromControls(controls()), c = videoReplay.calib;
+    videoReplayTrace.meta = {
+      cue, position:balls[cue] ? {...balls[cue]} : null,
+      calib:c ? {corners:c.corners.map(p => ({...p})), k1:Number.isFinite(c.k1) ? c.k1 : 0} : null
+    };
+    videoReplayTraceUi();
+  }
+
+  function videoReplayTraceWait(video, event, signal, action, timeout=12000){
+    return new Promise((resolve, reject) => {
+      let timer;
+      const done = error => {
+        clearTimeout(timer); video.removeEventListener(event, ok); video.removeEventListener('error', fail);
+        signal.removeEventListener('abort', abort);
+        error ? reject(error) : resolve();
+      };
+      const ok = () => done(), fail = () => done(new Error('No fue posible leer el video para seguir la bola.'));
+      const abort = () => done(new DOMException('Análisis cancelado', 'AbortError'));
+      if(signal.aborted){ abort(); return; }
+      video.addEventListener(event, ok, {once:true}); video.addEventListener('error', fail, {once:true});
+      signal.addEventListener('abort', abort, {once:true});
+      timer = setTimeout(() => done(new Error('El video tardó demasiado en entregar un cuadro. Puede intentar el análisis de nuevo.')), timeout);
+      try{ action(); }catch(error){ done(error); }
+    });
+  }
+
+  function videoReplayTraceGeometry(meta, w, h){
+    const corners = meta.calib.corners.slice(0,4), aspect = w/h, k1 = meta.calib.k1;
+    const poly = corners.map(p => videoUndistortPoint(p, k1, aspect));
+    const mask = new Uint8Array(w*h);
+    for(let y=0; y<h; y++) for(let x=0; x<w; x++){
+      const p = videoUndistortPoint({x:(x+.5)/w,y:(y+.5)/h}, k1, aspect);
+      if(pointInPolygon(p.x,p.y,poly)) mask[y*w+x] = 1;
+    }
+    const width = (Math.hypot((corners[1].x-corners[0].x)*w,(corners[1].y-corners[0].y)*h)
+      + Math.hypot((corners[2].x-corners[3].x)*w,(corners[2].y-corners[3].y)*h))/2;
+    const radius = Math.max(3, width * 3.075 / 284);
+    const world = [{x:0,y:0},{x:TABLE.W,y:0},{x:TABLE.W,y:TABLE.H},{x:0,y:TABLE.H}];
+    const H = homographyFromFourPoints(world, corners);
+    const guess = H && meta.position ? applyHomography(H, meta.position) : null;
+    return {mask,w,h,radius,width,guess:guess ? {x:guess.x*w,y:guess.y*h} : null,
+      color:new Uint8Array(w*h), eroded:new Uint8Array(w*h), queue:new Int32Array(w*h)};
+  }
+
+  function videoReplayTraceCandidates(data, geom, cue){
+    const {w,h,mask,color,eroded,queue,radius} = geom;
+    color.fill(0); eroded.fill(0);
+    for(let p=0; p<mask.length; p++){
+      if(!mask[p]) continue;
+      const i=p*4,r=data[i],g=data[i+1],b=data[i+2];
+      const yes = cue === 'yellow'
+        ? r>145 && g>100 && b<145 && r>b*1.55 && g>b*1.4 && r-g<115
+        : Math.min(r,g,b)>132 && Math.max(r,g,b)-Math.min(r,g,b)<72;
+      if(yes) color[p]=1;
+    }
+    // Una erosión corta separa reflejos y líneas delgadas del cuerpo de la bola.
+    for(let y=1;y<h-1;y++) for(let x=1;x<w-1;x++){
+      const p=y*w+x;
+      if(color[p] && color[p-1] && color[p+1] && color[p-w] && color[p+w]) eroded[p]=1;
+    }
+    const expected = Math.PI*Math.max(2,radius-1)**2, candidates=[];
+    for(let start=0;start<eroded.length;start++){
+      if(!eroded[start]) continue;
+      let head=0,tail=1,n=0,sx=0,sy=0,minX=w,minY=h,maxX=0,maxY=0;
+      queue[0]=start; eroded[start]=0;
+      while(head<tail){
+        const p=queue[head++],x=p%w,y=(p/w)|0;
+        n++;sx+=x;sy+=y;minX=Math.min(minX,x);maxX=Math.max(maxX,x);minY=Math.min(minY,y);maxY=Math.max(maxY,y);
+        for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++){
+          const xx=x+dx,yy=y+dy;
+          if(xx<0||xx>=w||yy<0||yy>=h) continue;
+          const q=yy*w+xx;
+          if(eroded[q]){ eroded[q]=0;queue[tail++]=q; }
+        }
+      }
+      if(n<expected*.16||n>expected*3.2) continue;
+      const bw=maxX-minX+1,bh=maxY-minY+1,ratio=Math.max(bw/bh,bh/bw),fill=n/(bw*bh);
+      if(ratio>4.2||Math.min(bw,bh)<radius*.45||fill<.30) continue;
+      const quality=Math.abs(Math.log(n/expected))*.6+Math.log(ratio)*.9+(1-fill)*.7;
+      candidates.push({x:sx/n+.5,y:sy/n+.5,area:n,quality});
+    }
+    return candidates;
+  }
+
+  function videoReplayTraceChoose(candidates, last, previous, t, geom){
+    const {radius,width,guess} = geom;
+    const elapsed=last ? t-last.t : 0;
+    const gate=last ? radius*4+width*4*Math.min(.35,elapsed) : Infinity;
+    const ranked=[];
+    for(const p of candidates){
+      const d=last ? Math.hypot(p.x-last.x,p.y-last.y) : 0;
+      if(last && elapsed<.35 && d>gate) continue;
+      let score=p.quality;
+      if(last && elapsed<.35){
+        score += d/(radius*5+width*elapsed*2);
+        if(previous && last.t>previous.t && elapsed<.12){
+          const k=Math.min(2,elapsed/(last.t-previous.t));
+          const predicted={x:last.x+(last.x-previous.x)*k,y:last.y+(last.y-previous.y)*k};
+          score += Math.min(2,Math.hypot(p.x-predicted.x,p.y-predicted.y)/(radius*5+width*elapsed))*0.25;
+        }
+      } else if(!last && guess) score += Math.min(1,Math.hypot(p.x-guess.x,p.y-guess.y)/width)*.45;
+      ranked.push({...p,score,t});
+    }
+    ranked.sort((a,b)=>a.score-b.score);
+    if(!ranked.length) return null;
+    if(ranked.length>1 && ranked[1].score-ranked[0].score<.22) return null;
+    return ranked[0];
+  }
+
+  async function videoReplayTraceAnalyze(){
+    const tr=videoReplayTrace;
+    if(!tr.enabled||videoReplay.mode!=='replay'||!videoReplay.blobUrl||videoReplay.exporting||tr.busy) return false;
+    videoReplayTraceCancel();
+    const job=tr.job, url=videoReplay.blobUrl, meta=tr.meta;
+    if(!meta || !meta.calib || meta.calib.corners.length<4){
+      tr.status='error';tr.message='No se guardó la calibración de esta grabación. Calibre la cámara y grabe una nueva jugada para seguir la bola.';
+      videoReplayTraceUi();return false;
+    }
+    const controller=new AbortController(), signal=controller.signal;
+    Object.assign(tr,{controller,busy:true,status:'working',progress:0,points:[],url:null,message:'',missing:0,samples:0});
+    videoReplayTraceUi();
+    const video=document.createElement('video');video.muted=true;video.playsInline=true;video.preload='auto';
+    const canvas=document.createElement('canvas');
+    try{
+      await videoReplayTraceWait(video,'loadeddata',signal,()=>{video.src=url;video.load();});
+      if(!Number.isFinite(video.duration)||video.duration<=0){
+        await videoReplayTraceWait(video,'seeked',signal,()=>{video.currentTime=1e6;});
+      }
+      const duration=video.duration;
+      if(!Number.isFinite(duration)||duration<=0) throw new Error('No fue posible conocer la duración del video. Puede intentar el análisis de nuevo.');
+      const scale=Math.min(1,960/video.videoWidth);
+      canvas.width=Math.max(2,Math.round(video.videoWidth*scale));canvas.height=Math.max(2,Math.round(video.videoHeight*scale));
+      const w=canvas.width,h=canvas.height,g=canvas.getContext('2d',{willReadFrequently:true});
+      const geom=videoReplayTraceGeometry(meta,w,h), fps=30, count=Math.max(1,Math.ceil(duration*fps));
+      let last=null,previous=null,anchor=null,moving=false,moveCount=0,lastUi=0,missing=0;
+      const points=[];
+      for(let i=0;i<count;i++){
+        if(signal.aborted||tr.job!==job||videoReplay.blobUrl!==url) throw new DOMException('Análisis cancelado','AbortError');
+        const t=Math.min(i/fps,Math.max(0,duration-.002));
+        if(Math.abs(video.currentTime-t)>.0005||video.readyState<2){
+          await videoReplayTraceWait(video,'seeked',signal,()=>{video.currentTime=t;});
+        }
+        g.setTransform(-1,0,0,-1,w,h);g.drawImage(video,0,0,w,h);g.setTransform(1,0,0,1,0,0);
+        const found=videoReplayTraceChoose(videoReplayTraceCandidates(g.getImageData(0,0,w,h).data,geom,meta.cue),last,previous,t,geom);
+        if(found){
+          if(!anchor) anchor=found;
+          if(!moving){
+            if(last && t-last.t>2.1/fps){ anchor=found;moveCount=0; }
+            moveCount = Math.hypot(found.x-anchor.x,found.y-anchor.y)>geom.radius*.75 ? moveCount+1 : 0;
+            if(moveCount>=2){
+              moving=true;
+              points.push({t:anchor.t,x:anchor.x/w,y:anchor.y/h,break:true});
+            } else if(moveCount===0){ anchor={...anchor,t}; }
+          }
+          if(moving){
+            const gap=!last||t-last.t>2.1/fps;
+            points.push({t,x:found.x/w,y:found.y/h,break:gap});
+          }
+          previous=last;last=found;
+        } else { missing++;moveCount=0; }
+        if(performance.now()-lastUi>250||i===count-1){
+          tr.progress=Math.round((i+1)/count*100);videoReplayTraceUi();lastUi=performance.now();
+          await new Promise(resolve=>setTimeout(resolve,0));
+        }
+      }
+      if(signal.aborted||tr.job!==job||videoReplay.blobUrl!==url) return false;
+      Object.assign(tr,{points,url,status:'ready',samples:count,missing});
+      tr.message = !last ? 'No se pudo identificar la bola '+ballDisplayName(meta.cue)+'. Revise la iluminación y que haya elegido la bola tacadora correcta.'
+        : !moving ? 'No se detectó un desplazamiento suficiente de la bola '+ballDisplayName(meta.cue)+'.'
+        : 'Recorrido de la bola '+ballDisplayName(meta.cue)+' listo. Se dibuja al reproducir y se incluye en «Descargar con datos».';
+      if(!last) tr.status='error';
+      else if(moving && (missing>count*.08||points.some((p,i)=>i>0&&p.break))) tr.message+=' Hay tramos sin seguimiento fiable; se dejan sin unir.';
+      return tr.status==='ready';
+    }catch(error){
+      if(tr.job===job && error.name!=='AbortError'){
+        tr.status='error';tr.message='No se pudo completar el seguimiento. '+error.message;
+      }
+      return false;
+    }finally{
+      video.pause();video.removeAttribute('src');video.load();canvas.width=canvas.height=1;
+      if(tr.job===job){tr.busy=false;tr.controller=null;videoReplayTraceUi();}
+    }
+  }
+
+  function drawVideoReplayTrace(g,cw,ch,time,view,trace=videoReplayTrace){
+    if(!trace.enabled||trace.status!=='ready'||trace.url!==videoReplay.blobUrl||trace.points.length<2) return;
+    const calib=videoReplay.calib,aspect=cw/ch;
+    const k1=calib&&Number.isFinite(calib.k1)?calib.k1:0;
+    let H=null;
+    if(view==='rectified'){
+      if(!calib||!calib.corners) return;
+      const R=rectifiedClothRect(cw,ch);
+      H=homographyFromFourPoints(calib.corners.slice(0,4).map(p=>videoUndistortPoint(p,k1,aspect)),
+        [{x:R.x,y:R.y},{x:R.x+R.w,y:R.y},{x:R.x+R.w,y:R.y+R.h},{x:R.x,y:R.y+R.h}]);
+      if(!H) return;
+    }
+    const project=p=>{
+      const q=view==='raw'?p:videoUndistortPoint(p,k1,aspect);
+      return H?applyHomography(H,q):{x:q.x*cw,y:q.y*ch};
+    };
+    g.save();g.beginPath();g.rect(0,0,cw,ch);g.clip();g.beginPath();
+    let previous=null,hasLine=false;
+    for(const p of trace.points){
+      if(p.t>time){
+        if(previous&&!p.break&&p.t-previous.t<.08&&time>previous.t){
+          const f=(time-previous.t)/(p.t-previous.t),q=project({x:previous.x+(p.x-previous.x)*f,y:previous.y+(p.y-previous.y)*f});
+          if(q){g.lineTo(q.x,q.y);hasLine=true;}
+        }
+        break;
+      }
+      const q=project(p);
+      if(!q){previous=null;continue;}
+      if(!previous||p.break) g.moveTo(q.x,q.y);else {g.lineTo(q.x,q.y);hasLine=true;}
+      previous=p;
+    }
+    if(hasLine){g.lineJoin='round';g.lineCap='round';g.lineWidth=Math.max(2,cw/400);g.strokeStyle='rgba(255,216,45,.95)';g.stroke();}
+    g.restore();
+  }
+
+  function setupVideoReplayTrace(){
+    const tr=videoReplayTrace,chk=ids('videoReplayTraceChk');
+    if(chk) chk.addEventListener('change',()=>{
+      tr.enabled=chk.checked;
+      if(!tr.enabled) videoReplayTraceCancel();
+      else if(videoReplay.mode==='replay'&&videoReplay.blobUrl&&(tr.url!==videoReplay.blobUrl||tr.status!=='ready')) videoReplayTraceAnalyze();
+      videoReplayTraceUi();
+    });
+    ids('videoReplayTraceCancel').addEventListener('click',()=>videoReplayTraceCancel(true));
+    ids('videoReplayTraceRetry').addEventListener('click',()=>videoReplayTraceAnalyze());
+    videoReplayTraceUi();
+  }
+
   function drawVideoReplayOverlay(g, cw, ch, opts){
     const H = videoReplayHomography(cw, ch);
     if(!H) return;
@@ -15675,6 +15963,7 @@ function drawStartMarks(){
     g.fillStyle = '#05070a';
     g.fillRect(0,0,cw,ch);
 
+    let traceView = 'raw';
     if(vw && vh){
       let pintado = false;
       // Vista rectificada: el shader aplica la cadena completa (lente +
@@ -15688,7 +15977,7 @@ function drawStartMarks(){
             const k1r = Number.isFinite(videoReplay.calib.k1) ? videoReplay.calib.k1 : 0;
             rc.render(source, Math.max(2, Math.round(cw*dpr)), Math.max(2, Math.round(ch*dpr)), k1r, cw/ch, Hh);
             g.drawImage(rc.canvas, 0, 0, cw, ch);
-            pintado = true;
+            pintado = true; traceView = 'rectified';
           }catch{}
         }
       }
@@ -15701,7 +15990,7 @@ function drawStartMarks(){
           if(dw.ok){
             try{
               dw.render(source, Math.max(2, Math.round(cw*dpr)), Math.max(2, Math.round(ch*dpr)), videoReplay.calib.k1, vw/vh);
-              cuadro = dw.canvas;
+              cuadro = dw.canvas; traceView = 'dewarped';
             }catch{}
           }
         }
@@ -15775,12 +16064,15 @@ function drawStartMarks(){
     } else if(videoReplay.mode === 'replay'){
       const chk = ids('videoReplayShowGuide');
       if(!chk || chk.checked) drawVideoReplayOverlay(g, cw, ch, {route:true, handles:false});
+      drawVideoReplayTrace(g, cw, ch, source.currentTime, traceView);
       syncVideoReplayScrub();
     }
   }
 
   function setVideoReplayMode(mode){
     videoReplay.mode = mode;
+    if(mode !== 'replay') videoReplayTraceCancel();
+    videoReplayTraceUi();
     const visible = {
       calibrate:'videoReplayCalibPanel',
       record:'videoReplayRecordPanel',
@@ -15868,6 +16160,7 @@ function drawStartMarks(){
   }
 
   function closeVideoReplayModal(){
+    videoReplayTraceReset();
     videoReplay.apertura = (videoReplay.apertura || 0) + 1;
     const modal = ids('videoReplayModal');
     if(!modal) return;
@@ -16089,6 +16382,7 @@ function drawStartMarks(){
     videoReplay.recorder = recorder;
     recorder.ondataavailable = e => { if(e.data && e.data.size) videoReplay.chunks.push(e.data); };
     recorder.onstop = finishVideoReplayRecording;
+    videoReplayTracePrepare();
     recorder.start(250);
     videoReplay.recStartMs = Date.now();
 
@@ -16151,6 +16445,8 @@ function drawStartMarks(){
     };
     setVideoReplayMode('replay');
     setVideoReplayStatus('Grabación lista. Reproduzca, avance cuadro a cuadro o use cámara lenta para comparar la ejecución con los puntos de Ataque y Llegada planeados.', 'good');
+    if(videoReplayTrace.enabled) videoReplayTraceAnalyze();
+    else videoReplayTraceUi();
   }
 
   function videoReplayCanvasPointFromEvent(e){
@@ -16344,6 +16640,7 @@ function drawStartMarks(){
     }
     if(againBtn) againBtn.disabled = busy;
     if(downloadBtn) downloadBtn.disabled = busy;
+    videoReplayTraceUi();
   }
 
   // Exportación posterior: reproduce internamente la grabación y la vuelve a
@@ -16353,6 +16650,16 @@ function drawStartMarks(){
   // tarda unos 30 s. La pestaña debe permanecer visible mientras termina.
   async function exportVideoReplayWithOverlay(){
     if(videoReplay.exporting) return;
+    if(videoReplayTrace.enabled && videoReplay.blobUrl){
+      if(videoReplayTrace.busy){ setVideoReplayStatus('Espere a que termine el análisis de la trayectoria antes de exportar.'); return; }
+      if(videoReplayTrace.url !== videoReplay.blobUrl || videoReplayTrace.status !== 'ready'){
+        if(!await videoReplayTraceAnalyze()){
+          setVideoReplayStatus('El seguimiento no está listo. Revise su mensaje o desactive la casilla para exportar sin el recorrido real.', 'bad'); return;
+        }
+        if(videoReplay.exporting || videoReplay.mode !== 'replay' || !videoReplay.blobUrl) return;
+      }
+    }
+    const traceForExport = {...videoReplayTrace};
     if(!videoReplay.blobUrl){
       setVideoReplayStatus('No hay ninguna grabación para exportar.', 'bad');
       return;
@@ -16503,6 +16810,10 @@ function drawStartMarks(){
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 4000);
       ytgTimbreListo();
+      if(traceForExport.enabled && traceForExport.points.length > 1){
+        setVideoReplayStatus('Video descargado en ' + (isMp4 ? 'MP4' : 'WebM') + ' con el recorrido real progresivo de la bola tacadora y los datos superpuestos.', 'good');
+        return;
+      }
       setVideoReplayStatus(isMp4
         ? 'Video con trayectoria descargado en MP4 (H.264 + AAC), listo para enviar por WhatsApp: orientación corregida, marco de la mesa, anillos de las bolas, línea azul, punto de Ataque y audio incrustados.'
         : 'Video con trayectoria descargado en WebM: este navegador no ofreció grabación MP4. Contiene la orientación corregida y toda la superposición incrustada; para WhatsApp úselo desde un Chrome o Edge actualizados, que exportan MP4 directamente.', 'good');
@@ -16513,7 +16824,7 @@ function drawStartMarks(){
       videoReplay.exportRaf = requestAnimationFrame(drawExportFrame);
       g.fillStyle = '#05070a';
       g.fillRect(0, 0, vw, vh);
-      let pintadoExp = false;
+      let pintadoExp = false, traceView = 'raw';
       if(videoReplayRectifyActive()){
         const rce = getVideoRectifier('exportacion');
         const Hhe = rectifiedOutputHomography(vw, vh);
@@ -16522,7 +16833,7 @@ function drawStartMarks(){
             const k1e = Number.isFinite(videoReplay.calib.k1) ? videoReplay.calib.k1 : 0;
             rce.render(srcVideo, vw, vh, k1e, vw/vh, Hhe);
             g.drawImage(rce.canvas, 0, 0, vw, vh);
-            pintadoExp = true;
+            pintadoExp = true; traceView = 'rectified';
           }catch{}
         }
       }
@@ -16533,7 +16844,7 @@ function drawStartMarks(){
           if(dwe.ok){
             try{
               dwe.render(srcVideo, vw, vh, videoReplay.calib.k1, vw/vh);
-              cuadroExp = dwe.canvas;
+              cuadroExp = dwe.canvas; traceView = 'dewarped';
             }catch{}
           }
         }
@@ -16544,6 +16855,7 @@ function drawStartMarks(){
         g.restore();
       }
       drawVideoReplayOverlay(g, vw, vh, {route:true, handles:false});
+      drawVideoReplayTrace(g, vw, vh, srcVideo.currentTime, traceView, traceForExport);
       if(total){
         const pct = Math.min(100, Math.round((srcVideo.currentTime/total)*100));
         setVideoReplayStatus('Exportando con datos… ' + pct + ' %. No cambie de pestaña hasta que termine.');
@@ -16570,6 +16882,7 @@ function drawStartMarks(){
   }
 
   function setupVideoReplay(){
+    setupVideoReplayTrace();
     videoReplay.calib = loadVideoCalibration();
     updateVideoReplayModuleState();
 
@@ -16817,7 +17130,7 @@ function drawStartMarks(){
   setupConnectorMapButton();
 
   document.querySelectorAll('select,input').forEach(el=>{
-    if(el.classList.contains('posCm') || el.classList.contains('posRef')) return;
+    if(el.classList.contains('posCm') || el.classList.contains('posRef') || el.id === 'videoReplayTraceChk') return;
     el.addEventListener('input', () => recalculateAll(`control-input-${el.id || el.name || 'anon'}`));
     el.addEventListener('change', () => recalculateAll(`control-change-${el.id || el.name || 'anon'}`));
   });
