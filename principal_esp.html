@@ -11824,6 +11824,7 @@
 
 
   function recalculateAll(reason='user-change'){
+    videoReplayRender.last = null;
     resetCalculationState(reason);
 
     const c = controls();
@@ -15532,7 +15533,7 @@ function drawStartMarks(){
     return ranked[0];
   }
 
-  // Lectura continua a velocidad normal: el navegador decodifica en orden.
+  // Lectura continua acelerada: el navegador decodifica en orden.
   // Solo se solicitan por separado cuadros que no entregó a tiempo.
   function videoReplayTraceContinuous(video, signal, read, progress){
     return new Promise((resolve,reject)=>{
@@ -15566,7 +15567,7 @@ function drawStartMarks(){
       signal.addEventListener('abort',abort,{once:true});video.addEventListener('ended',end,{once:true});video.addEventListener('error',fail,{once:true});
       document.addEventListener('visibilitychange',visibility);
       timer=setInterval(()=>{if(!document.hidden && performance.now()-lastFrame>15000) finish(new Error('El navegador dejó de entregar imágenes. Intente analizar de nuevo.'));},1000);
-      handle=video.requestVideoFrameCallback(frame);video.playbackRate=1;
+      handle=video.requestVideoFrameCallback(frame);video.playbackRate=2;
       visibility();
     });
   }
@@ -15614,6 +15615,14 @@ function drawStartMarks(){
     videoReplayTraceUi();return true;
   }
 
+  // Índice de inserción temporal: reutilizar el orden ya conocido, sin volver
+  // a filtrar y ordenar toda la grabación por cada bola y cuadro recuperado.
+  function videoReplayTraceIndex(rows, t){
+    let lo=0,hi=rows.length;
+    while(lo<hi){const mid=(lo+hi)>>>1;if(rows[mid].t<t)lo=mid+1;else hi=mid;}
+    return lo;
+  }
+
   async function videoReplayTraceAnalyze(){
     const tr=videoReplayTrace;
     if(!tr.enabled||videoReplay.mode!=='replay'||!videoReplay.blobUrl||videoReplay.exporting||tr.busy) return false;
@@ -15637,23 +15646,22 @@ function drawStartMarks(){
       const scale=Math.min(1,960/video.videoWidth);
       canvas.width=Math.max(2,Math.round(video.videoWidth*scale));canvas.height=Math.max(2,Math.round(video.videoHeight*scale));
       const w=canvas.width,h=canvas.height,g=canvas.getContext('2d',{willReadFrequently:true});
-      const geom=videoReplayTraceGeometry(meta,w,h),keys=['white','yellow','red'],frames=[],last={},previous={};
+      const geom=videoReplayTraceGeometry(meta,w,h),keys=['white','yellow','red'],frames=[],history={white:[],yellow:[],red:[]};
       let lastUi=0,cpuMs=0,fullSearches=0,localSearches=0;
       const valid=()=>{
         if(signal.aborted||tr.job!==job||videoReplay.blobUrl!==url) throw new DOMException('Análisis cancelado','AbortError');
       };
       const read=(t,repair=false)=>{
-        valid();if(frames.some(f=>Math.abs(f.t-t)<.004)) return;
+        valid();
+        const index=videoReplayTraceIndex(frames,t);
+        if((index<frames.length && Math.abs(frames[index].t-t)<.004)
+          || (index>0 && Math.abs(frames[index-1].t-t)<.004)) return;
         const start=performance.now(),frame={t};
         g.setTransform(-1,0,0,-1,w,h);g.drawImage(video,0,0,w,h);g.setTransform(1,0,0,1,0,0);
         const data=g.getImageData(0,0,w,h).data;
         for(const key of keys){
-          let prior=last[key],prev=previous[key];
-          if(repair){
-            const earlier=frames.filter(f=>f.t<t&&f[key]).sort((a,b)=>a.t-b.t);
-            prior=earlier.length?{...earlier.at(-1)[key],t:earlier.at(-1).t}:null;
-            prev=earlier.length>1?{...earlier.at(-2)[key],t:earlier.at(-2).t}:null;
-          }
+          const rows=history[key],at=videoReplayTraceIndex(rows,t);
+          const prior=at>0?rows[at-1]:null,prev=at>1?rows[at-2]:null;
           let found=null;
           if(prior && t-prior.t<.25){
             const margin=geom.radius*3+geom.width*1.5*Math.max(1/30,t-prior.t);
@@ -15670,9 +15678,9 @@ function drawStartMarks(){
             if(region) localSearches++;else fullSearches++;
           }
           frame[key]=found;
-          if(found&&!repair){previous[key]=prior;last[key]=found;}
+          if(found) rows.splice(at,0,found);
         }
-        frames.push(frame);cpuMs+=performance.now()-start;
+        frames.splice(index,0,frame);cpuMs+=performance.now()-start;
       };
       const progress=t=>{
         if(performance.now()-lastUi>250){tr.progress=Math.min(94,Math.round(t/duration*94));videoReplayTraceUi();lastUi=performance.now();}
@@ -15680,7 +15688,7 @@ function drawStartMarks(){
       let repaired=0,method='continua';read(0);
       if(typeof video.requestVideoFrameCallback==='function'){
         await videoReplayTraceContinuous(video,signal,read,progress);valid();
-        const ordered=[...frames].sort((a,b)=>a.t-b.t),missing=[];
+        const ordered=frames.slice(),missing=[];
         for(let i=1;i<ordered.length;i++){
           if(ordered[i].t-ordered[i-1].t>.065){
             for(let t=ordered[i-1].t+1/30;t<ordered[i].t-.015;t+=1/30) missing.push(t);
@@ -15696,7 +15704,7 @@ function drawStartMarks(){
         method='compatible';
         for(let t=1/30;t<duration;t+=1/30){valid();await videoReplayTraceWait(video,'seeked',signal,()=>{video.currentTime=t;});read(t);progress(t);}
       }
-      valid();frames.sort((a,b)=>a.t-b.t);
+      valid();
       const tracks=Object.fromEntries(keys.map(key=>[key,videoReplayTraceBuildTrack(frames,key,geom)]));
       Object.assign(tr,{url,tracks,samples:frames.length,progress:100,metrics:{elapsedMs:performance.now()-started,cpuMs,duration,method,repaired,fullSearches,localSearches,width:w,height:h,radius:geom.radius}});
       const moved=Object.values(tracks).filter(t=>t.onset!==null).sort((a,b)=>a.onset-b.onset),winner=moved[0];
@@ -15750,7 +15758,7 @@ function drawStartMarks(){
       if(!previous||p.break) g.moveTo(q.x,q.y);else {g.lineTo(q.x,q.y);hasLine=true;}
       previous=p;
     }
-    if(hasLine){g.lineJoin='round';g.lineCap='round';g.lineWidth=Math.max(2,cw/400);g.strokeStyle='rgba(255,216,45,.95)';g.stroke();}
+    if(hasLine){g.lineJoin='round';g.lineCap='round';g.lineWidth=Math.max(2,cw/400)*1.5;g.strokeStyle='rgba(218,198,83,.98)';g.stroke();}
     g.restore();
   }
 
@@ -16093,6 +16101,20 @@ function drawStartMarks(){
       canvasEl.style.height = ch + 'px';
     }
     videoReplay.fit = {cw, ch};
+
+    // Una revisión pausada conserva el cuadro ya dibujado. Volver a subir la
+    // misma imagen a WebGL consume recursos que necesita el seguimiento.
+    const calib = videoReplay.calib;
+    const firma = [source, source && source.currentSrc, source && source.currentTime,
+      source && source.readyState, source && source.seeking, source && source.paused,
+      vw, vh, cw, ch, dpr, videoReplay.mode, videoReplay.blobUrl, calib,
+      calib && calib.k1, calib && calib.dewarp, calib && calib.rectified,
+      ids('videoReplayShowGuide') && ids('videoReplayShowGuide').checked,
+      videoReplayTrace.enabled, videoReplayTrace.status, videoReplayTrace.url, videoReplayTrace.points];
+    const anterior = videoReplayRender.last;
+    if(videoReplay.mode === 'replay' && source && source.paused && anterior
+      && firma.every((valor,i) => valor === anterior[i])) return;
+    videoReplayRender.last = firma;
 
     const g = canvasEl.getContext('2d');
     g.setTransform(dpr,0,0,dpr,0,0);
@@ -17021,6 +17043,11 @@ function drawStartMarks(){
 
   function setupVideoReplay(){
     setupVideoReplayTrace();
+    const repintar = () => { videoReplayRender.last = null; };
+    const visor = ids('videoReplayModal'), revision = ids('videoReplayPlayback');
+    if(visor){ visor.addEventListener('input', repintar); visor.addEventListener('change', repintar); }
+    if(revision){ revision.addEventListener('loadeddata', repintar); revision.addEventListener('seeked', repintar); }
+
     videoReplay.calib = loadVideoCalibration();
     updateVideoReplayModuleState();
 
