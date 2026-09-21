@@ -1984,6 +1984,8 @@
 <div aria-live="polite" class="cameraCaptureStatus" id="ytStatus" role="status" style="margin-top:10px;">Sin captura todavía.</div>
 <label style="display:flex; gap:10px; align-items:center; margin-top:10px; cursor:pointer;"><input id="ytVozCheck" type="checkbox"/> <span>Activar órdenes de voz: «grabar» y «capturar mesa» desde cualquier sección</span></label>
 <div class="small" id="ytVozEstado" style="margin-top:4px; color:#9aa3b2;">Con la voz activada, diga «grabar» desde cualquier sección para abrir el módulo de grabación, o «capturar mesa» para tomar una fotografía y revisar las posiciones. La captura reutiliza las esquinas de la sesión cuando corresponde; revise las bolas y pulse «Aplicar posiciones a la app». El control inferior indica cuándo la app está escuchando y permite apagar la voz. Dentro del módulo listo, diga «cinco», «diez» o «quince» (también «grabar en cinco, diez o quince»), «detener y revisar», «reproducir», «grabar» para preparar otra grabación o «descargar con datos», según el momento. «Volver a colocar» recupera la última posición confirmada desde cualquier sección, aunque el botón morado esté oculto. Esa posición se conserva al salir del entrenamiento y se sustituye al aplicar otra. Si hay una captura, grabación o exportación en marcha, la petición espera a que termine. La voz no graba video por sí sola. Usa el servicio de voz de Chrome (necesita internet) y el micrófono predeterminado de Windows: elija allí la Logitech Brio.</div>
+<label for="ytVozCicloSegundos" style="display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-top:10px;">Renovar el micrófono cada <input id="ytVozCicloSegundos" type="number" min="5" max="120" step="1" value="15" aria-describedby="ytVozCicloAyuda" style="width:85px;"/> segundos</label>
+<p id="ytVozCicloAyuda" class="small" style="margin:6px 0 10px;">De 5 a 120 segundos; pausa automática de medio segundo. La siguiente ventana comienza al confirmarse la escucha. Una orden que acaba de empezar dispone de un breve margen para terminar. El apagado manual detiene el ciclo. El intervalo queda guardado en este navegador.</p>
 <details id="ytVozHistorialPanel" style="margin-top:10px;">
 <summary style="cursor:pointer;">Historial de órdenes de voz</summary>
 <p class="small">Revíselo después de practicar. Conserva hasta 1000 registros de voz, textos y acciones, y los últimos 200 estados de conexión, solo mientras esta página está abierta; no guarda audio. Incluye los textos provisionales y la detección de voz, con horas en milisegundos. La referencia de sesión y resultado permite seguir una misma orden. Pulse «Actualizar» para ver lo más reciente.</p>
@@ -18309,6 +18311,87 @@ function drawStartMarks(){
   // =======================================================
   const YT_VOZ_KEY = 'ytVozOrdenV1';
   const ytVoz = { rec:null, iniciando:false, escuchando:false, reintento:0, desde:0, ultimoTic:0, contexto:null, versionContexto:0, fragmento:null, avisoTimer:0, abriendoModulo:false, capturandoMesa:false, volviendo:false, volverPendiente:null, volverTrasCalibrar:false, solicitudModulo:0, retorno:null, cerrando:null, cierreTimer:0, renovarPendiente:false, ultimaActividad:0, ultimoResultado:0, hablando:false, hablaDesde:0, hablaFin:0, pendienteDesde:0, pendienteFrase:'', indiceProvisional:-1, ordenProvisional:'', cambioOrden:0, prefijoProvisional:false, sinAudioDesde:0, ultimoAvisoConexion:0, ultimoDespertar:0, fallos:0, ultimaOrden:'', ultimaVez:0 };
+  // Renovación automática sin modificar el diseño del control de voz.
+  // La preferencia manual se conserva; la pausa del ciclo no la desactiva.
+  const YT_VOZ_CICLO_KEY = 'ytVozCicloJjaV1';
+  const ytVozCiclo = { segundos:15, fase:'', inicio:0, pausaHasta:0, rec:null, aplazadoDesde:0 };
+  function ytVozCicloCancelar(){
+    ytVozCiclo.fase = ''; ytVozCiclo.inicio = 0; ytVozCiclo.pausaHasta = 0;
+    ytVozCiclo.rec = null; ytVozCiclo.aplazadoDesde = 0;
+  }
+  function ytVozCicloEspera(){
+    return ytVozCiclo.fase === 'cerrando' || ytVozCiclo.fase === 'pausa';
+  }
+  function ytVozCicloConfirmar(){
+    ytVozCicloCancelar();
+    if(ytVozActiva()) ytVozCiclo.inicio = Date.now();
+  }
+  function ytVozCicloSesionCerrada(rec){
+    if(ytVozCiclo.fase !== 'cerrando' || ytVozCiclo.rec !== rec) return;
+    ytVozCiclo.rec = null;
+    if(!ytVozActiva()){ ytVozCicloCancelar(); return; }
+    // La pausa empieza cuando la sesión anterior ya terminó.
+    ytVozCiclo.fase = 'pausa'; ytVozCiclo.pausaHasta = Date.now() + 500;
+    ytVozRegistrar('', 'Renovación automática: escucha cerrada; pausa de medio segundo.');
+  }
+  function ytVozCicloOrdenPendiente(){
+    return !!(ytVoz.ordenProvisional || ytVoz.prefijoProvisional
+      || (ytVoz.fragmento && Date.now() - ytVoz.fragmento.inicio <= YT_VOZ_FRAGMENTOS_MS));
+  }
+  function ytVozCicloActualizar(){
+    if(!ytVozActiva() || !ytVozSoportada()){ ytVozCicloCancelar(); return; }
+    const ahora = Date.now();
+    if(ytVozCiclo.fase === 'pausa'){
+      if(ahora >= ytVozCiclo.pausaHasta){
+        ytVozCiclo.fase = 'abriendo'; ytVoz.fallos = 0;
+        ytVozRegistrar('', 'Renovación automática: esperando la confirmación de escucha.');
+        ytVozArrancar(); ytVozChip(ytVoz.escuchando);
+      }
+      return;
+    }
+    if(ytVozCiclo.fase) return;
+    if(!ytVoz.escuchando || ytVoz.iniciando || ytVoz.cerrando){ ytVozCiclo.inicio = 0; return; }
+    if(!ytVozCiclo.inicio) ytVozCiclo.inicio = ahora;
+    if(ahora - ytVozCiclo.inicio < ytVozCiclo.segundos * 1000) return;
+    // Conservar el margen breve para completar una orden que acaba de comenzar.
+    // Una conversación prolongada no puede aplazar indefinidamente el ciclo.
+    const ordenPendiente = ytVozCicloOrdenPendiente();
+    const vozReciente = ytVoz.hablando && ytVoz.hablaDesde && ahora - ytVoz.hablaDesde < 1800;
+    if(ordenPendiente || vozReciente){
+      if(!ytVozCiclo.aplazadoDesde) ytVozCiclo.aplazadoDesde = ahora;
+      if(ahora - ytVozCiclo.aplazadoDesde < 4000) return;
+    }
+    ytVozCiclo.fase = 'cerrando'; ytVozCiclo.rec = ytVoz.rec;
+    ytVozCiclo.inicio = 0; ytVozCiclo.aplazadoDesde = 0;
+    ytVozRegistrar('', 'Renovación automática: cerrando reconocimiento y medidor de audio.');
+    const conservarResultado = ordenPendiente || ytVoz.hablando
+      || (ytVoz.hablaFin && ahora - ytVoz.hablaFin < 1000);
+    ytVozCerrar(false, conservarResultado);
+    ytVozChip(false);
+  }
+  function ytVozCicloConfigurar(segundos){
+    const valor = Number(segundos);
+    if(Number.isFinite(valor) && valor >= 5 && valor <= 120) ytVozCiclo.segundos = Math.round(valor);
+    const campo = ids('ytVozCicloSegundos');
+    if(campo) campo.value = String(ytVozCiclo.segundos);
+    try{ localStorage.setItem(YT_VOZ_CICLO_KEY, JSON.stringify({segundos:ytVozCiclo.segundos})); }catch{}
+    // Cambiar el intervalo no interrumpe una pausa ni reactiva el apagado manual.
+    if(ytVoz.escuchando && !ytVozCiclo.fase){ ytVozCiclo.inicio = Date.now(); ytVozCiclo.aplazadoDesde = 0; }
+  }
+  function ytVozCicloEnlazar(){
+    try{
+      const opciones = JSON.parse(localStorage.getItem(YT_VOZ_CICLO_KEY));
+      const valor = Number(opciones && opciones.segundos);
+      if(Number.isFinite(valor) && valor >= 5 && valor <= 120) ytVozCiclo.segundos = Math.round(valor);
+    }catch{}
+    const campo = ids('ytVozCicloSegundos');
+    if(campo){
+      campo.value = String(ytVozCiclo.segundos); campo.disabled = !ytVozSoportada();
+      campo.addEventListener('change', () => ytVozCicloConfigurar(campo.value));
+    }
+    if(ytVozSoportada()) setInterval(ytVozCicloActualizar, 100);
+  }
+
   // Diagnóstico acotado en memoria: no graba audio ni envía datos adicionales.
   const ytVozHistorial = [];
   let ytVozSesionDiagnostico = 0;
@@ -18344,6 +18427,7 @@ function drawStartMarks(){
   // El botón y la casilla comparten el mismo interruptor de órdenes de voz.
   // Solo se detiene la escucha; el audio de los videos y de la grabación sigue igual.
   function ytVozCambiar(on){
+    ytVozCicloCancelar();
     ytVozGuardar(on);
     ytVozRegistrar('', on ? 'Órdenes de voz activadas.' : 'Órdenes de voz silenciadas.');
     if(ytVoz.avisoTimer){ clearTimeout(ytVoz.avisoTimer); ytVoz.avisoTimer = 0; }
@@ -18382,6 +18466,8 @@ function drawStartMarks(){
       ytVoz.pendienteDesde = Date.now();
     }
     ytVoz.pendienteFrase = resultado.frase || '';
+    ytVoz.ordenProvisional = resultado.prevista ? resultado.prevista.accion : '';
+    ytVoz.prefijoProvisional = !resultado.ambigua && ytVozPuedeContinuar(ytVoz.pendienteFrase);
   }
 
   // Reglas de las órdenes, tolerantes al ruido: basta que las palabras
@@ -18891,7 +18977,7 @@ function drawStartMarks(){
     const control = ids('ytVozControl');
     if(!ytVozSoportada()){ b.style.display = 'none'; if(control) control.style.display = 'none'; return; }
     if(control) control.style.display = 'flex';
-    const activa = ytVozActiva(), ctx = ytVoz.contexto;
+    const activa = ytVozActiva() && ytVozCiclo.fase !== 'pausa', ctx = ytVoz.contexto;
     b.setAttribute('aria-pressed', String(activa));
     b.setAttribute('aria-label', activa ? 'Silenciar órdenes de voz' : 'Activar órdenes de voz');
     on = !!on && ytVoz.escuchando;
@@ -18938,12 +19024,12 @@ function drawStartMarks(){
   }
   function ytVozOrden(){ ytVozEjecutar({ accion:'volver' }); }
   function ytVozReintentar(){
-    if(ytVoz.reintento || ytVoz.rec || ytVoz.cerrando || !ytVozDebeEscuchar()) return;
+    if(ytVoz.reintento || ytVoz.rec || ytVoz.cerrando || ytVozCicloEspera() || !ytVozDebeEscuchar()) return;
     const demora = Math.min(8000, 400 * Math.pow(2, Math.min(ytVoz.fallos, 5)));
     ytVoz.reintento = setTimeout(() => { ytVoz.reintento = 0; ytVozArrancar(); }, demora);
   }
   function ytVozArrancar(){
-    if(ytVoz.rec || ytVoz.cerrando || ytVoz.iniciando || ytVoz.reintento || !ytVozDebeEscuchar()) return;
+    if(ytVoz.rec || ytVoz.cerrando || ytVoz.iniciando || ytVoz.reintento || ytVozCicloEspera() || !ytVozDebeEscuchar()) return;
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     try{
       const rec = new SR();
@@ -19004,6 +19090,7 @@ function drawStartMarks(){
         if(!ctx){ ytVozParar(false); return; }
         confirmado = true; ytVoz.iniciando = false; ytVoz.escuchando = true; ytVoz.desde = Date.now();
         ytVoz.ultimaActividad = Date.now(); ytVoz.sinAudioDesde = 0;
+        ytVozCicloConfirmar();
         ytVozRegistrar('', 'Chrome confirmó el servicio y la entrada de audio.', 'Estado', ytVozContexto(), { sesion });
         ytVozFijarContexto(ctx); ytVozChip(true); ytVozMedidorArrancar();
         ytVozEstado(ctx === 'espera' ? 'Cuenta regresiva; órdenes en pausa.' : 'Escuchando: ' + (YT_VOZ_LETREROS[ctx] || ''));
@@ -19201,7 +19288,8 @@ function drawStartMarks(){
     if(ytVoz.cerrando === rec) ytVoz.cerrando = null;
     rec.onstart = rec.onaudiostart = rec.onaudioend = rec.onspeechstart = rec.onspeechend = rec.onnomatch = rec.onend = rec.onresult = rec.onerror = null;
     ytVoz.iniciando = false; ytVoz.escuchando = false; ytVoz.renovarPendiente = false;
-    ytVozLimpiarFragmento(); ytVozLimpiarActividad(); ytVozChip(false);
+    ytVozLimpiarFragmento(); ytVozLimpiarActividad();
+    ytVozCicloSesionCerrada(rec); ytVozChip(false);
     ytVozReintentar();
   }
   function ytVozCerrar(mantenerMedidor, conservarResultado){
@@ -19236,6 +19324,8 @@ function drawStartMarks(){
   function ytVozParar(mantenerMedidor){ ytVozCerrar(mantenerMedidor, false); }
   function ytVozPrepararCuenta(){
     if(!ytVozActiva() || !ytVozSoportada()) return;
+    // La renovación propia de la cuenta sustituye a cualquier ciclo en curso.
+    ytVozCicloCancelar();
     // Una sola renovación, después de aceptar el tiempo completo. La cuenta
     // continúa y el medidor conserva su audio; no se reinicia por conversación.
     ytVozRegistrar('', 'Cuenta iniciada: renovación única para escuchar detener.');
@@ -19971,7 +20061,8 @@ function drawStartMarks(){
         vozCheck.addEventListener('change', () => ytVozCambiar(vozCheck.checked));
       }
       const vozBtn = ids('ytVozBtn');
-      if(vozBtn) vozBtn.addEventListener('click', () => ytVozCambiar(!ytVozActiva()));
+      if(vozBtn) vozBtn.addEventListener('click', () => ytVozCambiar(ytVozCiclo.fase === 'pausa' || !ytVozActiva()));
+      ytVozCicloEnlazar();
       ytVozChip(false);
       // Vigilante: el oído sigue al estado de la app aunque nadie lo avise.
       setInterval(ytVozSincronizar, 800);
