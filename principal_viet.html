@@ -1984,6 +1984,8 @@
 <div aria-live="polite" class="cameraCaptureStatus" id="ytStatus" role="status" style="margin-top:10px;">Chưa có ảnh chụp.</div>
 <label style="display:flex; gap:10px; align-items:center; margin-top:10px; cursor:pointer;"><input id="ytVozCheck" type="checkbox"/> <span>Bật lệnh giọng nói: “ghi” từ bất kỳ mục nào · chụp bàn</span></label>
 <div class="small" id="ytVozEstado" style="margin-top:4px; color:#9aa3b2;">Khi bật giọng nói, hãy nói “ghi” từ bất kỳ mục nào để mở mô-đun ghi hình. Nút ở phía dưới cho biết khi nào ứng dụng đang nghe và cho phép tắt giọng nói. Trong mô-đun, tùy từng bước, hãy nói “ghi sau năm”, “ghi sau mười”, “ghi sau mười lăm”, “dừng và xem lại”, “phát lại”, “ghi” để chuẩn bị lần ghi hình khác hoặc “tải về kèm dữ liệu”. Nói “chụp bàn” ở bất kỳ màn hình nào để chụp ảnh và kiểm tra vị trí. Khi phù hợp, ứng dụng sẽ dùng lại các góc đã lưu trong phiên; kiểm tra các bi rồi bấm “Áp dụng vị trí vào ứng dụng”. “Đặt lại bi” khôi phục vị trí được xác nhận gần nhất từ bất kỳ màn hình nào, kể cả khi nút màu tím bị ẩn. Vị trí này vẫn được giữ khi thoát buổi tập và chỉ thay đổi khi bạn áp dụng vị trí khác. Nếu đang chụp ảnh, ghi hình hoặc xuất video, lệnh sẽ đợi thao tác đó hoàn tất. Mở mô-đun không tự động bắt đầu ghi hình. Giọng nói sử dụng dịch vụ nhận dạng của Chrome (cần internet) và micrô mặc định của Windows: hãy chọn Logitech Brio trong Windows. Khi mô-đun ghi hình đã sẵn sàng, bạn cũng có thể chỉ nói «năm», «mười» hoặc «mười lăm».</div>
+<label for="ytVozCicloSegundos" style="display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-top:10px;">Khởi động lại micrô sau mỗi <input id="ytVozCicloSegundos" type="number" min="5" max="120" step="1" value="15" aria-describedby="ytVozCicloAyuda" style="width:85px;"/> giây</label>
+<p id="ytVozCicloAyuda" class="small" style="margin:6px 0 10px;">Có thể đặt từ 5 đến 120 giây, với khoảng nghỉ tự động nửa giây. Khoảng nghe tiếp theo chỉ bắt đầu khi xác nhận đã khôi phục nghe. Lệnh vừa bắt đầu được dành thêm một khoảng ngắn để nói hết. Tắt micrô thủ công sẽ dừng chu kỳ. Khoảng thời gian được lưu trong trình duyệt này.</p>
 <details id="ytVozHistorialPanel" style="margin-top:10px;">
 <summary style="cursor:pointer;">Lịch sử lệnh thoại</summary>
 <p class="small">Chỉ khi trang này đang mở, lưu tối đa 1000 mục về giọng nói, văn bản nhận dạng và thao tác, cùng 200 trạng thái kết nối gần nhất; không lưu âm thanh. Bao gồm văn bản tạm thời và các lần phát hiện giọng nói, với thời gian chính xác đến mili giây. Số phiên và kết quả giúp theo dõi cùng một lệnh. Nhấn «Cập nhật» để xem các mục mới nhất.</p>
@@ -11822,6 +11824,7 @@
 
 
   function recalculateAll(reason='user-change'){
+    videoReplayRender.last = null;
     resetCalculationState(reason);
 
     const c = controls();
@@ -15530,7 +15533,7 @@ function drawStartMarks(){
     return ranked[0];
   }
 
-  // Lectura continua a velocidad normal: el navegador decodifica en orden.
+  // Lectura continua acelerada: el navegador decodifica en orden.
   // Solo se solicitan por separado cuadros que no entregó a tiempo.
   function videoReplayTraceContinuous(video, signal, read, progress){
     return new Promise((resolve,reject)=>{
@@ -15564,7 +15567,7 @@ function drawStartMarks(){
       signal.addEventListener('abort',abort,{once:true});video.addEventListener('ended',end,{once:true});video.addEventListener('error',fail,{once:true});
       document.addEventListener('visibilitychange',visibility);
       timer=setInterval(()=>{if(!document.hidden && performance.now()-lastFrame>15000) finish(new Error("Trình duyệt đã ngừng cung cấp khung hình. Hãy thử phân tích lại."));},1000);
-      handle=video.requestVideoFrameCallback(frame);video.playbackRate=1;
+      handle=video.requestVideoFrameCallback(frame);video.playbackRate=2;
       visibility();
     });
   }
@@ -15612,6 +15615,14 @@ function drawStartMarks(){
     videoReplayTraceUi();return true;
   }
 
+  // Índice de inserción temporal: reutilizar el orden ya conocido, sin volver
+  // a filtrar y ordenar toda la grabación por cada bola y cuadro recuperado.
+  function videoReplayTraceIndex(rows, t){
+    let lo=0,hi=rows.length;
+    while(lo<hi){const mid=(lo+hi)>>>1;if(rows[mid].t<t)lo=mid+1;else hi=mid;}
+    return lo;
+  }
+
   async function videoReplayTraceAnalyze(){
     const tr=videoReplayTrace;
     if(!tr.enabled||videoReplay.mode!=='replay'||!videoReplay.blobUrl||videoReplay.exporting||tr.busy) return false;
@@ -15635,23 +15646,22 @@ function drawStartMarks(){
       const scale=Math.min(1,960/video.videoWidth);
       canvas.width=Math.max(2,Math.round(video.videoWidth*scale));canvas.height=Math.max(2,Math.round(video.videoHeight*scale));
       const w=canvas.width,h=canvas.height,g=canvas.getContext('2d',{willReadFrequently:true});
-      const geom=videoReplayTraceGeometry(meta,w,h),keys=['white','yellow','red'],frames=[],last={},previous={};
+      const geom=videoReplayTraceGeometry(meta,w,h),keys=['white','yellow','red'],frames=[],history={white:[],yellow:[],red:[]};
       let lastUi=0,cpuMs=0,fullSearches=0,localSearches=0;
       const valid=()=>{
         if(signal.aborted||tr.job!==job||videoReplay.blobUrl!==url) throw new DOMException("Đã hủy phân tích",'AbortError');
       };
       const read=(t,repair=false)=>{
-        valid();if(frames.some(f=>Math.abs(f.t-t)<.004)) return;
+        valid();
+        const index=videoReplayTraceIndex(frames,t);
+        if((index<frames.length && Math.abs(frames[index].t-t)<.004)
+          || (index>0 && Math.abs(frames[index-1].t-t)<.004)) return;
         const start=performance.now(),frame={t};
         g.setTransform(-1,0,0,-1,w,h);g.drawImage(video,0,0,w,h);g.setTransform(1,0,0,1,0,0);
         const data=g.getImageData(0,0,w,h).data;
         for(const key of keys){
-          let prior=last[key],prev=previous[key];
-          if(repair){
-            const earlier=frames.filter(f=>f.t<t&&f[key]).sort((a,b)=>a.t-b.t);
-            prior=earlier.length?{...earlier.at(-1)[key],t:earlier.at(-1).t}:null;
-            prev=earlier.length>1?{...earlier.at(-2)[key],t:earlier.at(-2).t}:null;
-          }
+          const rows=history[key],at=videoReplayTraceIndex(rows,t);
+          const prior=at>0?rows[at-1]:null,prev=at>1?rows[at-2]:null;
           let found=null;
           if(prior && t-prior.t<.25){
             const margin=geom.radius*3+geom.width*1.5*Math.max(1/30,t-prior.t);
@@ -15668,9 +15678,9 @@ function drawStartMarks(){
             if(region) localSearches++;else fullSearches++;
           }
           frame[key]=found;
-          if(found&&!repair){previous[key]=prior;last[key]=found;}
+          if(found) rows.splice(at,0,found);
         }
-        frames.push(frame);cpuMs+=performance.now()-start;
+        frames.splice(index,0,frame);cpuMs+=performance.now()-start;
       };
       const progress=t=>{
         if(performance.now()-lastUi>250){tr.progress=Math.min(94,Math.round(t/duration*94));videoReplayTraceUi();lastUi=performance.now();}
@@ -15678,7 +15688,7 @@ function drawStartMarks(){
       let repaired=0,method='continua';read(0);
       if(typeof video.requestVideoFrameCallback==='function'){
         await videoReplayTraceContinuous(video,signal,read,progress);valid();
-        const ordered=[...frames].sort((a,b)=>a.t-b.t),missing=[];
+        const ordered=frames.slice(),missing=[];
         for(let i=1;i<ordered.length;i++){
           if(ordered[i].t-ordered[i-1].t>.065){
             for(let t=ordered[i-1].t+1/30;t<ordered[i].t-.015;t+=1/30) missing.push(t);
@@ -15694,7 +15704,7 @@ function drawStartMarks(){
         method='compatible';
         for(let t=1/30;t<duration;t+=1/30){valid();await videoReplayTraceWait(video,'seeked',signal,()=>{video.currentTime=t;});read(t);progress(t);}
       }
-      valid();frames.sort((a,b)=>a.t-b.t);
+      valid();
       const tracks=Object.fromEntries(keys.map(key=>[key,videoReplayTraceBuildTrack(frames,key,geom)]));
       Object.assign(tr,{url,tracks,samples:frames.length,progress:100,metrics:{elapsedMs:performance.now()-started,cpuMs,duration,method,repaired,fullSearches,localSearches,width:w,height:h,radius:geom.radius}});
       const moved=Object.values(tracks).filter(t=>t.onset!==null).sort((a,b)=>a.onset-b.onset),winner=moved[0];
@@ -15748,7 +15758,7 @@ function drawStartMarks(){
       if(!previous||p.break) g.moveTo(q.x,q.y);else {g.lineTo(q.x,q.y);hasLine=true;}
       previous=p;
     }
-    if(hasLine){g.lineJoin='round';g.lineCap='round';g.lineWidth=Math.max(2,cw/400);g.strokeStyle='rgba(255,216,45,.95)';g.stroke();}
+    if(hasLine){g.lineJoin='round';g.lineCap='round';g.lineWidth=Math.max(2,cw/400)*1.5;g.strokeStyle='rgba(218,198,83,.80)';g.stroke();}
     g.restore();
   }
 
@@ -16091,6 +16101,20 @@ function drawStartMarks(){
       canvasEl.style.height = ch + 'px';
     }
     videoReplay.fit = {cw, ch};
+
+    // Una revisión pausada conserva el cuadro ya dibujado. Volver a subir la
+    // misma imagen a WebGL consume recursos que necesita el seguimiento.
+    const calib = videoReplay.calib;
+    const firma = [source, source && source.currentSrc, source && source.currentTime,
+      source && source.readyState, source && source.seeking, source && source.paused,
+      vw, vh, cw, ch, dpr, videoReplay.mode, videoReplay.blobUrl, calib,
+      calib && calib.k1, calib && calib.dewarp, calib && calib.rectified,
+      ids('videoReplayShowGuide') && ids('videoReplayShowGuide').checked,
+      videoReplayTrace.enabled, videoReplayTrace.status, videoReplayTrace.url, videoReplayTrace.points];
+    const anterior = videoReplayRender.last;
+    if(videoReplay.mode === 'replay' && source && source.paused && anterior
+      && firma.every((valor,i) => valor === anterior[i])) return;
+    videoReplayRender.last = firma;
 
     const g = canvasEl.getContext('2d');
     g.setTransform(dpr,0,0,dpr,0,0);
@@ -17019,6 +17043,11 @@ function drawStartMarks(){
 
   function setupVideoReplay(){
     setupVideoReplayTrace();
+    const repintar = () => { videoReplayRender.last = null; };
+    const visor = ids('videoReplayModal'), revision = ids('videoReplayPlayback');
+    if(visor){ visor.addEventListener('input', repintar); visor.addEventListener('change', repintar); }
+    if(revision){ revision.addEventListener('loadeddata', repintar); revision.addEventListener('seeked', repintar); }
+
     videoReplay.calib = loadVideoCalibration();
     updateVideoReplayModuleState();
 
@@ -18309,6 +18338,87 @@ function drawStartMarks(){
   // =======================================================
   const YT_VOZ_KEY = 'ytVozOrdenV1';
   const ytVoz = { rec:null, iniciando:false, escuchando:false, reintento:0, desde:0, ultimoTic:0, contexto:null, versionContexto:0, fragmento:null, avisoTimer:0, abriendoModulo:false, capturandoMesa:false, volviendo:false, volverPendiente:null, volverTrasCalibrar:false, solicitudModulo:0, retorno:null, cerrando:null, cierreTimer:0, renovarPendiente:false, ultimaActividad:0, ultimoResultado:0, hablando:false, hablaDesde:0, hablaFin:0, pendienteDesde:0, pendienteFrase:'', indiceProvisional:-1, ordenProvisional:'', cambioOrden:0, prefijoProvisional:false, sinAudioDesde:0, ultimoAvisoConexion:0, ultimoDespertar:0, fallos:0, ultimaOrden:'', ultimaVez:0 };
+  // Renovación automática sin modificar el diseño del control de voz.
+  // La preferencia manual se conserva; la pausa del ciclo no la desactiva.
+  const YT_VOZ_CICLO_KEY = 'ytVozCicloJjaV1';
+  const ytVozCiclo = { segundos:15, fase:'', inicio:0, pausaHasta:0, rec:null, aplazadoDesde:0 };
+  function ytVozCicloCancelar(){
+    ytVozCiclo.fase = ''; ytVozCiclo.inicio = 0; ytVozCiclo.pausaHasta = 0;
+    ytVozCiclo.rec = null; ytVozCiclo.aplazadoDesde = 0;
+  }
+  function ytVozCicloEspera(){
+    return ytVozCiclo.fase === 'cerrando' || ytVozCiclo.fase === 'pausa';
+  }
+  function ytVozCicloConfirmar(){
+    ytVozCicloCancelar();
+    if(ytVozActiva()) ytVozCiclo.inicio = Date.now();
+  }
+  function ytVozCicloSesionCerrada(rec){
+    if(ytVozCiclo.fase !== 'cerrando' || ytVozCiclo.rec !== rec) return;
+    ytVozCiclo.rec = null;
+    if(!ytVozActiva()){ ytVozCicloCancelar(); return; }
+    // La pausa empieza cuando la sesión anterior ya terminó.
+    ytVozCiclo.fase = 'pausa'; ytVozCiclo.pausaHasta = Date.now() + 500;
+    ytVozRegistrar('', "Tự động khởi động lại: đã dừng nghe; tạm nghỉ nửa giây.");
+  }
+  function ytVozCicloOrdenPendiente(){
+    return !!(ytVoz.ordenProvisional || ytVoz.prefijoProvisional
+      || (ytVoz.fragmento && Date.now() - ytVoz.fragmento.inicio <= YT_VOZ_FRAGMENTOS_MS));
+  }
+  function ytVozCicloActualizar(){
+    if(!ytVozActiva() || !ytVozSoportada()){ ytVozCicloCancelar(); return; }
+    const ahora = Date.now();
+    if(ytVozCiclo.fase === 'pausa'){
+      if(ahora >= ytVozCiclo.pausaHasta){
+        ytVozCiclo.fase = 'abriendo'; ytVoz.fallos = 0;
+        ytVozRegistrar('', "Tự động khởi động lại: đang chờ xác nhận đã khôi phục nghe.");
+        ytVozArrancar(); ytVozChip(ytVoz.escuchando);
+      }
+      return;
+    }
+    if(ytVozCiclo.fase) return;
+    if(!ytVoz.escuchando || ytVoz.iniciando || ytVoz.cerrando){ ytVozCiclo.inicio = 0; return; }
+    if(!ytVozCiclo.inicio) ytVozCiclo.inicio = ahora;
+    if(ahora - ytVozCiclo.inicio < ytVozCiclo.segundos * 1000) return;
+    // Conservar el margen breve para completar una orden que acaba de comenzar.
+    // Una conversación prolongada no puede aplazar indefinidamente el ciclo.
+    const ordenPendiente = ytVozCicloOrdenPendiente();
+    const vozReciente = ytVoz.hablando && ytVoz.hablaDesde && ahora - ytVoz.hablaDesde < 1800;
+    if(ordenPendiente || vozReciente){
+      if(!ytVozCiclo.aplazadoDesde) ytVozCiclo.aplazadoDesde = ahora;
+      if(ahora - ytVozCiclo.aplazadoDesde < 4000) return;
+    }
+    ytVozCiclo.fase = 'cerrando'; ytVozCiclo.rec = ytVoz.rec;
+    ytVozCiclo.inicio = 0; ytVozCiclo.aplazadoDesde = 0;
+    ytVozRegistrar('', "Tự động khởi động lại: đang tắt nhận dạng giọng nói và thanh mức âm thanh.");
+    const conservarResultado = ordenPendiente || ytVoz.hablando
+      || (ytVoz.hablaFin && ahora - ytVoz.hablaFin < 1000);
+    ytVozCerrar(false, conservarResultado);
+    ytVozChip(false);
+  }
+  function ytVozCicloConfigurar(segundos){
+    const valor = Number(segundos);
+    if(Number.isFinite(valor) && valor >= 5 && valor <= 120) ytVozCiclo.segundos = Math.round(valor);
+    const campo = ids('ytVozCicloSegundos');
+    if(campo) campo.value = String(ytVozCiclo.segundos);
+    try{ localStorage.setItem(YT_VOZ_CICLO_KEY, JSON.stringify({segundos:ytVozCiclo.segundos})); }catch{}
+    // Cambiar el intervalo no interrumpe una pausa ni reactiva el apagado manual.
+    if(ytVoz.escuchando && !ytVozCiclo.fase){ ytVozCiclo.inicio = Date.now(); ytVozCiclo.aplazadoDesde = 0; }
+  }
+  function ytVozCicloEnlazar(){
+    try{
+      const opciones = JSON.parse(localStorage.getItem(YT_VOZ_CICLO_KEY));
+      const valor = Number(opciones && opciones.segundos);
+      if(Number.isFinite(valor) && valor >= 5 && valor <= 120) ytVozCiclo.segundos = Math.round(valor);
+    }catch{}
+    const campo = ids('ytVozCicloSegundos');
+    if(campo){
+      campo.value = String(ytVozCiclo.segundos); campo.disabled = !ytVozSoportada();
+      campo.addEventListener('change', () => ytVozCicloConfigurar(campo.value));
+    }
+    if(ytVozSoportada()) setInterval(ytVozCicloActualizar, 100);
+  }
+
   // Diagnóstico acotado en memoria: no graba audio ni envía datos adicionales.
   const ytVozHistorial = [];
   let ytVozSesionDiagnostico = 0;
@@ -18344,6 +18454,7 @@ function drawStartMarks(){
   // El botón y la casilla comparten el mismo interruptor de órdenes de voz.
   // Solo se detiene la escucha; el audio de los videos y de la grabación sigue igual.
   function ytVozCambiar(on){
+    ytVozCicloCancelar();
     ytVozGuardar(on);
     ytVozRegistrar('', on ? "Đã bật lệnh thoại." : "Đã tắt lệnh thoại.");
     if(ytVoz.avisoTimer){ clearTimeout(ytVoz.avisoTimer); ytVoz.avisoTimer = 0; }
@@ -18380,6 +18491,8 @@ function drawStartMarks(){
       ytVoz.pendienteDesde = Date.now();
     }
     ytVoz.pendienteFrase = resultado.frase || '';
+    ytVoz.ordenProvisional = resultado.prevista ? resultado.prevista.accion : '';
+    ytVoz.prefijoProvisional = !resultado.ambigua && ytVozPuedeContinuar(ytVoz.pendienteFrase);
   }
 
   // Reglas de las órdenes, tolerantes al ruido: basta que las palabras
@@ -18387,7 +18500,8 @@ function drawStartMarks(){
   // (Este bloque es el único que cambia de idioma en idioma.)
   function ytVozReglas(){
     return {
-      tiempoCorto: /^[\s\p{P}]*(muoi lam|muoi|nam|15|10|5)(?:\s+giay)?[\s\p{P}]*$/u,
+      // Solo números y accesorios conocidos; las negaciones y tiempos distintos se rechazan.
+      tiempoCorto: /^(?!.*\d[.,]\d)[\s\p{P}]*(?:(?:bay\s+gio|vui\s+long)[\s\p{P}]+)*(muoi lam|muoi|nam|15|10|5)(?:[\s\p{P}]+(?:muoi lam|muoi|nam|15|10|5|giay|bay\s+gio|vui\s+long))*[\s\p{P}]*$/u,
       prefijoTiempo: /^(?:ghi|quay)\s+sau$/,
       capturarMesa: /\bchup\s+(?:anh\s+)?ban(?:\s+bi[ -]?a)?\b/,
       grabarCorto: /^[\s\p{P}]*(?:ghi|quay)(?:[\s\p{P}]+(?:ghi|quay))*[\s\p{P}]*$/u,
@@ -18484,7 +18598,13 @@ function drawStartMarks(){
       if(R.descargar.test(t)) return { accion:'descargar' };
     }
     if(ctx === 'grabar' || ctx === 'grabarVolver'){
-      const m = t.match(R.grabarEn) || ytVozNormalizar(s).trim().match(R.tiempoCorto);
+      const completa = t.match(R.grabarEn), original = ytVozNormalizar(s).trim();
+      const corta = completa ? null : original.match(R.tiempoCorto);
+      if(corta){
+        const tiempos = new Set(Array.from(original.matchAll(R.tiempos), r => R.numero[r[1]]));
+        if(tiempos.size !== 1 || !tiempos.has(R.numero[corta[1]])) return null;
+      }
+      const m = completa || corta;
       if(m) return { accion:'grabarEn', seg: R.numero[m[1]] };
     }
     return null;
@@ -18894,14 +19014,14 @@ function drawStartMarks(){
     const control = ids('ytVozControl');
     if(!ytVozSoportada()){ b.style.display = 'none'; if(control) control.style.display = 'none'; return; }
     if(control) control.style.display = 'flex';
-    const activa = ytVozActiva(), ctx = ytVoz.contexto;
+    const activa = ytVozActiva() && ytVozCiclo.fase !== 'pausa', ctx = ytVoz.contexto;
     b.setAttribute('aria-pressed', String(activa));
     b.setAttribute('aria-label', activa ? "Tắt lệnh giọng nói" : "Bật lệnh giọng nói");
     on = !!on && ytVoz.escuchando;
     const pendiente = ytVoz.iniciando ? '🎙 Đang bật giọng nói…' : (ctx ? '🎙 Đang kết nối lại giọng nói…' : '🎙 Giọng nói: đang chờ');
     b.textContent = activa ? "🎙 Giọng nói: bật" : "🔇 Giọng nói: tắt";
     if(!activa){ b.style.background = '#1a2230'; b.style.borderColor = '#3a4a63'; b.style.color = '#c9d3e6'; }
-    else if(on){ b.style.background = '#1d3a4d'; b.style.borderColor = '#62d7ff'; b.style.color = '#d8f4ff'; }
+    else if(on){ b.style.background = '#850101'; b.style.borderColor = '#62d7ff'; b.style.color = '#d8f4ff'; }
     else { b.style.background = '#2a1d4d'; b.style.borderColor = '#c9a4ff'; b.style.color = '#e6d8ff'; }
     const resumen = ids('ytVozResumen');
     const detalle = activa ? (on ? "Đang nghe: " + (YT_VOZ_LETREROS[ctx] || '') : pendiente.replace('🎙 ', ''))
@@ -18941,12 +19061,12 @@ function drawStartMarks(){
   }
   function ytVozOrden(){ ytVozEjecutar({ accion:'volver' }); }
   function ytVozReintentar(){
-    if(ytVoz.reintento || ytVoz.rec || ytVoz.cerrando || !ytVozDebeEscuchar()) return;
+    if(ytVoz.reintento || ytVoz.rec || ytVoz.cerrando || ytVozCicloEspera() || !ytVozDebeEscuchar()) return;
     const demora = Math.min(8000, 400 * Math.pow(2, Math.min(ytVoz.fallos, 5)));
     ytVoz.reintento = setTimeout(() => { ytVoz.reintento = 0; ytVozArrancar(); }, demora);
   }
   function ytVozArrancar(){
-    if(ytVoz.rec || ytVoz.cerrando || ytVoz.iniciando || ytVoz.reintento || !ytVozDebeEscuchar()) return;
+    if(ytVoz.rec || ytVoz.cerrando || ytVoz.iniciando || ytVoz.reintento || ytVozCicloEspera() || !ytVozDebeEscuchar()) return;
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     try{
       const rec = new SR();
@@ -19007,6 +19127,7 @@ function drawStartMarks(){
         if(!ctx){ ytVozParar(false); return; }
         confirmado = true; ytVoz.iniciando = false; ytVoz.escuchando = true; ytVoz.desde = Date.now();
         ytVoz.ultimaActividad = Date.now(); ytVoz.sinAudioDesde = 0;
+        ytVozCicloConfirmar();
         ytVozRegistrar('', "Chrome đã xác nhận dịch vụ và đầu vào âm thanh.", "Trạng thái", ytVozContexto(), { sesion });
         ytVozFijarContexto(ctx); ytVozChip(true); ytVozMedidorArrancar();
         ytVozEstado(ctx === 'espera' ? "Đang đếm ngược; tạm ngừng nhận lệnh." : "Đang nghe: " + (YT_VOZ_LETREROS[ctx] || ''));
@@ -19208,7 +19329,8 @@ function drawStartMarks(){
     if(ytVoz.cerrando === rec) ytVoz.cerrando = null;
     rec.onstart = rec.onaudiostart = rec.onaudioend = rec.onspeechstart = rec.onspeechend = rec.onnomatch = rec.onend = rec.onresult = rec.onerror = null;
     ytVoz.iniciando = false; ytVoz.escuchando = false; ytVoz.renovarPendiente = false;
-    ytVozLimpiarFragmento(); ytVozLimpiarActividad(); ytVozChip(false);
+    ytVozLimpiarFragmento(); ytVozLimpiarActividad();
+    ytVozCicloSesionCerrada(rec); ytVozChip(false);
     ytVozReintentar();
   }
   function ytVozCerrar(mantenerMedidor, conservarResultado){
@@ -19243,6 +19365,8 @@ function drawStartMarks(){
   function ytVozParar(mantenerMedidor){ ytVozCerrar(mantenerMedidor, false); }
   function ytVozPrepararCuenta(){
     if(!ytVozActiva() || !ytVozSoportada()) return;
+    // La renovación propia de la cuenta sustituye a cualquier ciclo en curso.
+    ytVozCicloCancelar();
     // Una sola renovación, después de aceptar el tiempo completo. La cuenta
     // continúa y el medidor conserva su audio; no se reinicia por conversación.
     ytVozRegistrar('', "Đã bắt đầu đếm ngược: làm mới phiên nghe một lần để nhận lệnh «dừng».");
@@ -19978,7 +20102,8 @@ function drawStartMarks(){
         vozCheck.addEventListener('change', () => ytVozCambiar(vozCheck.checked));
       }
       const vozBtn = ids('ytVozBtn');
-      if(vozBtn) vozBtn.addEventListener('click', () => ytVozCambiar(!ytVozActiva()));
+      if(vozBtn) vozBtn.addEventListener('click', () => ytVozCambiar(ytVozCiclo.fase === 'pausa' || !ytVozActiva()));
+      ytVozCicloEnlazar();
       ytVozChip(false);
       // Vigilante: el oído sigue al estado de la app aunque nadie lo avise.
       setInterval(ytVozSincronizar, 800);
