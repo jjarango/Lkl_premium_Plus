@@ -1801,8 +1801,40 @@
     .ytVozVistaConPie{flex-direction:column !important; align-items:stretch !important; justify-content:flex-start !important; overflow:hidden !important;}
     .ytVozVistaConPie > .ytVozContenido{flex:1 1 auto; min-height:0; overflow:auto; width:100%;}
     #ytPlaceOverlay.ytVozVistaConPie{display:flex;}
-    #ytMarkOverlay > .ytVozContenido{display:flex; flex-direction:column; align-items:center; gap:10px; padding:12px;}
-    #ytMarkOverlay.ytVozVistaConPie #ytMarkCanvas{max-height:calc(100dvh - var(--ytVozControlH,90px) - 210px);}
+    /* El editor conserva sus hijos directos y la lupa bajo la imagen. */
+    #ytMarkOverlay{padding:12px; overflow:auto;}
+    #ytMarkOverlay > *{flex:0 0 auto;}
+    #ytMarkLabel{max-width:100%; text-align:center;}
+    #ytMarkCanvas{width:auto; height:auto;}
+    #ytMarkFine{max-width:100%; justify-content:center;}
+    #ytMarkOverlay > #ytVozControl{
+      position:absolute !important; inset:auto auto 12px 12px !important;
+      width:200px !important; max-width:200px !important; margin:0 !important;
+      grid-template-columns:minmax(0,1fr); row-gap:3px !important;
+    }
+    #ytMarkOverlay #ytVozBtn{grid-column:1; grid-row:1; font-size:16px !important; min-height:40px !important; padding:5px !important;}
+    #ytMarkOverlay #ytVozResumen{grid-column:1; grid-row:2; font-size:11px !important;}
+    #ytMarkOverlay #ytVozCicloVista{grid-column:1; grid-row:3;}
+    #ytMarkOverlay #ytVozNivel{grid-column:1; grid-row:4; height:7px !important;}
+    @media(max-width:999px){
+      #ytMarkOverlay{gap:8px !important;}
+      #ytMarkOverlay > #ytVozControl{
+        position:relative !important; inset:auto !important;
+        width:100% !important; max-width:540px !important;
+        grid-template-columns:140px minmax(0,1fr);
+      }
+      #ytMarkOverlay #ytVozBtn{grid-row:1 / 3;}
+      #ytMarkOverlay #ytVozResumen{grid-column:2; grid-row:1;}
+      #ytMarkOverlay #ytVozCicloVista{grid-column:2; grid-row:2 / 4;}
+      #ytMarkOverlay #ytVozNivel{grid-row:3;}
+    }
+    @media(max-width:620px){
+      #ytMarkFine{flex-wrap:wrap; gap:8px !important;}
+      #ytMarkLupa{width:120px !important; height:120px !important;}
+      #ytMarkOk{flex-basis:100%; padding:8px 12px !important;}
+      #ytMarkOverlay > div:not(#ytMarkFine):not(#ytVozControl){max-width:100%; gap:6px !important;}
+      #ytMarkRecal, #ytMarkUndo, #ytMarkCancel{min-width:0; padding:8px; font-size:13px;}
+    }
     #mirrorCalibZoom > .ytVozContenido{display:flex; align-items:center; justify-content:center;}
     #mirrorCalibZoom > .ytVozContenido > img{object-fit:contain;}
     html.table-expanded-mode .stage.ytVozConControl > .canvasWrap{
@@ -17908,6 +17940,33 @@ function drawStartMarks(){
     return colores[YT_PASOS_BOLAS[Math.min(ytTrain.bolas.length, 2)].key];
   }
 
+  // Ajustar solamente la presentación: el fotograma y sus coordenadas no cambian.
+  function ytAjustarVistaMarcado(){
+    const vista = ids('ytMarkOverlay'), cv = ids('ytMarkCanvas'), fc = ytTrain.frameCanvas;
+    if(!vista || !cv || !fc || !vista.getClientRects().length) return;
+    const estilo = getComputedStyle(vista);
+    const numero = valor => parseFloat(valor) || 0;
+    const fila = [...vista.children].filter(el => {
+      const css = getComputedStyle(el);
+      return css.display !== 'none' && css.position !== 'absolute' && css.position !== 'fixed';
+    });
+    let ocupado = numero(estilo.paddingTop) + numero(estilo.paddingBottom)
+      + numero(estilo.rowGap) * Math.max(0, fila.length - 1);
+    for(const el of fila){
+      if(el === cv) continue;
+      const css = getComputedStyle(el);
+      ocupado += el.getBoundingClientRect().height + numero(css.marginTop) + numero(css.marginBottom);
+    }
+    const ancho = Math.max(1, Math.min(window.innerWidth * .94,
+      vista.clientWidth - numero(estilo.paddingLeft) - numero(estilo.paddingRight)) - 2);
+    const alto = Math.max(1, Math.min(window.innerHeight * .8, vista.clientHeight - ocupado) - 2);
+    const escala = Math.min(ancho / fc.width, alto / fc.height);
+    const w = (fc.width * escala + 2).toFixed(2) + 'px';
+    const h = (fc.height * escala + 2).toFixed(2) + 'px';
+    if(cv.style.width !== w) cv.style.width = w;
+    if(cv.style.height !== h) cv.style.height = h;
+  }
+
   function ytPintarMarcado(){
     const cv = ids('ytMarkCanvas');
     const fc = ytTrain.frameCanvas;
@@ -17956,6 +18015,7 @@ function drawStartMarks(){
     }
     const recal = ids('ytMarkRecal');
     if(recal) recal.style.display = ytTrain.modo === 'balls' ? '' : 'none';
+    ytAjustarVistaMarcado();
   }
 
   // El toque es candidato, no sentencia: el clic coloca (o reubica) la
@@ -18011,7 +18071,9 @@ function drawStartMarks(){
     const panel = ids('ytMarkFine');
     if(!panel) return;
     const hay = !!ytTrain.candidato;
-    panel.style.display = hay ? 'flex' : 'none';
+    // Reservar la lupa desde el comienzo evita que el primer clic desplace la imagen.
+    panel.style.display = 'flex';
+    panel.style.visibility = hay ? 'visible' : 'hidden';
     if(hay) ytPintarLupaMarcado();
   }
 
@@ -19013,6 +19075,7 @@ function drawStartMarks(){
       const vista = ids(id);
       if(!visible(vista)) continue;
       if(id === 'videoReplayModal' || id === 'photoLocatorModal') destino = vista.firstElementChild;
+      else if(id === 'ytMarkOverlay') destino = vista;
       else {
         let contenido = vista.querySelector(':scope > .ytVozContenido');
         if(!contenido){
@@ -19056,6 +19119,7 @@ function drawStartMarks(){
         if(stage.style.height !== altura) stage.style.height = altura;
       } else if(stage.style.height) stage.style.height = '';
     }
+    ytAjustarVistaMarcado();
     const alturaControl = Math.ceil(control.getBoundingClientRect().height + 8 + margenInferior) + 'px';
     if(document.documentElement.style.getPropertyValue('--ytVozControlH') !== alturaControl){
       document.documentElement.style.setProperty('--ytVozControlH', alturaControl);
@@ -20178,6 +20242,7 @@ function drawStartMarks(){
   }
 
   function ytEnlazar(){
+    window.addEventListener('resize', ytAjustarVistaMarcado);
     const btn = ids('ytCaptureBtn');
     if(!btn) return;
     btn.addEventListener('click', ytCapturarPosicion);
