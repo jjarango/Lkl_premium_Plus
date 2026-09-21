@@ -18510,7 +18510,8 @@ function drawStartMarks(){
       grabarEn: /\bgra[bv]\w*\b.*\b(?:en\s+)?(5|cinco|10|diez|15|quince)\b/,
       grabarJugada: /\bgra[bv]\w*\b.*\b(jugadas?|videos?|gra[bv]acion(?:es)?)\b/,
       grabarCorto: /^[\s.!?,;:¡¿]*gra[bv]ar?(?:[\s.!?,;:¡¿]+gra[bv]ar?)*[\s.!?,;:¡¿]*$/,
-      tiempoCorto: /^[\s.!?,;:¡¿]*(?:por favor\s+)?(5|cinco|10|diez|15|quince)(?:\s+segundos?)?(?:\s+por favor)?[\s.!?,;:¡¿]*$/,
+      // Solo números y accesorios conocidos. ytVozConflicto rechaza tiempos distintos.
+      tiempoCorto: /^(?!.*\d[.,]\d)[\s.!?,;:¡¿]*(?:(?:ahora|por\s+favor)[\s.!?,;:¡¿]+)*(5|cinco|10|diez|15|quince)(?:[\s.!?,;:¡¿]+(?:5|cinco|10|diez|15|quince|segundos?|ahora|por\s+favor))*[\s.!?,;:¡¿]*$/,
       reproducir: /\breproduc/,
       numero: { '5':5, 'cinco':5, '10':10, 'diez':10, '15':15, 'quince':15 }
     };
