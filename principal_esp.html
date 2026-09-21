@@ -1776,90 +1776,6 @@
       .videoReplayHead{padding:10px 12px}
       .videoReplayTitle{font-size:16px}
     }
-    /* El control ocupa su propia fila, fuera de los lienzos de la mesa. */
-    #ytVozControl{
-      position:relative !important; inset:auto !important; flex:0 0 auto;
-      display:grid; grid-template-columns:260px minmax(0,1fr);
-      column-gap:12px !important; row-gap:5px !important;
-      width:calc(100% - 24px) !important; max-width:700px !important;
-      margin:8px 12px 10px; align-items:center;
-    }
-    #ytVozBtn{
-      grid-column:1; grid-row:1 / 3; min-height:48px !important;
-      padding:8px 7px !important; border-radius:10px !important;
-      font-size:20px !important; line-height:1.15; box-shadow:none !important;
-    }
-    #ytVozResumen{grid-column:2; grid-row:1; font-size:13px !important; padding:3px 6px !important;}
-    #ytVozCicloVista{grid-column:2; grid-row:2 / 4; padding:4px 6px !important;}
-    #ytVozCicloBarras{height:12px !important; gap:2px !important;}
-    #ytVozCicloTexto{font-size:12px !important; margin-top:3px !important;}
-    #ytVozNivel{grid-column:1; grid-row:3; height:10px !important; box-shadow:none !important;}
-    .stage.ytVozConControl{min-height:0;}
-    .stage.ytVozConControl > .canvasWrap{min-height:0; flex:1 1 auto;}
-    .stage.ytVozConControl > .legend{flex:0 0 auto;}
-    .videoReplayShell > #ytVozControl, .photoLocatorShell > #ytVozControl{align-self:flex-start;}
-    .ytVozVistaConPie{flex-direction:column !important; align-items:stretch !important; justify-content:flex-start !important; overflow:hidden !important;}
-    .ytVozVistaConPie > .ytVozContenido{flex:1 1 auto; min-height:0; overflow:auto; width:100%;}
-    #ytPlaceOverlay.ytVozVistaConPie{display:flex;}
-    /* El editor conserva sus hijos directos y la lupa bajo la imagen. */
-    #ytMarkOverlay{padding:12px; overflow:auto;}
-    #ytMarkOverlay > *{flex:0 0 auto;}
-    #ytMarkLabel{max-width:100%; text-align:center;}
-    #ytMarkCanvas{width:auto; height:auto;}
-    #ytMarkFine{max-width:100%; justify-content:center;}
-    #ytMarkOverlay > #ytVozControl{
-      position:absolute !important; inset:auto auto 12px 12px !important;
-      width:200px !important; max-width:200px !important; margin:0 !important;
-      grid-template-columns:minmax(0,1fr); row-gap:3px !important;
-    }
-    #ytMarkOverlay #ytVozBtn{grid-column:1; grid-row:1; font-size:16px !important; min-height:40px !important; padding:5px !important;}
-    #ytMarkOverlay #ytVozResumen{grid-column:1; grid-row:2; font-size:11px !important;}
-    #ytMarkOverlay #ytVozCicloVista{grid-column:1; grid-row:3;}
-    #ytMarkOverlay #ytVozNivel{grid-column:1; grid-row:4; height:7px !important;}
-    @media(max-width:999px){
-      #ytMarkOverlay{gap:8px !important;}
-      #ytMarkOverlay > #ytVozControl{
-        position:relative !important; inset:auto !important;
-        width:100% !important; max-width:540px !important;
-        grid-template-columns:140px minmax(0,1fr);
-      }
-      #ytMarkOverlay #ytVozBtn{grid-row:1 / 3;}
-      #ytMarkOverlay #ytVozResumen{grid-column:2; grid-row:1;}
-      #ytMarkOverlay #ytVozCicloVista{grid-column:2; grid-row:2 / 4;}
-      #ytMarkOverlay #ytVozNivel{grid-row:3;}
-    }
-    @media(max-width:620px){
-      #ytMarkFine{flex-wrap:wrap; gap:8px !important;}
-      #ytMarkLupa{width:120px !important; height:120px !important;}
-      #ytMarkOk{flex-basis:100%; padding:8px 12px !important;}
-      #ytMarkOverlay > div:not(#ytMarkFine):not(#ytVozControl){max-width:100%; gap:6px !important;}
-      #ytMarkRecal, #ytMarkUndo, #ytMarkCancel{min-width:0; padding:8px; font-size:13px;}
-    }
-    #mirrorCalibZoom > .ytVozContenido{display:flex; align-items:center; justify-content:center;}
-    #mirrorCalibZoom > .ytVozContenido > img{object-fit:contain;}
-    html.table-expanded-mode .stage.ytVozConControl > .canvasWrap{
-      bottom:var(--ytVozControlH,90px) !important;
-      height:calc(100dvh - var(--ytVozControlH,90px)) !important;
-      min-height:0 !important;
-    }
-    html.table-expanded-mode .stage.ytVozConControl > #ytVozControl{position:absolute !important; bottom:0 !important; left:0 !important;}
-    html.table-expanded-mode .stage.ytVozConControl #table{min-height:0 !important;}
-    @media(min-width:981px){
-      .stage.ytVozConControl{position:sticky; top:8px;}
-    }
-    @media(max-width:980px){
-      .videoReplayShell:has(> #ytVozControl) > .videoReplayBody,
-      .photoLocatorShell:has(> #ytVozControl) > .photoLocatorBody{
-        grid-template-rows:minmax(100px,1fr) minmax(0,1fr);
-      }
-    }
-    @media(max-width:600px){
-      #ytVozControl{grid-template-columns:minmax(0,1fr); max-width:340px !important; margin:6px 10px 8px; width:calc(100% - 20px) !important;}
-      #ytVozBtn{grid-column:1; grid-row:1; min-height:44px !important; font-size:19px !important;}
-      #ytVozResumen{grid-column:1; grid-row:2;}
-      #ytVozCicloVista{grid-column:1; grid-row:3;}
-      #ytVozNivel{grid-column:1; grid-row:4;}
-    }
 </style>
 </head>
 <body>
@@ -2068,11 +1984,6 @@
 <div aria-live="polite" class="cameraCaptureStatus" id="ytStatus" role="status" style="margin-top:10px;">Sin captura todavía.</div>
 <label style="display:flex; gap:10px; align-items:center; margin-top:10px; cursor:pointer;"><input id="ytVozCheck" type="checkbox"/> <span>Activar órdenes de voz: «grabar» y «capturar mesa» desde cualquier sección</span></label>
 <div class="small" id="ytVozEstado" style="margin-top:4px; color:#9aa3b2;">Con la voz activada, diga «grabar» desde cualquier sección para abrir el módulo de grabación, o «capturar mesa» para tomar una fotografía y revisar las posiciones. La captura reutiliza las esquinas de la sesión cuando corresponde; revise las bolas y pulse «Aplicar posiciones a la app». El control inferior indica cuándo la app está escuchando y permite apagar la voz. Dentro del módulo listo, diga «cinco», «diez» o «quince» (también «grabar en cinco, diez o quince»), «detener y revisar», «reproducir», «grabar» para preparar otra grabación o «descargar con datos», según el momento. «Volver a colocar» recupera la última posición confirmada desde cualquier sección, aunque el botón morado esté oculto. Esa posición se conserva al salir del entrenamiento y se sustituye al aplicar otra. Si hay una captura, grabación o exportación en marcha, la petición espera a que termine. La voz no graba video por sí sola. Usa el servicio de voz de Chrome (necesita internet) y el micrófono predeterminado de Windows: elija allí la Logitech Brio.</div>
-<div id="ytVozCicloOpciones" style="margin-top:10px; padding:10px; border:1px solid #3a4a63; border-radius:10px;">
-<label style="display:flex; gap:10px; align-items:center; cursor:pointer;"><input id="ytVozCicloCheck" type="checkbox" checked/> <span>Renovar la escucha automáticamente</span></label>
-<label for="ytVozCicloSegundos" style="display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:10px;">Ventana activa (segundos) <input id="ytVozCicloSegundos" type="number" min="5" max="120" step="1" value="15" style="width:90px;"/></label>
-<p class="small" style="margin:8px 0 0;">Elija de 5 a 120 segundos. Después hay una pausa fija de medio segundo y se espera la confirmación de Chrome. Las barritas muestran el tiempo restante. El ciclo se suspende al grabar y mientras se preparan la cámara, la captura o la exportación. Una orden en curso dispone de un margen breve para completarse. El apagado manual siempre detiene el ciclo. La configuración queda guardada en este navegador.</p>
-</div>
 <details id="ytVozHistorialPanel" style="margin-top:10px;">
 <summary style="cursor:pointer;">Historial de órdenes de voz</summary>
 <p class="small">Revíselo después de practicar. Conserva hasta 1000 registros de voz, textos y acciones, y los últimos 200 estados de conexión, solo mientras esta página está abierta; no guarda audio. Incluye los textos provisionales y la detección de voz, con horas en milisegundos. La referencia de sesión y resultado permite seguir una misma orden. Pulse «Actualizar» para ver lo más reciente.</p>
@@ -2465,9 +2376,7 @@
   function getViewportSize(){
     return {
       w:window.innerWidth || document.documentElement.clientWidth || 1,
-      h:Math.max(1, (window.innerHeight || document.documentElement.clientHeight || 1)
-        - (tableExpandedModeActive() && ids('ytVozControl') && ids('ytVozControl').getClientRects().length && ids('ytVozControl').parentElement === document.querySelector('.stage')
-          ? ids('ytVozControl').getBoundingClientRect().height + 8 + (parseFloat(ids('ytVozControl').style.marginBottom) || 10) : 0))
+      h:window.innerHeight || document.documentElement.clientHeight || 1
     };
   }
 
@@ -17940,33 +17849,6 @@ function drawStartMarks(){
     return colores[YT_PASOS_BOLAS[Math.min(ytTrain.bolas.length, 2)].key];
   }
 
-  // Ajustar solamente la presentación: el fotograma y sus coordenadas no cambian.
-  function ytAjustarVistaMarcado(){
-    const vista = ids('ytMarkOverlay'), cv = ids('ytMarkCanvas'), fc = ytTrain.frameCanvas;
-    if(!vista || !cv || !fc || !vista.getClientRects().length) return;
-    const estilo = getComputedStyle(vista);
-    const numero = valor => parseFloat(valor) || 0;
-    const fila = [...vista.children].filter(el => {
-      const css = getComputedStyle(el);
-      return css.display !== 'none' && css.position !== 'absolute' && css.position !== 'fixed';
-    });
-    let ocupado = numero(estilo.paddingTop) + numero(estilo.paddingBottom)
-      + numero(estilo.rowGap) * Math.max(0, fila.length - 1);
-    for(const el of fila){
-      if(el === cv) continue;
-      const css = getComputedStyle(el);
-      ocupado += el.getBoundingClientRect().height + numero(css.marginTop) + numero(css.marginBottom);
-    }
-    const ancho = Math.max(1, Math.min(window.innerWidth * .94,
-      vista.clientWidth - numero(estilo.paddingLeft) - numero(estilo.paddingRight)) - 2);
-    const alto = Math.max(1, Math.min(window.innerHeight * .8, vista.clientHeight - ocupado) - 2);
-    const escala = Math.min(ancho / fc.width, alto / fc.height);
-    const w = (fc.width * escala + 2).toFixed(2) + 'px';
-    const h = (fc.height * escala + 2).toFixed(2) + 'px';
-    if(cv.style.width !== w) cv.style.width = w;
-    if(cv.style.height !== h) cv.style.height = h;
-  }
-
   function ytPintarMarcado(){
     const cv = ids('ytMarkCanvas');
     const fc = ytTrain.frameCanvas;
@@ -18015,7 +17897,6 @@ function drawStartMarks(){
     }
     const recal = ids('ytMarkRecal');
     if(recal) recal.style.display = ytTrain.modo === 'balls' ? '' : 'none';
-    ytAjustarVistaMarcado();
   }
 
   // El toque es candidato, no sentencia: el clic coloca (o reubica) la
@@ -18071,9 +17952,7 @@ function drawStartMarks(){
     const panel = ids('ytMarkFine');
     if(!panel) return;
     const hay = !!ytTrain.candidato;
-    // Reservar la lupa desde el comienzo evita que el primer clic desplace la imagen.
-    panel.style.display = 'flex';
-    panel.style.visibility = hay ? 'visible' : 'hidden';
+    panel.style.display = hay ? 'flex' : 'none';
     if(hay) ytPintarLupaMarcado();
   }
 
@@ -18430,148 +18309,6 @@ function drawStartMarks(){
   // =======================================================
   const YT_VOZ_KEY = 'ytVozOrdenV1';
   const ytVoz = { rec:null, iniciando:false, escuchando:false, reintento:0, desde:0, ultimoTic:0, contexto:null, versionContexto:0, fragmento:null, avisoTimer:0, abriendoModulo:false, capturandoMesa:false, volviendo:false, volverPendiente:null, volverTrasCalibrar:false, solicitudModulo:0, retorno:null, cerrando:null, cierreTimer:0, renovarPendiente:false, ultimaActividad:0, ultimoResultado:0, hablando:false, hablaDesde:0, hablaFin:0, pendienteDesde:0, pendienteFrase:'', indiceProvisional:-1, ordenProvisional:'', cambioOrden:0, prefijoProvisional:false, sinAudioDesde:0, ultimoAvisoConexion:0, ultimoDespertar:0, fallos:0, ultimaOrden:'', ultimaVez:0 };
-  // Renovación JJA: preferencia manual, cierre, pausa y apertura son estados distintos.
-  const YT_VOZ_CICLO_KEY = 'ytVozCicloJjaV1';
-  const ytVozCiclo = { activo:true, segundos:15, fase:'', inicio:0, pausaHasta:0,
-    rec:null, protegido:'', aplazadoDesde:0 };
-  function ytVozCicloCancelar(){
-    ytVozCiclo.fase = ''; ytVozCiclo.inicio = 0; ytVozCiclo.pausaHasta = 0;
-    ytVozCiclo.rec = null; ytVozCiclo.protegido = ''; ytVozCiclo.aplazadoDesde = 0;
-  }
-  function ytVozCicloEspera(){
-    return ytVozCiclo.fase === 'cerrando' || ytVozCiclo.fase === 'pausa';
-  }
-  function ytVozCicloConfirmar(){
-    ytVozCicloCancelar();
-    if(ytVozCiclo.activo && ytVozActiva()) ytVozCiclo.inicio = Date.now();
-  }
-  function ytVozCicloSesionCerrada(rec){
-    if(ytVozCiclo.fase !== 'cerrando' || ytVozCiclo.rec !== rec) return;
-    ytVozCiclo.rec = null;
-    if(!ytVozCiclo.activo || !ytVozActiva()){ ytVozCicloCancelar(); return; }
-    // Los 500 ms empiezan al cerrarse la sesión anterior, nunca antes.
-    ytVozCiclo.fase = 'pausa'; ytVozCiclo.pausaHasta = Date.now() + 500;
-    ytVozRegistrar('', 'Renovación automática: escucha cerrada; pausa de medio segundo.');
-  }
-  function ytVozCicloProteccion(){
-    if(videoReplay.countdownUntil || videoReplay.anunciando) return 'cuenta regresiva';
-    if(videoReplay.recorder && videoReplay.recorder.state !== 'inactive') return 'grabación';
-    if(ytVoz.abriendoModulo || ytVoz.volviendo) return 'preparación de la cámara';
-    if(ytVoz.capturandoMesa || cameraCaptureState.busy) return 'captura de la mesa';
-    if(videoReplay.exporting) return 'exportación';
-    return '';
-  }
-  function ytVozCicloOrdenPendiente(){
-    return !!(ytVoz.ordenProvisional || ytVoz.prefijoProvisional
-      || (ytVoz.fragmento && Date.now() - ytVoz.fragmento.inicio <= YT_VOZ_FRAGMENTOS_MS));
-  }
-  function ytVozCicloActualizar(){
-    if(!ytVozActiva() || !ytVozSoportada()){
-      ytVozCicloCancelar(); ytVozCicloPintar(); return;
-    }
-    if(!ytVozCiclo.activo){ ytVozCicloPintar(); return; }
-    const ahora = Date.now();
-    if(ytVozCiclo.fase === 'pausa'){
-      if(ahora >= ytVozCiclo.pausaHasta){
-        ytVozCiclo.fase = 'abriendo';
-        ytVoz.fallos = 0;
-        ytVozRegistrar('', 'Renovación automática: reactivando; esperando confirmación de Chrome.');
-        ytVozArrancar(); ytVozChip(ytVoz.escuchando);
-      }
-      ytVozCicloPintar(); return;
-    }
-    if(ytVozCiclo.fase){ ytVozCicloPintar(); return; }
-    if(!ytVoz.escuchando || ytVoz.iniciando || ytVoz.cerrando){
-      ytVozCiclo.inicio = 0; ytVozCicloPintar(); return;
-    }
-    const protegido = ytVozCicloProteccion();
-    if(protegido){
-      ytVozCiclo.protegido = protegido; ytVozCiclo.inicio = 0;
-      ytVozCiclo.aplazadoDesde = 0; ytVozCicloPintar(); return;
-    }
-    if(ytVozCiclo.protegido || !ytVozCiclo.inicio){
-      ytVozCiclo.protegido = ''; ytVozCiclo.inicio = ahora; ytVozCiclo.aplazadoDesde = 0;
-    }
-    if(ahora - ytVozCiclo.inicio < ytVozCiclo.segundos * 1000){ ytVozCicloPintar(); return; }
-    // Dar margen a un comienzo reciente de voz y hasta 4 s adicionales a
-    // una orden identificable. Una conversación no aplaza el ciclo sin límite.
-    const ordenPendiente = ytVozCicloOrdenPendiente();
-    const vozReciente = ytVoz.hablando && ytVoz.hablaDesde && ahora - ytVoz.hablaDesde < 1800;
-    if(ordenPendiente || vozReciente){
-      if(!ytVozCiclo.aplazadoDesde) ytVozCiclo.aplazadoDesde = ahora;
-      if(ahora - ytVozCiclo.aplazadoDesde < 4000){ ytVozCicloPintar(); return; }
-    }
-    ytVozCiclo.fase = 'cerrando'; ytVozCiclo.rec = ytVoz.rec;
-    ytVozCiclo.inicio = 0; ytVozCiclo.aplazadoDesde = 0;
-    ytVozRegistrar('', 'Renovación automática: cerrando reconocimiento y medidor de audio.');
-    // stop() permite entregar un último texto pendiente; no se ejecuta
-    // ninguna orden después de un apagado manual. El medidor siempre se cierra.
-    const conservarResultado = ordenPendiente || ytVoz.hablando
-      || (ytVoz.hablaFin && ahora - ytVoz.hablaFin < 1000);
-    ytVozCerrar(false, conservarResultado);
-    ytVozChip(false);
-  }
-  function ytVozCicloPintar(){
-    const caja = ids('ytVozCicloVista'), texto = ids('ytVozCicloTexto'), barras = ids('ytVozCicloBarras');
-    if(!caja || !texto || !barras) return;
-    const visible = ytVozSoportada() && ytVozCiclo.activo;
-    caja.style.display = visible ? 'block' : 'none';
-    if(!visible) return;
-    let mensaje = '', fraccion = 0, color = '#ff4848';
-    if(!ytVozActiva()) mensaje = 'Apagado manual · ciclo detenido';
-    else if(ytVozCiclo.fase === 'pausa') mensaje = 'Pausa de 0,5 s';
-    else if(ytVozCiclo.fase || !ytVoz.escuchando) mensaje = 'Reactivando…';
-    else if(ytVozCiclo.protegido){
-      mensaje = 'Renovación en pausa · ' + ytVozCiclo.protegido;
-      fraccion = 1; color = '#55ff42';
-    } else if(ytVozCiclo.aplazadoDesde) mensaje = 'Esperando completar la orden…';
-    else {
-      const restante = Math.max(0, ytVozCiclo.segundos * 1000 - (ytVozCiclo.inicio ? Date.now() - ytVozCiclo.inicio : 0));
-      fraccion = restante / (ytVozCiclo.segundos * 1000);
-      mensaje = 'Renovación en ' + Math.ceil(restante / 1000) + ' s';
-      color = fraccion > .5 ? '#55ff42' : (fraccion > .2 ? '#ffc83d' : '#ff4848');
-    }
-    if(texto.textContent !== mensaje) texto.textContent = mensaje;
-    const activas = Math.ceil(fraccion * 20);
-    Array.from(barras.children || []).forEach((barra, i) => {
-      const fondo = i < activas ? color : '#25303d';
-      if(barra.dataset.color !== fondo){ barra.style.background = fondo; barra.dataset.color = fondo; }
-    });
-    barras.setAttribute('aria-valuenow', String(Math.round(fraccion * 100)));
-    barras.setAttribute('aria-valuetext', mensaje);
-  }
-  function ytVozCicloConfigurar(activo, segundos){
-    const valor = Number(segundos);
-    ytVozCiclo.activo = !!activo;
-    if(Number.isFinite(valor) && valor >= 5 && valor <= 120) ytVozCiclo.segundos = Math.round(valor);
-    const casilla = ids('ytVozCicloCheck'), campo = ids('ytVozCicloSegundos');
-    if(casilla) casilla.checked = ytVozCiclo.activo;
-    if(campo){ campo.value = String(ytVozCiclo.segundos); campo.disabled = !ytVozCiclo.activo; }
-    try{ localStorage.setItem(YT_VOZ_CICLO_KEY, JSON.stringify({activo:ytVozCiclo.activo, segundos:ytVozCiclo.segundos})); }catch{}
-    ytVozCicloCancelar();
-    if(ytVoz.escuchando && ytVozCiclo.activo) ytVozCiclo.inicio = Date.now();
-    ytVozSincronizar();
-    ytVozCicloActualizar();
-  }
-  function ytVozCicloEnlazar(){
-    let opciones = null;
-    try{ opciones = JSON.parse(localStorage.getItem(YT_VOZ_CICLO_KEY)); }catch{}
-    const casilla = ids('ytVozCicloCheck'), campo = ids('ytVozCicloSegundos');
-    if(opciones){
-      ytVozCiclo.activo = opciones.activo !== false;
-      const valor = Number(opciones.segundos);
-      if(Number.isFinite(valor) && valor >= 5 && valor <= 120) ytVozCiclo.segundos = Math.round(valor);
-    }
-    if(casilla){
-      casilla.checked = ytVozCiclo.activo; casilla.disabled = !ytVozSoportada();
-      casilla.addEventListener('change', () => ytVozCicloConfigurar(casilla.checked, campo ? campo.value : ytVozCiclo.segundos));
-    }
-    if(campo){
-      campo.value = String(ytVozCiclo.segundos); campo.disabled = !ytVozCiclo.activo || !ytVozSoportada();
-      campo.addEventListener('change', () => ytVozCicloConfigurar(ytVozCiclo.activo, campo.value));
-    }
-    setInterval(ytVozCicloActualizar, 100);
-  }
   // Diagnóstico acotado en memoria: no graba audio ni envía datos adicionales.
   const ytVozHistorial = [];
   let ytVozSesionDiagnostico = 0;
@@ -18607,7 +18344,6 @@ function drawStartMarks(){
   // El botón y la casilla comparten el mismo interruptor de órdenes de voz.
   // Solo se detiene la escucha; el audio de los videos y de la grabación sigue igual.
   function ytVozCambiar(on){
-    ytVozCicloCancelar();
     ytVozGuardar(on);
     ytVozRegistrar('', on ? 'Órdenes de voz activadas.' : 'Órdenes de voz silenciadas.');
     if(ytVoz.avisoTimer){ clearTimeout(ytVoz.avisoTimer); ytVoz.avisoTimer = 0; }
@@ -18646,8 +18382,6 @@ function drawStartMarks(){
       ytVoz.pendienteDesde = Date.now();
     }
     ytVoz.pendienteFrase = resultado.frase || '';
-    ytVoz.ordenProvisional = resultado.prevista ? resultado.prevista.accion : '';
-    ytVoz.prefijoProvisional = !resultado.ambigua && ytVozPuedeContinuar(ytVoz.pendienteFrase);
   }
 
   // Reglas de las órdenes, tolerantes al ruido: basta que las palabras
@@ -19058,93 +18792,16 @@ function drawStartMarks(){
     for(const panel of retorno.paneles){ if(panel.el.isConnected) panel.el.style.display = panel.display; }
     if(retorno.foto){ photoLocator.active = retorno.fotoActiva; openPhotoLocator(); }
   }
-  // Anclar el control fuera de la mesa, en una fila reservada del visor activo.
-  let ytVozControlAnclado = null;
+  // El interruptor tiene su propio lugar, incluso sin el botón de entrenamiento.
   function ytVozUbicarControl(){
-    const control = ids('ytVozControl') || ytVozControlAnclado;
-    if(!control || typeof document === 'undefined') return;
-    ytVozControlAnclado = control;
-    const visible = el => !!(el && el.getClientRects().length && getComputedStyle(el).display !== 'none');
-    const stage = document.querySelector('.stage');
-    if(!ytVozSoportada()){
-      if(stage){ stage.classList.remove('ytVozConControl'); stage.style.height = ''; }
-      return;
+    const control = ids('ytVozControl'), barra = ids('ytPlaceFabBar');
+    if(!control) return;
+    let abajo = 18;
+    if(barra && barra.style.display !== 'none'){
+      const r = barra.getBoundingClientRect();
+      if(r.width && r.left < control.getBoundingClientRect().right + 10) abajo += r.height + 10;
     }
-    let destino = stage;
-    for(const id of ['videoReplayModal','photoLocatorModal','ytPlaceOverlay','ytMarkOverlay','mirrorCalibZoom']){
-      const vista = ids(id);
-      if(!visible(vista)) continue;
-      if(id === 'videoReplayModal' || id === 'photoLocatorModal') destino = vista.firstElementChild;
-      else if(id === 'ytMarkOverlay') destino = vista;
-      else {
-        let contenido = vista.querySelector(':scope > .ytVozContenido');
-        if(!contenido){
-          contenido = document.createElement('div'); contenido.className = 'ytVozContenido';
-          while(vista.firstChild) contenido.appendChild(vista.firstChild);
-          vista.appendChild(contenido); vista.classList.add('ytVozVistaConPie');
-        }
-        destino = vista;
-      }
-    }
-    if(!destino) return;
-    if(control.parentElement !== destino) destino.appendChild(control);
-    const enMesa = destino === stage;
-    // Mantener también libres los botones flotantes de volver/cambiar jugada.
-    const barraFab = ids('ytPlaceFabBar');
-    const bajoBotones = destino.classList.contains('videoReplayShell') || destino.classList.contains('photoLocatorShell')
-      || (enMesa && tableExpandedModeActive());
-    let margenInferior = 10;
-    if(bajoBotones && visible(barraFab)){
-      const f = barraFab.getBoundingClientRect(), c = control.getBoundingClientRect(), d = destino.getBoundingClientRect();
-      if(f.left < c.right + 8 && f.right > c.left - 8) margenInferior = Math.max(10, Math.ceil(d.bottom - f.top + 8));
-    }
-    if(control.style.marginBottom !== margenInferior + 'px') control.style.marginBottom = margenInferior + 'px';
-    if(stage){
-      stage.classList.toggle('ytVozConControl', enMesa && ytVozSoportada());
-      // El lienzo usa el espacio restante: ni el botón ni las barras lo cubren.
-      if(enMesa && !tableExpandedModeActive()){
-        const ancho = window.innerWidth, alto = window.innerHeight;
-        const cabecera = document.querySelector('header');
-        const top = visible(cabecera) ? cabecera.getBoundingClientRect().height + (ancho > 980 ? 10 : 8) : 8;
-        const pie = control.getBoundingClientRect().height + 18;
-        const naturalMovil = Math.max(390, alto * .56) + 36 + pie;
-        const barra = ids('ytPlaceFabBar'), rect = stage.getBoundingClientRect();
-        const botones = visible(barra) ? barra.getBoundingClientRect() : null;
-        const limite = botones && botones.left < rect.left + Math.min(rect.width,724)
-          ? Math.min(alto - 18, botones.top - 8) : alto - 18;
-        const disponible = Math.max(pie + 100, limite - top);
-        // En escritorio aprovechar la altura disponible, también en 4K;
-        // resize() conserva las proporciones de la mesa dentro de ese espacio.
-        const altura = (ancho > 980 ? disponible : Math.min(naturalMovil, disponible)) + 'px';
-        if(stage.style.height !== altura) stage.style.height = altura;
-      } else if(stage.style.height) stage.style.height = '';
-    }
-    ytAjustarVistaMarcado();
-    const alturaControl = Math.ceil(control.getBoundingClientRect().height + 8 + margenInferior) + 'px';
-    if(document.documentElement.style.getPropertyValue('--ytVozControlH') !== alturaControl){
-      document.documentElement.style.setProperty('--ytVozControlH', alturaControl);
-      if(tableExpandedModeActive()) applyTableViewportStyle();
-    }
-  }
-  function ytVozEnlazarUbicacion(){
-    let pendiente = false;
-    const colocar = () => {
-      if(pendiente) return;
-      pendiente = true;
-      requestAnimationFrame(() => { pendiente = false; ytVozUbicarControl(); });
-    };
-    // Los cambios de visor se atienden antes del siguiente dibujo, incluso sin voz.
-    const cambios = new MutationObserver(() => ytVozUbicarControl());
-    for(const id of ['videoReplayModal','photoLocatorModal','ytPlaceOverlay','ytMarkOverlay']){
-      const vista = ids(id); if(vista) cambios.observe(vista, {attributes:true,attributeFilter:['class','style']});
-    }
-    const zoom = new MutationObserver(() => ytVozUbicarControl());
-    zoom.observe(document.body, {childList:true});
-    const tamano = new ResizeObserver(colocar);
-    tamano.observe(ids('ytVozControl'));
-    cambios.observe(document.documentElement, {attributes:true,attributeFilter:['class']});
-    window.addEventListener('scroll', colocar, {passive:true});
-    ytVozUbicarControl();
+    control.style.bottom = abajo + 'px';
   }
   function ytVozAceptar(frase, mensaje){
     if(!ytVozActiva()) return;
@@ -19226,23 +18883,23 @@ function drawStartMarks(){
     }
   }
   function ytVozEstado(msg){ const e = ids('ytVozEstado'); if(e) e.textContent = msg; }
-  // Estado real de la voz: activo confirmado, apagado manual/pausa o reactivación.
+  // El interruptor junto al botón morado cuenta su estado con color:
+  // gris apagado, morado encendido en espera, azul escuchando.
   function ytVozChip(on){
     const b = ids('ytVozBtn');
     if(!b) return;
     const control = ids('ytVozControl');
     if(!ytVozSoportada()){ b.style.display = 'none'; if(control) control.style.display = 'none'; return; }
-    if(control) control.style.display = 'grid';
+    if(control) control.style.display = 'flex';
     const activa = ytVozActiva(), ctx = ytVoz.contexto;
     b.setAttribute('aria-pressed', String(activa));
     b.setAttribute('aria-label', activa ? 'Silenciar órdenes de voz' : 'Activar órdenes de voz');
     on = !!on && ytVoz.escuchando;
-    const pausa = ytVozCiclo.fase === 'pausa';
-    const pendiente = pausa ? '🎙 Pausa de medio segundo.' : '🎙 Reactivando…';
-    b.textContent = !activa || pausa ? 'MICRÓFONO APAGADO' : (on ? 'MICRÓFONO ACTIVO' : 'REACTIVANDO…');
-    if(!activa || pausa){ b.style.background = '#000000'; b.style.borderColor = '#ff4848'; b.style.color = '#ff4848'; }
-    else if(on){ b.style.background = '#3b3200'; b.style.borderColor = '#55ff42'; b.style.color = '#55ff42'; }
-    else { b.style.background = '#171717'; b.style.borderColor = '#ffc83d'; b.style.color = '#ffc83d'; }
+    const pendiente = ytVoz.iniciando ? '🎙 Activando voz…' : (ctx ? '🎙 Reconectando voz…' : '🎙 Voz: en espera');
+    b.textContent = activa ? '🎙 Voz activada' : '🔇 Voz silenciada';
+    if(!activa){ b.style.background = '#1a2230'; b.style.borderColor = '#3a4a63'; b.style.color = '#c9d3e6'; }
+    else if(on){ b.style.background = '#1d3a4d'; b.style.borderColor = '#62d7ff'; b.style.color = '#d8f4ff'; }
+    else { b.style.background = '#2a1d4d'; b.style.borderColor = '#c9a4ff'; b.style.color = '#e6d8ff'; }
     const resumen = ids('ytVozResumen');
     const detalle = activa ? (on ? 'Escuchando: ' + (YT_VOZ_LETREROS[ctx] || '') : pendiente.replace('🎙 ', ''))
       + (ytVoz.volverPendiente ? ' · colocación pendiente' : '') : '';
@@ -19270,7 +18927,6 @@ function drawStartMarks(){
     }
     const nivel = ids('ytVozNivel');
     if(nivel) nivel.style.display = on && ytVozMedidor.stream ? '' : 'none';
-    ytVozCicloPintar();
     ytVozUbicarControl();
   }
   function ytVozAcuse(){
@@ -19282,12 +18938,12 @@ function drawStartMarks(){
   }
   function ytVozOrden(){ ytVozEjecutar({ accion:'volver' }); }
   function ytVozReintentar(){
-    if(ytVoz.reintento || ytVoz.rec || ytVoz.cerrando || ytVozCicloEspera() || !ytVozDebeEscuchar()) return;
+    if(ytVoz.reintento || ytVoz.rec || ytVoz.cerrando || !ytVozDebeEscuchar()) return;
     const demora = Math.min(8000, 400 * Math.pow(2, Math.min(ytVoz.fallos, 5)));
     ytVoz.reintento = setTimeout(() => { ytVoz.reintento = 0; ytVozArrancar(); }, demora);
   }
   function ytVozArrancar(){
-    if(ytVoz.rec || ytVoz.cerrando || ytVoz.iniciando || ytVoz.reintento || ytVozCicloEspera() || !ytVozDebeEscuchar()) return;
+    if(ytVoz.rec || ytVoz.cerrando || ytVoz.iniciando || ytVoz.reintento || !ytVozDebeEscuchar()) return;
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     try{
       const rec = new SR();
@@ -19348,7 +19004,6 @@ function drawStartMarks(){
         if(!ctx){ ytVozParar(false); return; }
         confirmado = true; ytVoz.iniciando = false; ytVoz.escuchando = true; ytVoz.desde = Date.now();
         ytVoz.ultimaActividad = Date.now(); ytVoz.sinAudioDesde = 0;
-        ytVozCicloConfirmar();
         ytVozRegistrar('', 'Chrome confirmó el servicio y la entrada de audio.', 'Estado', ytVozContexto(), { sesion });
         ytVozFijarContexto(ctx); ytVozChip(true); ytVozMedidorArrancar();
         ytVozEstado(ctx === 'espera' ? 'Cuenta regresiva; órdenes en pausa.' : 'Escuchando: ' + (YT_VOZ_LETREROS[ctx] || ''));
@@ -19546,8 +19201,7 @@ function drawStartMarks(){
     if(ytVoz.cerrando === rec) ytVoz.cerrando = null;
     rec.onstart = rec.onaudiostart = rec.onaudioend = rec.onspeechstart = rec.onspeechend = rec.onnomatch = rec.onend = rec.onresult = rec.onerror = null;
     ytVoz.iniciando = false; ytVoz.escuchando = false; ytVoz.renovarPendiente = false;
-    ytVozLimpiarFragmento(); ytVozLimpiarActividad();
-    ytVozCicloSesionCerrada(rec); ytVozChip(false);
+    ytVozLimpiarFragmento(); ytVozLimpiarActividad(); ytVozChip(false);
     ytVozReintentar();
   }
   function ytVozCerrar(mantenerMedidor, conservarResultado){
@@ -19582,12 +19236,11 @@ function drawStartMarks(){
   function ytVozParar(mantenerMedidor){ ytVozCerrar(mantenerMedidor, false); }
   function ytVozPrepararCuenta(){
     if(!ytVozActiva() || !ytVozSoportada()) return;
-    // Coordinar la renovación de la cuenta con el ciclo periódico: nunca dos
-    // reinicios superpuestos. Con el ciclo JJA, renovar también el medidor.
-    ytVozCicloCancelar();
+    // Una sola renovación, después de aceptar el tiempo completo. La cuenta
+    // continúa y el medidor conserva su audio; no se reinicia por conversación.
     ytVozRegistrar('', 'Cuenta iniciada: renovación única para escuchar detener.');
     ytVoz.fallos = 0;
-    ytVozParar(!ytVozCiclo.activo);
+    ytVozParar(true);
     ytVozSincronizar();
   }
   function ytVozAvisarFallo(mensaje, inmediato=false){
@@ -20242,7 +19895,6 @@ function drawStartMarks(){
   }
 
   function ytEnlazar(){
-    window.addEventListener('resize', ytAjustarVistaMarcado);
     const btn = ids('ytCaptureBtn');
     if(!btn) return;
     btn.addEventListener('click', ytCapturarPosicion);
@@ -20320,8 +19972,6 @@ function drawStartMarks(){
       }
       const vozBtn = ids('ytVozBtn');
       if(vozBtn) vozBtn.addEventListener('click', () => ytVozCambiar(!ytVozActiva()));
-      ytVozEnlazarUbicacion();
-      ytVozCicloEnlazar();
       ytVozChip(false);
       // Vigilante: el oído sigue al estado de la app aunque nadie lo avise.
       setInterval(ytVozSincronizar, 800);
@@ -20523,13 +20173,9 @@ function drawStartMarks(){
 </div>
 
 <div id="ytVozAviso" role="status" aria-live="polite" aria-atomic="true" style="display:none; position:fixed; top:16px; left:50%; transform:translateX(-50%); z-index:10010; width:max-content; max-width:calc(100vw - 32px); box-sizing:border-box; padding:10px 16px; border:1px solid #62d7ff; border-radius:12px; background:rgba(15,23,35,.96); color:#f4f2e8; font-size:clamp(16px,1.6vw,22px); line-height:1.4; text-align:center; overflow-wrap:anywhere; pointer-events:none; box-shadow:0 6px 24px rgba(0,0,0,.5);"><span id="ytVozAvisoOida" style="display:block;"></span><span id="ytVozAvisoAccion" style="display:block; font-weight:700;"></span></div>
-<div id="ytVozControl" style="position:relative; z-index:1; display:grid; gap:5px;">
-<button id="ytVozBtn" type="button" title="Activar órdenes de voz: grabar, capturar mesa o volver a colocar" aria-label="Activar órdenes de voz" aria-describedby="ytVozResumen" aria-pressed="false" style="align-self:stretch; width:100%; min-height:76px; white-space:normal; padding:12px 10px; border-radius:14px; background:#000000; border:2px solid #ff4848; color:#ff4848; font-weight:900; font-size:clamp(22px,2.4vw,30px); cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.4);">MICRÓFONO APAGADO</button>
-<span id="ytVozResumen" role="status" aria-live="polite" style="display:none; width:100%; font-size:16px; line-height:1.3; text-align:center; color:#d8f4ff; background:rgba(15,23,35,.94); padding:5px 8px; box-sizing:border-box; border-radius:6px;"></span>
-<div id="ytVozCicloVista" style="display:none; background:rgba(15,23,35,.96); padding:7px 9px; border-radius:8px;">
-<div id="ytVozCicloBarras" role="progressbar" aria-label="Tiempo restante de la ventana de escucha" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" style="display:flex; gap:3px; height:18px;"><i aria-hidden="true" style="flex:1; min-width:0; border-radius:2px; background:#25303d;"></i><i aria-hidden="true" style="flex:1; min-width:0; border-radius:2px; background:#25303d;"></i><i aria-hidden="true" style="flex:1; min-width:0; border-radius:2px; background:#25303d;"></i><i aria-hidden="true" style="flex:1; min-width:0; border-radius:2px; background:#25303d;"></i><i aria-hidden="true" style="flex:1; min-width:0; border-radius:2px; background:#25303d;"></i><i aria-hidden="true" style="flex:1; min-width:0; border-radius:2px; background:#25303d;"></i><i aria-hidden="true" style="flex:1; min-width:0; border-radius:2px; background:#25303d;"></i><i aria-hidden="true" style="flex:1; min-width:0; border-radius:2px; background:#25303d;"></i><i aria-hidden="true" style="flex:1; min-width:0; border-radius:2px; background:#25303d;"></i><i aria-hidden="true" style="flex:1; min-width:0; border-radius:2px; background:#25303d;"></i><i aria-hidden="true" style="flex:1; min-width:0; border-radius:2px; background:#25303d;"></i><i aria-hidden="true" style="flex:1; min-width:0; border-radius:2px; background:#25303d;"></i><i aria-hidden="true" style="flex:1; min-width:0; border-radius:2px; background:#25303d;"></i><i aria-hidden="true" style="flex:1; min-width:0; border-radius:2px; background:#25303d;"></i><i aria-hidden="true" style="flex:1; min-width:0; border-radius:2px; background:#25303d;"></i><i aria-hidden="true" style="flex:1; min-width:0; border-radius:2px; background:#25303d;"></i><i aria-hidden="true" style="flex:1; min-width:0; border-radius:2px; background:#25303d;"></i><i aria-hidden="true" style="flex:1; min-width:0; border-radius:2px; background:#25303d;"></i><i aria-hidden="true" style="flex:1; min-width:0; border-radius:2px; background:#25303d;"></i><i aria-hidden="true" style="flex:1; min-width:0; border-radius:2px; background:#25303d;"></i></div>
-<div id="ytVozCicloTexto" style="margin-top:5px; color:#e6edf5; font-size:15px; line-height:1.3; text-align:center;">Apagado manual · ciclo detenido</div>
-</div>
+<div id="ytVozControl" style="position:fixed; bottom:18px; left:18px; z-index:10011; display:flex; flex-direction:column; gap:7px; width:max-content; max-width:calc(100vw - 36px);">
+<button id="ytVozBtn" type="button" title="Activar órdenes de voz: grabar, capturar mesa o volver a colocar" aria-label="Activar órdenes de voz" aria-describedby="ytVozResumen" aria-pressed="false" style="align-self:stretch; max-width:220px; min-height:44px; white-space:normal; padding:9px 12px; border-radius:12px; background:#1a2230; border:1px solid #3a4a63; color:#c9d3e6; font-weight:700; font-size:14px; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.4);">🔇 Voz silenciada</button>
+<span id="ytVozResumen" role="status" aria-live="polite" style="display:none; max-width:220px; font-size:12px; line-height:1.3; text-align:center; color:#d8f4ff; background:rgba(15,23,35,.94); padding:3px 6px; box-sizing:border-box; border-radius:6px;"></span>
 <span id="ytVozNivel" title="Nivel de audio del medidor; la escucha se confirma en el letrero de voz" style="display:none; box-sizing:border-box; width:100%; height:14px; border-radius:7px; background:#111823; border:1px solid #3a4a63; overflow:hidden; box-shadow:0 6px 24px rgba(0,0,0,.5);"><span id="ytVozNivelBarra" style="display:block; height:100%; width:0%; background:#3a4a63; transition:width .08s linear;"></span></span>
 </div>
 <div id="ytPlaceFabBar" style="display:none; position:fixed; bottom:18px; right:18px; z-index:9400; gap:10px; align-items:stretch;">
