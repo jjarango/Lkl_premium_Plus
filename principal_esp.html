@@ -14484,6 +14484,11 @@ function drawStartMarks(){
     audioCtx:null,
     exporting:false,
     exportRaf:0,
+    exportJob:null,
+    recordingCheck:null,
+    recordingIssue:'',
+    blobHasAudio:false,
+    blobType:'video/webm',
     exportRecorder:null,
     exportChunks:[],
     exportVideoEl:null,
@@ -14599,7 +14604,11 @@ function drawStartMarks(){
 
   async function openVideoReplayStream(apertura = videoReplay.apertura){
     const vigente = () => apertura === videoReplay.apertura;
-    if(videoReplay.stream && videoReplay.stream.getVideoTracks().some(t => t.readyState === 'live')) return true;
+    if(videoReplay.stream && videoReplay.stream.getVideoTracks().some(t => t.readyState === 'live')){
+      const live=ids('videoReplayLive');
+      if(live && live.paused) await live.play();
+      return true;
+    }
     if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
       throw new Error('Este navegador no ofrece acceso directo a cámaras. Abra el archivo con una versión reciente de Chrome o Edge.');
     }
@@ -14833,6 +14842,7 @@ function drawStartMarks(){
   }
 
   function stopVideoReplayStream(){
+    if(videoReplay.recordingCheck) videoReplay.recordingCheck.dispose();
     if(videoReplay.recorder && videoReplay.recorder.state === 'recording'){
       try{ videoReplay.recorder.stop(); }catch{}
     }
@@ -15694,7 +15704,11 @@ function drawStartMarks(){
             for(let t=ordered[i-1].t+1/30;t<ordered[i].t-.015;t+=1/30) missing.push(t);
           }
         }
-        if(!ordered.length||duration-ordered.at(-1).t>.05) missing.push(Math.max(0,duration-.003));
+        const tail=ordered.length ? ordered.at(-1).t : 0;
+        if(duration-tail>.065){
+          for(let t=tail+1/30;t<duration-.015;t+=1/30) missing.push(t);
+        }
+        if(duration-tail>.05 && (!missing.length || duration-missing.at(-1)>.035)) missing.push(Math.max(0,duration-.003));
         for(let i=0;i<missing.length;i++){
           valid();await videoReplayTraceWait(video,'seeked',signal,()=>{video.currentTime=missing[i];});read(missing[i],true);repaired++;
           tr.progress=94+Math.round((i+1)/missing.length*5);videoReplayTraceUi();
@@ -16079,6 +16093,7 @@ function drawStartMarks(){
     const modal = ids('videoReplayModal');
     if(!modal || !modal.classList.contains('active')){ videoReplay.raf = 0; return; }
     videoReplay.raf = requestAnimationFrame(videoReplayRender);
+    if(videoReplay.exporting) return; // La revisión ya está pausada: reservar el dibujo para la exportación.
 
     const canvasEl = ids('videoReplayCanvas');
     const pane = canvasEl && canvasEl.parentElement;
@@ -16093,7 +16108,9 @@ function drawStartMarks(){
     const aspect = (vw && vh) ? vw/vh : 16/9;
     let cw = paneW, ch = Math.round(cw/aspect);
     if(ch > paneH){ ch = paneH; cw = Math.round(ch*aspect); }
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    // No ampliar internamente una imagen por encima de la resolución de la cámara.
+    // El tamaño visible y la distribución de la pantalla no cambian.
+    const dpr = Math.min(window.devicePixelRatio || 1, 2, vw ? vw/cw : 2, vh ? vh/ch : 2);
     if(canvasEl.width !== Math.round(cw*dpr) || canvasEl.height !== Math.round(ch*dpr)){
       canvasEl.width = Math.round(cw*dpr);
       canvasEl.height = Math.round(ch*dpr);
@@ -16105,14 +16122,20 @@ function drawStartMarks(){
     // Una revisión pausada conserva el cuadro ya dibujado. Volver a subir la
     // misma imagen a WebGL consume recursos que necesita el seguimiento.
     const calib = videoReplay.calib;
-    const firma = [source, source && source.currentSrc, source && source.currentTime,
+    const quality = source && source.getVideoPlaybackQuality ? source.getVideoPlaybackQuality() : null;
+    const frame = source && source.paused ? source.currentTime
+      : quality && quality.totalVideoFrames > 0 ? quality.totalVideoFrames : Math.floor((source && source.currentTime || 0)*30);
+    const firma = [source, source && source.currentSrc, frame,
       source && source.readyState, source && source.seeking, source && source.paused,
       vw, vh, cw, ch, dpr, videoReplay.mode, videoReplay.blobUrl, calib,
       calib && calib.k1, calib && calib.dewarp, calib && calib.rectified,
       ids('videoReplayShowGuide') && ids('videoReplayShowGuide').checked,
-      videoReplayTrace.enabled, videoReplayTrace.status, videoReplayTrace.url, videoReplayTrace.points];
+      videoReplayTrace.enabled, videoReplayTrace.status, videoReplayTrace.url, videoReplayTrace.points,
+      ids('videoReplayShowGuideRec') && ids('videoReplayShowGuideRec').checked,
+      Math.ceil(Math.max(0,videoReplay.countdownUntil-Date.now())/1000), videoReplay.anunciando,
+      !!(videoReplay.flashUntil && Date.now()<videoReplay.flashUntil)];
     const anterior = videoReplayRender.last;
-    if(videoReplay.mode === 'replay' && source && source.paused && anterior
+    if(videoReplay.mode !== 'calibrate' && source && anterior
       && firma.every((valor,i) => valor === anterior[i])) return;
     videoReplayRender.last = firma;
 
@@ -16243,7 +16266,10 @@ function drawStartMarks(){
     });
     const muteRow = ids('videoReplayMuteRow');
     if(muteRow) muteRow.style.display = mode === 'replay' ? '' : 'none';
-    if(mode === 'replay') aplicarSilencioReplay();
+    if(mode === 'replay'){
+      aplicarSilencioReplay();
+      const live=ids('videoReplayLive'); if(live) live.pause();
+    }
     const cajaEnfoque = ids('videoReplayFocusBox');
     if(cajaEnfoque) cajaEnfoque.style.display = (mode === 'record' && videoReplay.focusSliderDisponible) ? '' : 'none';
     const step = ids('videoReplayStep');
@@ -16350,8 +16376,8 @@ function drawStartMarks(){
   function pickVideoReplayRecorderMime(){
     if(!window.MediaRecorder || !MediaRecorder.isTypeSupported) return '';
     const candidates = videoReplay.hasAudio
-      ? ['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm','video/mp4']
-      : ['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm','video/mp4'];
+      ? ['video/webm;codecs=vp8,opus','video/webm;codecs=vp9,opus','video/webm','video/mp4']
+      : ['video/webm;codecs=vp8','video/webm;codecs=vp9','video/webm','video/mp4'];
     return candidates.find(c => { try{ return MediaRecorder.isTypeSupported(c); }catch{ return false; } }) || '';
   }
 
@@ -16528,84 +16554,115 @@ function drawStartMarks(){
   }
 
   function beginVideoReplayRecordingNow(){
+    if(videoReplay.recorder && videoReplay.recorder.state !== 'inactive') return;
+    if(videoReplay.recordingCheck) videoReplay.recordingCheck.dispose();
+    videoReplay.recordingIssue = '';
     videoReplay.chunks = [];
     const mime = pickVideoReplayRecorderMime();
     let recorder = null;
     try{
+      if(!videoReplay.stream || !videoReplay.stream.getVideoTracks().some(t=>t.readyState==='live')) throw new Error('La cámara no está disponible.');
       recorder = new MediaRecorder(videoReplay.stream, mime ? {mimeType:mime, videoBitsPerSecond:8000000} : undefined);
     }catch(error){
-      setVideoReplayStatus('No fue posible iniciar la grabación: ' + (error && error.message ? error.message : error), 'bad');
-      vestirBotonesLatencia('listo');
-      return;
+      setVideoReplayStatus('No fue posible iniciar la grabación: ' + error.message, 'bad');
+      vestirBotonesLatencia('listo'); return;
     }
-    videoReplay.recorder = recorder;
-    recorder.ondataavailable = e => { if(e.data && e.data.size) videoReplay.chunks.push(e.data); };
-    recorder.onstop = finishVideoReplayRecording;
+    const live=ids('videoReplayLive'), tracks=videoReplay.stream.getTracks();
+    const check={started:performance.now(), stopped:0, lastFrame:performance.now(), frameId:0, frames:0, timer:0, disposed:false,
+      hasAudio:videoReplay.stream.getAudioTracks().length>0, apertura:videoReplay.apertura, controller:new AbortController()};
+    const interrupted=message=>{
+      if(check.disposed || recorder.state!=='recording') return;
+      videoReplay.recordingIssue=message;
+      check.stopped=performance.now();
+      try{recorder.stop();}catch{}
+    };
+    const ended=()=>interrupted('La cámara o el audio se desconectaron durante la grabación. El original puede estar incompleto.');
+    const frame=()=>{
+      if(check.disposed) return;
+      check.lastFrame=performance.now(); check.frames++;
+      check.frameId=live.requestVideoFrameCallback(frame);
+    };
+    check.dispose=()=>{
+      if(check.disposed) return;
+      check.disposed=true;clearInterval(check.timer);
+      if(check.frameId) live.cancelVideoFrameCallback(check.frameId);
+      tracks.forEach(t=>t.removeEventListener('ended',ended));
+      check.controller.abort();
+    };
+    videoReplay.recordingCheck=check;
+    videoReplay.recorder=recorder;
+    recorder.ondataavailable=e=>{if(videoReplay.recordingCheck===check && e.data && e.data.size) videoReplay.chunks.push(e.data);};
+    recorder.onerror=()=>{
+      if(videoReplay.recordingCheck!==check) return;
+      // Algunos navegadores ya cambiaron a inactive cuando notifican el error.
+      videoReplay.recordingIssue='El navegador informó un error al grabar. Revise el original antes de usarlo.';
+      interrupted(videoReplay.recordingIssue);
+    };
+    recorder.onstop=()=>finishVideoReplayRecording(check);
     videoReplayTracePrepare();
-    recorder.start(250);
+    try{recorder.start(250);}catch(error){
+      check.dispose();videoReplay.recorder=null;resetVideoReplayRecordButtons();
+      setVideoReplayStatus('No fue posible iniciar la grabación: '+error.message,'bad');return;
+    }
+    tracks.forEach(t=>t.addEventListener('ended',ended));
+    if(live && typeof live.requestVideoFrameCallback==='function'){
+      check.frameId=live.requestVideoFrameCallback(frame);
+      check.timer=setInterval(()=>{
+        // En una pestaña oculta el visor no entrega callbacks aunque la cámara grabe.
+        if(document.hidden){check.lastFrame=performance.now();return;}
+        if(performance.now()-check.lastFrame>3000) interrupted('La cámara dejó de entregar imágenes durante la grabación. Revise el original.');
+      },500);
+    }
     videoReplay.recStartMs = Date.now();
-
-    const stopBtn = ids('videoReplayStopBtn');
-    const dot = ids('videoReplayRecDot');
+    const stopBtn = ids('videoReplayStopBtn'), dot = ids('videoReplayRecDot');
     vestirBotonesLatencia('grabando');
     if(stopBtn) stopBtn.disabled = false;
     if(dot) dot.style.display = '';
     videoReplay.flashUntil = Date.now() + 1400;
     setVideoReplayStatus('Grabando. Ejecute la tacada y luego pulse Detener y revisar.', 'good');
     videoReplay.recTimerId = setInterval(() => {
-      const hint = ids('videoReplayRecHint');
-      if(!hint) return;
+      const hint = ids('videoReplayRecHint'); if(!hint) return;
       const s = Math.floor((Date.now() - videoReplay.recStartMs)/1000);
-      const mm = String(Math.floor(s/60)).padStart(2,'0');
-      const ss = String(s%60).padStart(2,'0');
-      hint.textContent = `Grabando… ${mm}:${ss}. Ejecute la tacada y luego pulse Detener y revisar.`;
+      hint.textContent = `Grabando… ${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}. Ejecute la tacada y luego pulse Detener y revisar.`;
     }, 500);
   }
 
-  function finishVideoReplayRecording(){
-    resetVideoReplayRecordButtons();
-    videoReplay.recorder = null;
-
-    const modal = ids('videoReplayModal');
-    if(!modal || !modal.classList.contains('active')){
-      videoReplay.chunks = [];
-      return;
-    }
-    if(!videoReplay.chunks.length){
-      setVideoReplayStatus('La grabación no produjo datos. Intente de nuevo.', 'bad');
-      return;
-    }
-    const mimeGuess = videoReplay.chunks[0].type || 'video/webm';
-    const blob = new Blob(videoReplay.chunks, {type:mimeGuess});
-    videoReplay.chunks = [];
+  async function finishVideoReplayRecording(check){
+    if(videoReplay.recordingCheck!==check || check.apertura!==videoReplay.apertura) return;
+    const elapsed=((check.stopped||performance.now())-check.started)/1000;
+    check.dispose();
+    resetVideoReplayRecordButtons();videoReplay.recorder=null;
+    const modal=ids('videoReplayModal');
+    if(!modal || !modal.classList.contains('active')){videoReplay.chunks=[];return;}
+    if(!videoReplay.chunks.length){setVideoReplayStatus('La grabación no produjo datos. Intente de nuevo.','bad');return;}
+    const type=videoReplay.chunks[0].type||'video/webm';
+    const blob=new Blob(videoReplay.chunks,{type});videoReplay.chunks=[];
     if(videoReplay.blobUrl) URL.revokeObjectURL(videoReplay.blobUrl);
-    videoReplay.blobUrl = URL.createObjectURL(blob);
-    videoReplay.duration = 0;
-
-    const playback = ids('videoReplayPlayback');
-    const speedSel = ids('videoReplaySpeed');
-    playback.src = videoReplay.blobUrl;
-    aplicarSilencioReplay();
-    playback.playbackRate = speedSel ? (parseFloat(speedSel.value) || 1) : 1;
-    playback.onloadedmetadata = () => {
-      if(!Number.isFinite(playback.duration) || playback.duration <= 0){
-        // Truco conocido: los blobs WebM de MediaRecorder pueden no declarar
-        // duración; una búsqueda a un tiempo enorme obliga al navegador a calcularla.
-        const restore = () => {
-          playback.removeEventListener('timeupdate', restore);
-          videoReplay.duration = Number.isFinite(playback.duration) ? playback.duration : 0;
-          playback.currentTime = 0;
-        };
-        playback.addEventListener('timeupdate', restore);
-        playback.currentTime = 1e6;
-      } else {
-        videoReplay.duration = playback.duration;
-      }
-    };
+    const url=videoReplay.blobUrl=URL.createObjectURL(blob);
+    videoReplay.blobType=type;videoReplay.blobHasAudio=check.hasAudio;videoReplay.duration=0;
+    const playback=ids('videoReplayPlayback'),speedSel=ids('videoReplaySpeed');
+    playback.onloadedmetadata=null;
+    aplicarSilencioReplay();playback.playbackRate=speedSel?(parseFloat(speedSel.value)||1):1;
     setVideoReplayMode('replay');
-    setVideoReplayStatus('Grabación lista. Reproduzca, avance cuadro a cuadro o use cámara lenta para comparar la ejecución con los puntos de Ataque y Llegada planeados.', 'good');
-    if(videoReplayTrace.enabled) videoReplayTraceAnalyze();
-    else videoReplayTraceUi();
+    setVideoReplayStatus('Comprobando la grabación…');
+    const controller=new AbortController();check.controller=controller;check.pending=true;
+    // Cerrar el módulo o iniciar otra grabación cancela también esta lectura pendiente.
+    const oldDispose=check.dispose;check.dispose=()=>{oldDispose();controller.abort();};
+    const valid=()=>videoReplay.blobUrl===url && videoReplay.recordingCheck===check && videoReplay.mode==='replay';
+    try{
+      const duration=await videoReplayPrepareFile(playback,url,controller.signal);
+      if(!valid()) return;
+      videoReplay.duration=duration;
+      if(Math.abs(duration-elapsed)>.8) videoReplay.recordingIssue=videoReplay.recordingIssue||'La duración del archivo no coincide con el tiempo grabado. Revise el original: podría faltar un tramo.';
+      if(videoReplay.recordingIssue){setVideoReplayStatus(videoReplay.recordingIssue,'bad');return;}
+      setVideoReplayStatus('Grabación lista. Reproduzca, avance cuadro a cuadro o use cámara lenta para comparar la ejecución con los puntos de Ataque y Llegada planeados.','good');
+      if(videoReplayTrace.enabled) videoReplayTraceAnalyze();else videoReplayTraceUi();
+    }catch(error){
+      if(error.name!=='AbortError' && valid()){
+        videoReplay.recordingIssue='No fue posible comprobar que la grabación esté completa. Puede descargar el original para revisarlo.';
+        setVideoReplayStatus(videoReplay.recordingIssue,'bad');
+      }
+    }finally{check.pending=false;}
   }
 
   function videoReplayCanvasPointFromEvent(e){
@@ -16770,275 +16827,270 @@ function drawStartMarks(){
     p.y = clamp(p.y + dy/ch, 0, 1);
   }
 
+  // Esperas ligadas a eventos reales, con cancelación y plazo de respuesta.
+  // No se adivina con una pausa fija cuándo terminó de buscar el primer cuadro.
+  function videoReplayMediaWait(target,event,signal,action,timeout=12000){
+    return new Promise((resolve,reject)=>{
+      let done=false,timer;
+      const finish=error=>{
+        if(done) return;done=true;clearTimeout(timer);
+        target.removeEventListener(event,ok);target.removeEventListener('error',fail);signal.removeEventListener('abort',abort);
+        error?reject(error):resolve();
+      };
+      const ok=()=>finish(),fail=()=>finish(new Error('El navegador no pudo leer o codificar el video.'));
+      const abort=()=>finish(new DOMException('Operación cancelada','AbortError'));
+      if(signal.aborted){abort();return;}
+      target.addEventListener(event,ok,{once:true});target.addEventListener('error',fail,{once:true});signal.addEventListener('abort',abort,{once:true});
+      timer=setTimeout(()=>finish(new Error('El video dejó de responder. El original se conserva para reintentar.')),timeout);
+      try{action();}catch(error){finish(error);}
+    });
+  }
+
+  async function videoReplayPrepareFile(video,url,signal){
+    video.pause();video.preload='auto';video.playsInline=true;
+    await videoReplayMediaWait(video,'loadeddata',signal,()=>{video.src=url;video.load();});
+    if(!Number.isFinite(video.duration)||video.duration<=0){
+      await videoReplayMediaWait(video,'seeked',signal,()=>{video.currentTime=1e6;});
+    }
+    const duration=video.duration;
+    if(!Number.isFinite(duration)||duration<=0||!video.videoWidth||!video.videoHeight) throw new Error('No se pudo determinar la duración o el tamaño de la grabación.');
+    if(video.currentTime>0 || video.seeking) await videoReplayMediaWait(video,'seeked',signal,()=>{video.currentTime=0;});
+    if(signal.aborted) throw new DOMException('Operación cancelada','AbortError');
+    if(video.readyState<2) await videoReplayMediaWait(video,'loadeddata',signal,()=>{});
+    return duration;
+  }
+
+  function videoReplayReleaseVideo(video){
+    if(!video) return;
+    video.pause();video.removeAttribute('src');video.load();
+  }
+
+  // Comprueba que se pueda decodificar una imagen cerca del punto solicitado.
+  // mediaTime distingue un cuadro final real de un fotograma antiguo retenido
+  // mientras la pista de audio sigue avanzando.
+  async function videoReplayVerifyFrame(video,time,signal){
+    let handle=0,mediaTime=null;
+    if(typeof video.requestVideoFrameCallback==='function'){
+      handle=video.requestVideoFrameCallback((now,meta)=>{mediaTime=meta.mediaTime;});
+    }
+    try{
+      await videoReplayMediaWait(video,'seeked',signal,()=>{video.currentTime=time;});
+      if(video.readyState<2) throw new Error('El archivo no contiene una imagen legible en el punto solicitado.');
+      if(handle){
+        const started=performance.now();
+        while(mediaTime===null && performance.now()-started<2000){
+          if(signal.aborted) throw new DOMException('Operación cancelada','AbortError');
+          await new Promise(r=>setTimeout(r,20));
+        }
+        if(mediaTime===null) throw new Error('No fue posible comprobar las imágenes del archivo exportado.');
+        if(Math.abs(mediaTime-time)>.3) throw new Error('La imagen se detiene antes que el audio. El archivo exportado no se descargará.');
+      }
+      return mediaTime;
+    }finally{if(handle) video.cancelVideoFrameCallback(handle);}
+  }
+
+  async function videoReplayVerifyExport(blob,total,width,height,signal){
+    const url=URL.createObjectURL(blob),video=document.createElement('video');video.muted=true;
+    try{
+      const duration=await videoReplayPrepareFile(video,url,signal);
+      if(Math.abs(duration-total)>.4) throw new Error('La duración exportada no coincide con el original. No se descargó una copia incompleta.');
+      if(video.videoWidth!==width||video.videoHeight!==height) throw new Error('El tamaño del video exportado cambió inesperadamente.');
+      const samples=[];
+      for(const time of [Math.min(.04,duration/4),duration/2,Math.max(.001,duration-.08)]){
+        samples.push(await videoReplayVerifyFrame(video,time,signal));
+      }
+      return {duration,samples};
+    }finally{videoReplayReleaseVideo(video);URL.revokeObjectURL(url);}
+  }
+
   function abortVideoReplayExport(silent){
+    if(videoReplay.exportJob){videoReplay.exportJob.cancel(silent?'':'Exportación cancelada.');return;}
     if(!videoReplay.exporting) return;
-    videoReplay.exporting = false;
-    if(videoReplay.exportRaf){ cancelAnimationFrame(videoReplay.exportRaf); videoReplay.exportRaf = 0; }
-    if(videoReplay.exportRecorder && videoReplay.exportRecorder.state === 'recording'){
-      try{ videoReplay.exportRecorder.onstop = null; videoReplay.exportRecorder.stop(); }catch{}
-    }
-    videoReplay.exportRecorder = null;
-    videoReplay.exportChunks = [];
-    if(videoReplay.exportVideoEl){
-      try{ videoReplay.exportVideoEl.pause(); }catch{}
-      videoReplay.exportVideoEl.removeAttribute('src');
-      try{ videoReplay.exportVideoEl.load(); }catch{}
-      videoReplay.exportVideoEl = null;
-    }
-    setVideoReplayExportUi(false);
+    videoReplay.exporting=false;setVideoReplayExportUi(false);
     if(!silent) setVideoReplayStatus('Exportación cancelada.');
   }
 
   function setVideoReplayExportUi(busy){
-    const exportBtn = ids('videoReplayExportBtn');
-    const againBtn = ids('videoReplayAgainBtn');
-    const downloadBtn = ids('videoReplayDownloadBtn');
-    if(exportBtn){
-      exportBtn.disabled = busy;
-      exportBtn.textContent = busy ? 'Exportando…' : 'Descargar con datos';
+    const exportBtn=ids('videoReplayExportBtn');
+    if(exportBtn){exportBtn.disabled=busy;exportBtn.textContent=busy?'Exportando…':'Descargar con datos';}
+    for(const id of ['videoReplayAgainBtn','videoReplayDownloadBtn','videoReplayPlayBtn','videoReplayStepBack','videoReplayStepFwd','videoReplayScrub','videoReplaySpeed']){
+      const el=ids(id);if(el) el.disabled=busy;
     }
-    if(againBtn) againBtn.disabled = busy;
-    if(downloadBtn) downloadBtn.disabled = busy;
-    videoReplayTraceUi();
+    // Conservar los estados propios de la calibración; solo bloquear cambios
+    // durante la exportación para que todos sus cuadros usen el mismo ajuste.
+    for(const id of ['videoReplayDewarpChk','videoReplayRectifyChk','videoReplayCameraSel']){
+      const el=ids(id);if(!el) continue;
+      if(busy){el.dataset.exportWasDisabled=el.disabled?'1':'0';el.disabled=true;}
+      else if('exportWasDisabled' in el.dataset){el.disabled=el.dataset.exportWasDisabled==='1';delete el.dataset.exportWasDisabled;}
+    }
+    videoReplayRender.last=null;videoReplayTraceUi();
   }
 
-  // Exportación posterior: reproduce internamente la grabación y la vuelve a
-  // codificar cuadro a cuadro con la orientación corregida y la superposición
-  // incrustada (marco, diamantes, anillos de bolas, trayectoria y Ataque),
-  // conservando el audio original. Ocurre en tiempo real: un video de 30 s
-  // tarda unos 30 s. La pestaña debe permanecer visible mientras termina.
+  // El archivo original queda intacto. La exportación sigue a cada imagen
+  // decodificada, captura el cuadro ya compuesto y verifica el resultado.
   async function exportVideoReplayWithOverlay(){
     if(videoReplay.exporting) return;
+    if(videoReplay.recordingCheck && videoReplay.recordingCheck.pending){setVideoReplayStatus('Espere a que termine la comprobación de la grabación.');return;}
+    if(videoReplay.recordingIssue){setVideoReplayStatus(videoReplay.recordingIssue+' Descargue el original para revisarlo o grabe de nuevo.','bad');return;}
     if(videoReplayTrace.enabled && videoReplay.blobUrl){
-      if(videoReplayTrace.status === 'choice'){ setVideoReplayStatus('Elija la bola en Trayectoria real o desactive el seguimiento para descargar sin él.'); return; }
-      if(videoReplayTrace.busy){ setVideoReplayStatus('Espere a que termine el análisis de la trayectoria antes de exportar.'); return; }
-      if(videoReplayTrace.url !== videoReplay.blobUrl || videoReplayTrace.status !== 'ready'){
-        if(!await videoReplayTraceAnalyze()){
-          setVideoReplayStatus('El seguimiento no está listo. Revise su mensaje o desactive la casilla para exportar sin el recorrido real.', 'bad'); return;
-        }
-        if(videoReplay.exporting || videoReplay.mode !== 'replay' || !videoReplay.blobUrl) return;
+      if(videoReplayTrace.status==='choice'){setVideoReplayStatus('Elija la bola en Trayectoria real o desactive el seguimiento para descargar sin él.');return;}
+      if(videoReplayTrace.busy){setVideoReplayStatus('Espere a que termine el análisis de la trayectoria antes de exportar.');return;}
+      if(videoReplayTrace.url!==videoReplay.blobUrl || videoReplayTrace.status!=='ready'){
+        if(!await videoReplayTraceAnalyze()){setVideoReplayStatus('El seguimiento no está listo. Revise su mensaje o desactive la casilla para exportar sin el recorrido real.','bad');return;}
+        if(videoReplay.exporting || videoReplay.mode!=='replay' || !videoReplay.blobUrl) return;
       }
     }
-    const traceForExport = {...videoReplayTrace};
-    if(!videoReplay.blobUrl){
-      setVideoReplayStatus('No hay ninguna grabación para exportar.', 'bad');
-      return;
-    }
-    if(!(videoReplay.calib && videoReplay.calib.corners)){
-      setVideoReplayStatus('No hay calibración guardada: los datos no pueden incrustarse.', 'bad');
-      return;
-    }
-    if(!window.MediaRecorder){
-      setVideoReplayStatus('Este navegador no permite recodificar video. Use una versión reciente de Chrome o Edge.', 'bad');
-      return;
-    }
-
-    const playback = ids('videoReplayPlayback');
-    if(playback){ try{ playback.pause(); }catch{} }
-
-    videoReplay.exporting = true;
-    setVideoReplayExportUi(true);
-    setVideoReplayStatus('Preparando la exportación…');
-
-    const srcVideo = document.createElement('video');
-    videoReplay.exportVideoEl = srcVideo;
-    srcVideo.src = videoReplay.blobUrl;
-    srcVideo.playsInline = true;
-    srcVideo.preload = 'auto';
-    // Blindaje del audio exportado: el silencio del botón es cosa de la
-    // pantalla; la exportación trabaja con su propio reproductor y aquí
-    // se fija a volumen pleno, de modo que el archivo descargado con
-    // datos incluye SIEMPRE el sonido, sin importar el botón.
-    srcVideo.muted = false;
-    srcVideo.volume = 1;
-
-    const failExport = message => {
-      videoReplay.exporting = false;
-      if(videoReplay.exportRaf){ cancelAnimationFrame(videoReplay.exportRaf); videoReplay.exportRaf = 0; }
-      videoReplay.exportRecorder = null;
-      videoReplay.exportChunks = [];
-      videoReplay.exportVideoEl = null;
-      setVideoReplayExportUi(false);
-      setVideoReplayStatus(message, 'bad');
+    if(!videoReplay.blobUrl){setVideoReplayStatus('No hay ninguna grabación para exportar.','bad');return;}
+    if(!(videoReplay.calib && videoReplay.calib.corners)){setVideoReplayStatus('No hay calibración guardada: los datos no pueden incrustarse.','bad');return;}
+    if(!window.MediaRecorder){setVideoReplayStatus('Este navegador no permite recodificar video. Use una versión reciente de Chrome o Edge.','bad');return;}
+    if(document.hidden){setVideoReplayStatus('Mantenga visible esta pestaña para exportar el video completo.','bad');return;}
+    const playback=ids('videoReplayPlayback');if(playback) playback.pause();
+    const traceForExport={...videoReplayTrace},url=videoReplay.blobUrl;
+    const controller=new AbortController(),signal=controller.signal;
+    const srcVideo=document.createElement('video');srcVideo.muted=false;srcVideo.volume=1;
+    let recorder=null,canvasStream=null,combined=null,sourceNode=null,destNode=null;
+    let frameHandle=0,rafHandle=0,watchdog=0,disposed=false,phase='preparing',chunks=[];
+    let lastTime=0,lastFrameAt=0,frameCount=0,maxGap=0,paintMs=0,lastUi=0;
+    const nativeFrames=typeof srcVideo.requestVideoFrameCallback==='function';
+    const clearFrames=()=>{
+      if(frameHandle) srcVideo.cancelVideoFrameCallback(frameHandle);frameHandle=0;
+      if(rafHandle) cancelAnimationFrame(rafHandle);rafHandle=0;
+      clearInterval(watchdog);watchdog=0;
     };
-
-    try{
-      await new Promise((resolve, reject) => {
-        srcVideo.onloadedmetadata = () => resolve();
-        srcVideo.onerror = () => reject(new Error('No fue posible leer la grabación.'));
-      });
-      if(!Number.isFinite(srcVideo.duration) || srcVideo.duration <= 0){
-        // Mismo truco de duración usado en la reproducción de blobs WebM.
-        await new Promise(resolve => {
-          const restore = () => { srcVideo.removeEventListener('timeupdate', restore); resolve(); };
-          srcVideo.addEventListener('timeupdate', restore);
-          srcVideo.currentTime = 1e6;
-        });
-        srcVideo.currentTime = 0;
-        await new Promise(r => setTimeout(r, 150));
+    const job={cancel:null};
+    const cleanup=()=>{
+      if(disposed) return;disposed=true;clearFrames();controller.abort();
+      document.removeEventListener('visibilitychange',visibility);
+      if(recorder){recorder.ondataavailable=null;recorder.onstop=null;recorder.onerror=null;if(recorder.state!=='inactive'){try{recorder.stop();}catch{}}}
+      if(combined) combined.getTracks().forEach(t=>t.stop());
+      if(canvasStream) canvasStream.getTracks().forEach(t=>t.stop());
+      if(sourceNode) sourceNode.disconnect();if(destNode){destNode.disconnect();destNode.stream.getTracks().forEach(t=>t.stop());}
+      srcVideo.onerror=null;srcVideo.onended=null;videoReplayReleaseVideo(srcVideo);chunks=[];
+      if(videoReplay.exportJob===job){
+        videoReplay.exportJob=null;videoReplay.exporting=false;videoReplay.exportRecorder=null;
+        videoReplay.exportVideoEl=null;videoReplay.exportChunks=[];setVideoReplayExportUi(false);
       }
-    }catch(error){
-      failExport('No fue posible preparar la exportación: ' + (error && error.message ? error.message : error));
-      return;
-    }
-
-    const vw = srcVideo.videoWidth || 1280;
-    const vh = srcVideo.videoHeight || 720;
-    const total = (Number.isFinite(srcVideo.duration) && srcVideo.duration > 0)
-      ? srcVideo.duration
-      : (videoReplay.duration || 0);
-
-    const exportCanvas = document.createElement('canvas');
-    exportCanvas.width = vw;
-    exportCanvas.height = vh;
-    const g = exportCanvas.getContext('2d');
-
-    // Audio: el elemento se enruta por un grafo de audio hacia la pista
-    // exportada, sin conexión a los parlantes, para no oírlo durante el proceso.
-    let audioTracks = [];
-    try{
-      const Ctx = window.AudioContext || window.webkitAudioContext;
-      if(Ctx){
-        if(!videoReplay.audioCtx) videoReplay.audioCtx = new Ctx();
-        if(videoReplay.audioCtx.state === 'suspended') videoReplay.audioCtx.resume();
-        const sourceNode = videoReplay.audioCtx.createMediaElementSource(srcVideo);
-        const destNode = videoReplay.audioCtx.createMediaStreamDestination();
-        sourceNode.connect(destNode);
-        audioTracks = destNode.stream.getAudioTracks();
-      }
-    }catch(audioError){
-      console.warn('Exportación: el audio no pudo enrutarse, se exporta sin sonido.', audioError);
-    }
-
-    const canvasStream = exportCanvas.captureStream(30);
-    const combined = new MediaStream(canvasStream.getVideoTracks().concat(audioTracks));
-
-    // MP4 (H.264 + AAC) de primera opción: es el formato que WhatsApp acepta.
-    // Chrome y Edge lo graban de forma nativa desde la versión 126 (2024).
-    // Solo se elige MP4 si el navegador garantiza explícitamente H.264 + AAC
-    // (codecs avc1 + mp4a); un MP4 con otros códecs no serviría para WhatsApp.
-    // Si el navegador no lo ofrece, se cae automáticamente a WebM.
-    const mimeCandidates = [
-      'video/mp4;codecs=avc1.640028,mp4a.40.2',
-      'video/mp4;codecs=avc1.4D401F,mp4a.40.2',
-      'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
-      'video/webm;codecs=vp9,opus',
-      'video/webm;codecs=vp8,opus',
-      'video/webm'
-    ];
-    let mime = '';
-    if(MediaRecorder.isTypeSupported){
-      mime = mimeCandidates.find(c => { try{ return MediaRecorder.isTypeSupported(c); }catch{ return false; } }) || '';
-    }
-
-    let recorder = null;
-    try{
-      recorder = new MediaRecorder(combined, mime ? {mimeType:mime, videoBitsPerSecond:8000000} : undefined);
-    }catch(error){
-      failExport('No fue posible iniciar la recodificación: ' + (error && error.message ? error.message : error));
-      return;
-    }
-
-    videoReplay.exportRecorder = recorder;
-    videoReplay.exportChunks = [];
-    recorder.ondataavailable = e => { if(e.data && e.data.size) videoReplay.exportChunks.push(e.data); };
-    recorder.onstop = () => {
-      const chunks = videoReplay.exportChunks;
-      videoReplay.exportChunks = [];
-      const wasExporting = videoReplay.exporting;
-      videoReplay.exporting = false;
-      if(videoReplay.exportRaf){ cancelAnimationFrame(videoReplay.exportRaf); videoReplay.exportRaf = 0; }
-      videoReplay.exportRecorder = null;
-      try{ srcVideo.pause(); }catch{}
-      videoReplay.exportVideoEl = null;
-      setVideoReplayExportUi(false);
-      if(!wasExporting) return;
-      if(!chunks.length){
-        setVideoReplayStatus('La exportación no produjo datos. Intente de nuevo.', 'bad');
-        return;
-      }
-      const outType = chunks[0].type || mime || 'video/webm';
-      const isMp4 = /mp4/i.test(outType);
-      const blob = new Blob(chunks, {type: outType});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-      a.href = url;
-      a.download = 'jugada-con-datos-' + stamp + (isMp4 ? '.mp4' : '.webm');
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 4000);
-      ytgTimbreListo();
-      if(traceForExport.enabled && traceForExport.points.length > 1){
-        setVideoReplayStatus('Video descargado en ' + (isMp4 ? 'MP4' : 'WebM') + ' con el recorrido real progresivo de la bola seguida y los datos superpuestos.', 'good');
-        return;
-      }
-      setVideoReplayStatus(isMp4
-        ? 'Video con trayectoria descargado en MP4 (H.264 + AAC), listo para enviar por WhatsApp: orientación corregida, marco de la mesa, anillos de las bolas, línea azul, punto de Ataque y audio incrustados.'
-        : 'Video con trayectoria descargado en WebM: este navegador no ofreció grabación MP4. Contiene la orientación corregida y toda la superposición incrustada; para WhatsApp úselo desde un Chrome o Edge actualizados, que exportan MP4 directamente.', 'good');
     };
-
-    const drawExportFrame = () => {
-      if(!videoReplay.exporting) return;
-      videoReplay.exportRaf = requestAnimationFrame(drawExportFrame);
-      g.fillStyle = '#05070a';
-      g.fillRect(0, 0, vw, vh);
-      let pintadoExp = false, traceView = 'raw';
-      if(videoReplayRectifyActive()){
-        const rce = getVideoRectifier('exportacion');
-        const Hhe = rectifiedOutputHomography(vw, vh);
-        if(rce.ok && Hhe){
-          try{
-            const k1e = Number.isFinite(videoReplay.calib.k1) ? videoReplay.calib.k1 : 0;
-            rce.render(srcVideo, vw, vh, k1e, vw/vh, Hhe);
-            g.drawImage(rce.canvas, 0, 0, vw, vh);
-            pintadoExp = true; traceView = 'rectified';
-          }catch{}
-        }
+    const fail=message=>{if(disposed) return;cleanup();if(message) setVideoReplayStatus(message+' La grabación original se conserva.','bad');};
+    job.cancel=message=>{cleanup();if(message) setVideoReplayStatus(message);};
+    const visibility=()=>{if(document.hidden) fail('Se interrumpió la exportación al ocultar la pestaña. Vuelva a pulsar «Descargar con datos» y mantenga esta pestaña visible.');};
+    videoReplay.exportJob=job;videoReplay.exportVideoEl=srcVideo;videoReplay.exporting=true;
+    setVideoReplayExportUi(true);setVideoReplayStatus('Preparando la exportación…');
+    document.addEventListener('visibilitychange',visibility);
+    try{
+      const total=await videoReplayPrepareFile(srcVideo,url,signal);
+      if(disposed) return;
+      const vw=srcVideo.videoWidth,vh=srcVideo.videoHeight;
+      const exportCanvas=document.createElement('canvas');exportCanvas.width=vw;exportCanvas.height=vh;
+      const g=exportCanvas.getContext('2d',{alpha:false});
+      // Los datos planeados son estáticos. Se calculan una vez y se reutilizan.
+      const guide=document.createElement('canvas');guide.width=vw;guide.height=vh;
+      drawVideoReplayOverlay(guide.getContext('2d'),vw,vh,{route:true,handles:false});
+      const rectify=videoReplayRectifyActive(),dewarp=videoReplayDewarpActive();
+      const Hh=rectify?rectifiedOutputHomography(vw,vh):null,k1=Number.isFinite(videoReplay.calib.k1)?videoReplay.calib.k1:0;
+      const rectifier=rectify?getVideoRectifier('exportacion'):null,warper=dewarp?getVideoDewarper('exportacion'):null;
+      let audioTracks=[];
+      if(videoReplay.blobHasAudio){
+        const Ctx=window.AudioContext||window.webkitAudioContext;
+        if(!Ctx) throw new Error('No fue posible conservar el audio de la grabación.');
+        if(!videoReplay.audioCtx) videoReplay.audioCtx=new Ctx();
+        if(videoReplay.audioCtx.state==='suspended') await videoReplay.audioCtx.resume();
+        if(disposed) return;
+        if(videoReplay.audioCtx.state!=='running') throw new Error('No fue posible activar el audio para exportar.');
+        sourceNode=videoReplay.audioCtx.createMediaElementSource(srcVideo);destNode=videoReplay.audioCtx.createMediaStreamDestination();sourceNode.connect(destNode);
+        audioTracks=destNode.stream.getAudioTracks();
+      } else srcVideo.muted=true;
+      // Pedir una captura justo después de componer la imagen evita un segundo
+      // reloj de 30 Hz que pudiera repetir cuadros o saltarse los recién dibujados.
+      canvasStream=exportCanvas.captureStream(0);
+      let capture=canvasStream.getVideoTracks()[0];
+      if(!capture || typeof capture.requestFrame!=='function'){
+        canvasStream.getTracks().forEach(t=>t.stop());canvasStream=exportCanvas.captureStream(30);capture=canvasStream.getVideoTracks()[0];
       }
-      if(!pintadoExp){
-        let cuadroExp = srcVideo;
-        if(videoReplayDewarpActive()){
-          const dwe = getVideoDewarper('exportacion');
-          if(dwe.ok){
-            try{
-              dwe.render(srcVideo, vw, vh, videoReplay.calib.k1, vw/vh);
-              cuadroExp = dwe.canvas; traceView = 'dewarped';
-            }catch{}
+      const requestFrame=()=>{if(capture && typeof capture.requestFrame==='function') capture.requestFrame();};
+      const draw=time=>{
+        const began=performance.now();g.fillStyle='#05070a';g.fillRect(0,0,vw,vh);
+        let painted=false,traceView='raw';
+        if(rectify && rectifier.ok && Hh){
+          rectifier.render(srcVideo,vw,vh,k1,vw/vh,Hh);g.drawImage(rectifier.canvas,0,0,vw,vh);painted=true;traceView='rectified';
+        }
+        if(!painted){
+          let picture=srcVideo;
+          if(dewarp && warper.ok){warper.render(srcVideo,vw,vh,k1,vw/vh);picture=warper.canvas;traceView='dewarped';}
+          g.save();g.translate(vw,vh);g.rotate(Math.PI);g.drawImage(picture,0,0,vw,vh);g.restore();
+        }
+        g.drawImage(guide,0,0);drawVideoReplayTrace(g,vw,vh,time,traceView,traceForExport);
+        requestFrame();paintMs+=performance.now()-began;
+      };
+      draw(0);
+      combined=new MediaStream(canvasStream.getVideoTracks().concat(audioTracks));
+      const mimeCandidates=audioTracks.length
+        ? ['video/mp4;codecs=avc1.640028,mp4a.40.2','video/mp4;codecs=avc1.4D401F,mp4a.40.2','video/mp4;codecs=avc1.42E01E,mp4a.40.2','video/webm;codecs=vp8,opus','video/webm;codecs=vp9,opus','video/webm']
+        : ['video/mp4;codecs=avc1.640028','video/mp4;codecs=avc1.4D401F','video/mp4;codecs=avc1.42E01E','video/webm;codecs=vp8','video/webm;codecs=vp9','video/webm'];
+      const mime=mimeCandidates.find(c=>{try{return MediaRecorder.isTypeSupported(c);}catch{return false;}})||'';
+      recorder=new MediaRecorder(combined,mime?{mimeType:mime,videoBitsPerSecond:8000000}:undefined);
+      videoReplay.exportRecorder=recorder;
+      recorder.ondataavailable=e=>{if(!disposed && e.data && e.data.size) chunks.push(e.data);};
+      recorder.onerror=()=>fail('El navegador informó un error al exportar. No se descargó un archivo parcial.');
+      recorder.onstop=async()=>{
+        if(disposed) return;
+        if(phase!=='finishing'){fail('La codificación terminó antes que la jugada.');return;}
+        phase='checking';clearFrames();srcVideo.pause();
+        try{
+          if(!chunks.length) throw new Error('La exportación no produjo datos.');
+          const type=chunks[0].type||mime||'video/webm',blob=new Blob(chunks,{type});chunks=[];
+          setVideoReplayStatus('Comprobando inicio, final y duración del video…');
+          const verified=await videoReplayVerifyExport(blob,total,vw,vh,signal);
+          if(disposed) return;
+          videoReplay.lastExportCheck={sourceDuration:total,outputDuration:verified.duration,samples:verified.samples,frames:frameCount,maxGap,paintMs};
+          const output=URL.createObjectURL(blob),a=document.createElement('a'),mp4=/mp4/i.test(type);
+          const stamp=new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
+          a.href=output;a.download='jugada-con-datos-'+stamp+(mp4?'.mp4':'.webm');document.body.appendChild(a);a.click();a.remove();
+          setTimeout(()=>URL.revokeObjectURL(output),60000);cleanup();ytgTimbreListo();
+          setVideoReplayStatus('Video descargado en '+(mp4?'MP4':'WebM')+(traceForExport.enabled&&traceForExport.points.length>1?' con el recorrido real progresivo de la bola seguida y los datos superpuestos.':' con los datos superpuestos.')+' Inicio, final y duración comprobados.','good');
+        }catch(error){if(error.name!=='AbortError') fail(error.message);}
+      };
+      const onFrame=(now,meta)=>{
+        if(disposed||phase!=='running') return;
+        const time=meta?meta.mediaTime:Math.floor(srcVideo.currentTime*30)/30;
+        try{
+          if(time>lastTime+.0001 || !frameCount){
+            const gap=Math.max(0,time-lastTime);maxGap=Math.max(maxGap,gap);
+            if(gap>.35) throw new Error('Se perdió un tramo de imágenes durante la exportación. Intente de nuevo sin otras tareas de video en marcha.');
+            draw(time);lastTime=time;lastFrameAt=performance.now();frameCount++;
           }
-        }
-        g.save();
-        g.translate(vw, vh);
-        g.rotate(Math.PI);
-        g.drawImage(cuadroExp, 0, 0, vw, vh);
-        g.restore();
-      }
-      drawVideoReplayOverlay(g, vw, vh, {route:true, handles:false});
-      drawVideoReplayTrace(g, vw, vh, srcVideo.currentTime, traceView, traceForExport);
-      if(total){
-        const pct = Math.min(100, Math.round((srcVideo.currentTime/total)*100));
-        setVideoReplayStatus('Exportando con datos… ' + pct + ' %. No cambie de pestaña hasta que termine.');
-      }
-    };
-
-    srcVideo.onended = () => {
-      // Pequeño margen para que el último cuadro y el audio queden en el archivo.
-      setTimeout(() => {
-        if(videoReplay.exportRecorder && videoReplay.exportRecorder.state === 'recording'){
-          try{ videoReplay.exportRecorder.stop(); }catch{}
-        }
-      }, 300);
-    };
-
-    try{
-      await srcVideo.play();
-    }catch(error){
-      failExport('El navegador no permitió reproducir la grabación para exportarla. Pulse el botón de nuevo.');
-      return;
-    }
-    recorder.start(250);
-    drawExportFrame();
+          if(performance.now()-lastUi>250){lastUi=performance.now();setVideoReplayStatus('Exportando con datos… '+Math.min(99,Math.round(srcVideo.currentTime/total*100))+' %. Mantenga esta pestaña visible.');}
+          if(nativeFrames) frameHandle=srcVideo.requestVideoFrameCallback(onFrame);else rafHandle=requestAnimationFrame(now=>onFrame(now,null));
+        }catch(error){fail(error.message);}
+      };
+      srcVideo.onerror=()=>fail('La lectura del original se interrumpió durante la exportación.');
+      const finishFrames=()=>{
+        if(disposed || phase!=='running') return;
+        if(!frameCount || total-lastTime>.3){fail('No se recibió el tramo final de imágenes. No se descargó un video incompleto.');return;}
+        phase='finishing';clearFrames();
+        try{draw(lastTime);}catch(error){fail(error.message);return;}
+        // Permitir que el cuadro final solicitado llegue al capturador antes de parar.
+        rafHandle=requestAnimationFrame(()=>{rafHandle=0;if(!disposed && recorder.state==='recording') recorder.stop();});
+        watchdog=setTimeout(()=>fail('El codificador no terminó de cerrar el archivo. Intente exportar de nuevo.'),12000);
+      };
+      srcVideo.onended=finishFrames;
+      // MediaRecorder pasa a recording de forma síncrona. El evento start puede
+      // llegar con el primer bloque, 250 ms después: no retrasar el video por él.
+      const recordingStarted=videoReplayMediaWait(recorder,'start',signal,()=>{recorder.start(250);requestFrame();});
+      phase='running';lastFrameAt=performance.now();requestFrame();
+      if(nativeFrames) frameHandle=srcVideo.requestVideoFrameCallback(onFrame);else rafHandle=requestAnimationFrame(now=>onFrame(now,null));
+      watchdog=setInterval(()=>{
+        if(disposed||phase!=='running') return;
+        if(document.hidden){visibility();return;}
+        if(audioTracks.length && videoReplay.audioCtx.state!=='running'){fail('El audio se interrumpió durante la exportación.');return;}
+        if(combined.getTracks().some(t=>t.readyState!=='live')){fail('Una pista de la exportación se interrumpió antes de terminar.');return;}
+        // El evento ended puede demorarse hasta el siguiente timeupdate.
+        // Cuando el reloj ya llegó al final, cerrar sin añadir ese tiempo muerto.
+        if(srcVideo.currentTime>=total-.001){finishFrames();return;}
+        if(performance.now()-lastFrameAt>2000) fail('El video dejó de entregar imágenes durante la exportación. No se descargó una copia congelada.');
+      },40);
+      srcVideo.playbackRate=1;await Promise.all([recordingStarted,srcVideo.play()]);
+    }catch(error){if(error.name!=='AbortError') fail('No fue posible completar la exportación: '+error.message);}
   }
 
   function setupVideoReplay(){
@@ -17206,6 +17258,7 @@ function drawStartMarks(){
     if(stopBtn) stopBtn.addEventListener('click', () => {
       stopBtn.disabled = true;
       if(videoReplay.recorder && videoReplay.recorder.state === 'recording'){
+        if(videoReplay.recordingCheck) videoReplay.recordingCheck.stopped=performance.now();
         try{ videoReplay.recorder.stop(); }catch{}
       }
     });
@@ -17278,10 +17331,11 @@ function drawStartMarks(){
       const a = document.createElement('a');
       const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
       a.href = videoReplay.blobUrl;
-      a.download = `jugada-cenital-${stamp}.webm`;
+      a.download = `jugada-cenital-${stamp}.` + (/mp4/i.test(videoReplay.blobType) ? 'mp4' : 'webm');
       document.body.appendChild(a);
       a.click();
       a.remove();
+      if(videoReplay.recordingIssue){ setVideoReplayStatus('Original descargado para revisión. Aviso: ' + videoReplay.recordingIssue, 'bad'); return; }
       setVideoReplayStatus('Video original descargado, con su audio. Conserva la orientación de la cámara (girado 180°) y no incluye ninguna superposición. Para un archivo con la orientación corregida y los datos incrustados, use Descargar con datos.', 'good');
     });
   }
