@@ -19073,7 +19073,7 @@ function drawStartMarks(){
     const pendiente = ytVoz.iniciando ? '🎙 Activando voz…' : (ctx ? '🎙 Reconectando voz…' : '🎙 Voz: en espera');
     b.textContent = activa ? '🎙 Voz activada' : '🔇 Voz silenciada';
     if(!activa){ b.style.background = '#1a2230'; b.style.borderColor = '#3a4a63'; b.style.color = '#c9d3e6'; }
-    else if(on){ b.style.background = '#850101'; b.style.borderColor = '#62d7ff'; b.style.color = '#d8f4ff'; }
+    else if(on){ b.style.background = '#11ea06'; b.style.borderColor = '#62d7ff'; b.style.color = '#d8f4ff'; }
     else { b.style.background = '#2a1d4d'; b.style.borderColor = '#c9a4ff'; b.style.color = '#e6d8ff'; }
     const resumen = ids('ytVozResumen');
     const detalle = activa ? (on ? 'Escuchando: ' + (YT_VOZ_LETREROS[ctx] || '') : pendiente.replace('🎙 ', ''))
