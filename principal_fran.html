@@ -16216,11 +16216,96 @@ function drawStartMarks(){
     if(play) play.textContent = v.paused ? 'Lire' : 'Pause';
   }
 
+  // Cachés y reloj exclusivos del visor. No participan en la grabación ni la exportación.
+  const videoReplayView = {
+    source:null, url:null, generation:0, frameId:null, nativeFrames:false,
+    serial:0, mediaTime:null, seek:null, geometry:null, guide:null, guideKey:null
+  };
+
+  function videoReplayViewSame(a,b){
+    return !!(a && b && a.length===b.length && a.every((value,i)=>value===b[i]));
+  }
+
+  function videoReplayViewStop(){
+    const view=videoReplayView;
+    if(!view.source && !view.guide && !view.geometry) return;
+    view.generation++;
+    if(view.source){
+      if(view.frameId!==null && typeof view.source.cancelVideoFrameCallback==='function'){
+        view.source.cancelVideoFrameCallback(view.frameId);
+      }
+      if(view.seek){
+        view.source.removeEventListener('seeking',view.seek);
+        view.source.removeEventListener('seeked',view.seek);
+      }
+    }
+    if(view.guide) view.guide.width=view.guide.height=1;
+    Object.assign(view,{source:null,url:null,frameId:null,nativeFrames:false,serial:0,
+      mediaTime:null,seek:null,geometry:null,guide:null,guideKey:null});
+  }
+
+  function videoReplayViewFollow(source){
+    const view=videoReplayView,url=videoReplay.blobUrl;
+    if(view.source!==source || view.url!==url){
+      videoReplayViewStop();
+      view.source=source;view.url=url;
+      view.nativeFrames=typeof source.requestVideoFrameCallback==='function';
+      const generation=++view.generation;
+      view.seek=()=>{
+        view.mediaTime=null;view.serial++;
+        videoReplayRender.last=null;
+      };
+      source.addEventListener('seeking',view.seek);
+      source.addEventListener('seeked',view.seek);
+      if(view.nativeFrames){
+        const frame=(now,meta)=>{
+          if(view.generation!==generation) return;
+          view.frameId=null;
+          if(videoReplay.mode!=='replay' || videoReplay.exporting) return;
+          view.mediaTime=meta.mediaTime;view.serial++;
+          view.frameId=source.requestVideoFrameCallback(frame);
+        };
+        view.frameId=source.requestVideoFrameCallback(frame);
+      }
+      videoReplayRender.last=null;
+    }
+    // En pausa y al buscar se muestra la posición elegida, incluso sin reproducción.
+    return source.paused || source.seeking || !view.nativeFrames
+      ? source.currentTime : view.serial;
+  }
+
+  function videoReplayViewGeometry(cw,ch){
+    const view=videoReplayView,calib=videoReplay.calib;
+    const rectified=videoReplayRectifyActive(),dewarp=videoReplayDewarpActive();
+    const key=[cw,ch,calib,calib && calib.k1,rectified,dewarp];
+    if(calib && calib.corners) for(const p of calib.corners) key.push(p.x,p.y);
+    if(!view.geometry || !videoReplayViewSame(key,view.geometry.key)){
+      view.geometry={key,H:rectified ? rectifiedOutputHomography(cw,ch) : null};
+      view.guideKey=null;
+    }
+    return view.geometry;
+  }
+
+  function drawVideoReplayViewGuide(g,cw,ch,dpr,key){
+    const view=videoReplayView;
+    if(!view.guide) view.guide=document.createElement('canvas');
+    if(!videoReplayViewSame(key,view.guideKey)){
+      view.guide.width=Math.round(cw*dpr);view.guide.height=Math.round(ch*dpr);
+      const guide=view.guide.getContext('2d');guide.setTransform(dpr,0,0,dpr,0,0);
+      drawVideoReplayOverlay(guide,cw,ch,{route:true,handles:false});
+      view.guideKey=key;
+    }
+    // Misma resolución que el visor: copia uno a uno, sin volver a escalar los rótulos.
+    g.save();g.setTransform(1,0,0,1,0,0);g.drawImage(view.guide,0,0);g.restore();
+  }
+
   function videoReplayRender(){
     const modal = ids('videoReplayModal');
-    if(!modal || !modal.classList.contains('active')){ videoReplay.raf = 0; return; }
+    if(!modal || !modal.classList.contains('active')){ videoReplayViewStop(); videoReplay.raf = 0; return; }
     videoReplay.raf = requestAnimationFrame(videoReplayRender);
-    if(videoReplay.exporting) return; // La revisión ya está pausada: reservar el dibujo para la exportación.
+    if(videoReplay.exporting){ videoReplayViewStop(); return; } // El exportador conserva su propio reloj y sus dibujos.
+    const replay=videoReplay.mode==='replay';
+    if(!replay) videoReplayViewStop();
 
     const canvasEl = ids('videoReplayCanvas');
     const pane = canvasEl && canvasEl.parentElement;
@@ -16249,9 +16334,15 @@ function drawStartMarks(){
     // Una revisión pausada conserva el cuadro ya dibujado. Volver a subir la
     // misma imagen a WebGL consume recursos que necesita el seguimiento.
     const calib = videoReplay.calib;
-    const quality = source && source.getVideoPlaybackQuality ? source.getVideoPlaybackQuality() : null;
-    const frame = source && source.paused ? source.currentTime
+    const quality = !replay && source && source.getVideoPlaybackQuality ? source.getVideoPlaybackQuality() : null;
+    const frame = replay && source ? videoReplayViewFollow(source)
+      : source && source.paused ? source.currentTime
       : quality && quality.totalVideoFrames > 0 ? quality.totalVideoFrames : Math.floor((source && source.currentTime || 0)*30);
+    const viewGeometry=replay ? videoReplayViewGeometry(cw,ch) : null;
+    const guideKey=replay ? [viewGeometry,cw,ch,dpr,currentShot,
+      !!(ids('showNumSalida') && ids('showNumSalida').checked),
+      !!(ids('showNumLlegada') && ids('showNumLlegada').checked),
+      !!(ids('showNumAtaque') && ids('showNumAtaque').checked)] : null;
     const firma = [source, source && source.currentSrc, frame,
       source && source.readyState, source && source.seeking, source && source.paused,
       vw, vh, cw, ch, dpr, videoReplay.mode, videoReplay.blobUrl, calib,
@@ -16261,7 +16352,9 @@ function drawStartMarks(){
       ids('videoReplayShowGuideRec') && ids('videoReplayShowGuideRec').checked,
       Math.ceil(Math.max(0,videoReplay.countdownUntil-Date.now())/1000), videoReplay.anunciando,
       !!(videoReplay.flashUntil && Date.now()<videoReplay.flashUntil)];
+    if(replay) firma.push(...guideKey,videoReplayTrace.meta && videoReplayTrace.meta.cue);
     const anterior = videoReplayRender.last;
+    if(replay && !anterior) videoReplayView.guideKey=null;
     if(videoReplay.mode !== 'calibrate' && source && anterior
       && firma.every((valor,i) => valor === anterior[i])) return;
     videoReplayRender.last = firma;
@@ -16279,7 +16372,7 @@ function drawStartMarks(){
       // lleva giro porque la homografía lo trae incorporado.
       if(videoReplayRectifyActive()){
         const rc = getVideoRectifier('pantalla');
-        const Hh = rectifiedOutputHomography(cw, ch);
+        const Hh = replay ? viewGeometry.H : rectifiedOutputHomography(cw, ch);
         if(rc.ok && Hh){
           try{
             const k1r = Number.isFinite(videoReplay.calib.k1) ? videoReplay.calib.k1 : 0;
@@ -16371,8 +16464,10 @@ function drawStartMarks(){
       }
     } else if(videoReplay.mode === 'replay'){
       const chk = ids('videoReplayShowGuide');
-      if(!chk || chk.checked) drawVideoReplayOverlay(g, cw, ch, {route:true, handles:false});
-      drawVideoReplayTrace(g, cw, ch, source.currentTime, traceView);
+      if(!chk || chk.checked) drawVideoReplayViewGuide(g,cw,ch,dpr,guideKey);
+      const time=!source.paused && !source.seeking && videoReplayView.mediaTime!==null
+        ? videoReplayView.mediaTime : source.currentTime;
+      drawVideoReplayTrace(g, cw, ch, time, traceView);
       syncVideoReplayScrub();
     }
   }
@@ -16472,6 +16567,7 @@ function drawStartMarks(){
   }
 
   function closeVideoReplayModal(){
+    videoReplayViewStop();
     videoReplayTraceReset();
     videoReplay.apertura = (videoReplay.apertura || 0) + 1;
     const modal = ids('videoReplayModal');
