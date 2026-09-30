@@ -1989,7 +1989,7 @@
 <details id="tecladoAyuda" style="margin-top:10px;">
 <summary style="cursor:pointer;">Teclado y carpeta de exportación</summary>
 <p class="small">Los atajos funcionan con la pestaña de la app seleccionada, también con la voz silenciada. No actúan mientras escribe en un campo o utiliza un selector.</p>
-<p class="small">G: grabar otra jugada o abrir la cámara. 1 / 2 / 3: cuenta de 5 / 10 / 15 segundos. D: detener. R: reproducir. E: exportar con datos a la carpeta elegida. V: volver a colocar. C: capturar mesa. M: silenciar o activar voz. T: seguimiento de la trayectoria. Espacio: pausar o continuar. L: velocidad normal, media o un cuarto. X: cerrar la ventana de video (también Esc).</p>
+<p class="small">G: grabar otra jugada o abrir la cámara. 1 / 2 / 3: cuenta de 5 / 10 / 15 segundos. D: detener. R: reproducir. E: exportar con datos a la carpeta elegida. V: volver a colocar. C: capturar mesa. M: silenciar o activar voz. T: seguimiento de la trayectoria. Espacio: pausar o continuar. L: velocidad normal, media o un cuarto. X: cerrar la ventana de video o la pantalla de colocación, una por pulsación. Esc también cierra la ventana de video.</p>
 <button id="tecladoCarpetaBtn" type="button" style="width:100%;">Elegir carpeta de exportación para E</button>
 <p id="tecladoCarpetaEstado" class="small" role="status" aria-live="polite" style="margin:8px 0; overflow-wrap:anywhere;">Sin carpeta elegida.</p>
 <p class="small">Autorice la carpeta una vez. Mientras el permiso siga vigente, E guardará allí cada video al terminar la exportación, sin otra confirmación y sin sobrescribir los anteriores. Mantenga la pestaña visible durante la exportación.</p>
@@ -20415,7 +20415,12 @@ function drawStartMarks(){
   async function tecladoEjecutar(tecla){
     if(tecla==='x'){
       const modal=ids('videoReplayModal'),cerrar=ids('videoReplayClose');
-      if(modal && modal.classList.contains('active') && cerrar && !cerrar.disabled) cerrar.click();
+      if(modal && modal.classList.contains('active')){
+        if(cerrar && !cerrar.disabled) cerrar.click();
+        return; // Cerrar solo esta ventana, aunque reaparezca la colocación.
+      }
+      const colocacion=ids('ytPlaceOverlay'),cerrarColocacion=ids('ytPlaceClose');
+      if(colocacion && getComputedStyle(colocacion).display!=='none' && cerrarColocacion && !cerrarColocacion.disabled) cerrarColocacion.click();
       return;
     }
     if(tecla==='m'){
