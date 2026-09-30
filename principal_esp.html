@@ -1989,7 +1989,7 @@
 <details id="tecladoAyuda" style="margin-top:10px;">
 <summary style="cursor:pointer;">Teclado y carpeta de exportación</summary>
 <p class="small">Los atajos funcionan con la pestaña de la app seleccionada, también con la voz silenciada. No actúan mientras escribe en un campo o utiliza un selector.</p>
-<p class="small">G: grabar otra jugada o abrir la cámara. 1 / 2 / 3: cuenta de 5 / 10 / 15 segundos. D: detener. R: reproducir. E: exportar con datos a la carpeta elegida. V: volver a colocar. C: capturar mesa. M: silenciar o activar voz. T: seguimiento de la trayectoria. Espacio: pausar o continuar. L: velocidad normal, media o un cuarto.</p>
+<p class="small">G: grabar otra jugada o abrir la cámara. 1 / 2 / 3: cuenta de 5 / 10 / 15 segundos. D: detener. R: reproducir. E: exportar con datos a la carpeta elegida. V: volver a colocar. C: capturar mesa. M: silenciar o activar voz. T: seguimiento de la trayectoria. Espacio: pausar o continuar. L: velocidad normal, media o un cuarto. X: cerrar la ventana de video (también Esc).</p>
 <button id="tecladoCarpetaBtn" type="button" style="width:100%;">Elegir carpeta de exportación para E</button>
 <p id="tecladoCarpetaEstado" class="small" role="status" aria-live="polite" style="margin:8px 0; overflow-wrap:anywhere;">Sin carpeta elegida.</p>
 <p class="small">Autorice la carpeta una vez. Mientras el permiso siga vigente, E guardará allí cada video al terminar la exportación, sin otra confirmación y sin sobrescribir los anteriores. Mantenga la pestaña visible durante la exportación.</p>
@@ -20413,6 +20413,11 @@ function drawStartMarks(){
     finally{tecladoExportacion.ocupado=false;tecladoCarpetaUi();}
   }
   async function tecladoEjecutar(tecla){
+    if(tecla==='x'){
+      const modal=ids('videoReplayModal'),cerrar=ids('videoReplayClose');
+      if(modal && modal.classList.contains('active') && cerrar && !cerrar.disabled) cerrar.click();
+      return;
+    }
     if(tecla==='m'){
       if(!ytVozSoportada()){tecladoAvisar('M','Este navegador no ofrece reconocimiento de voz. Los demás atajos siguen disponibles.','warn');return;}
       ytVozCambiar(!ytVozActiva());
@@ -20451,7 +20456,7 @@ function drawStartMarks(){
     const carpeta=ids('tecladoCarpetaBtn');if(carpeta) carpeta.addEventListener('click',tecladoElegirCarpeta);
     document.addEventListener('keydown',event=>{
       if(event.defaultPrevented || event.isComposing || event.ctrlKey || event.altKey || event.metaKey) return;
-      const tecla=event.key.toLowerCase();if(!['g','1','2','3','d','r','e','v','c','m','t',' ','l'].includes(tecla)) return;
+      const tecla=event.key.toLowerCase();if(!['g','1','2','3','d','r','e','v','c','m','t',' ','l','x'].includes(tecla)) return;
       const el=event.target instanceof Element?event.target:null;
       if(el && (el.isContentEditable || el.closest('textarea,select,[role="textbox"]') || (el.tagName==='INPUT' && !['checkbox','radio','range','button','submit','reset'].includes(el.type)))) return;
       if(tecla===' ' && (!tecladoRevision() || (el && el.tagName==='INPUT'))) return;
