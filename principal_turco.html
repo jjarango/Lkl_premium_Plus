@@ -1986,6 +1986,14 @@
 <div class="small" id="ytVozEstado" style="margin-top:4px; color:#9aa3b2;">Sesli komutlar açıkken, herhangi bir bölümde “kaydet” diyerek kayıt modülünü açabilirsiniz. Alttaki düğme uygulamanın ne zaman dinlediğini gösterir ve sesli komutları kapatmanızı sağlar. Modül içinde bulunduğunuz aşamaya göre “beş saniye sonra kaydet”, “on saniye sonra kaydet”, “on beş saniye sonra kaydet”, “durdur ve incele”, “oynat”, yeni bir kayıt hazırlamak için “kaydet” veya “verilerle indir” deyin. Herhangi bir bölümde “masayı çek” diyerek fotoğraf çekebilir ve pozisyonları kontrol edebilirsiniz. Uygun olduğunda oturumda kaydedilen köşeler yeniden kullanılır; topları kontrol edip “Pozisyonları uygulamaya uygula” düğmesine basın. “Yeniden yerleştir” komutu, mor düğme gizli olsa bile her bölümden son onaylanan pozisyonu geri getirir. Antrenmandan çıkınca bu pozisyon korunur ve başka bir pozisyon uygulandığında değiştirilir. Fotoğraf çekimi, kayıt veya dışa aktarma sürüyorsa komut işlemin bitmesini bekler. Modülün açılması kaydı otomatik olarak başlatmaz. Sesli komutlar Chrome’un ses hizmetini (internet gerekir) ve Windows’un varsayılan mikrofonunu kullanır: Windows’ta Logitech Brio’yu seçin. Kayıt modülü hazır olduğunda yalnızca «beş», «on» veya «on beş» de diyebilirsiniz.</div>
 <label for="ytVozCicloSegundos" style="display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-top:10px;">Mikrofonu şu aralıkla yeniden başlat: <input id="ytVozCicloSegundos" type="number" min="5" max="120" step="1" value="15" aria-describedby="ytVozCicloAyuda" style="width:85px;"/> saniye</label>
 <p id="ytVozCicloAyuda" class="small" style="margin:6px 0 10px;">5 ile 120 saniye arasında ayarlanabilir; her döngüde otomatik olarak yarım saniye ara verilir. Yeni dinleme süresi, dinlemenin başladığı doğrulandığında başlar. Yeni söylenmeye başlanan bir komutun tamamlanması için kısa bir ek süre tanınır. Mikrofonu elle susturmak döngüyü durdurur. Aralık bu tarayıcıda saklanır.</p>
+<details id="tecladoAyuda" style="margin-top:10px;">
+<summary style="cursor:pointer;">Klavye ve dışa aktarma klasörü</summary>
+<p class="small">Uygulama sekmesi seçiliyken, sesli komutlar kapalı olsa da kısayollar çalışır. Bir alana yazarken veya açılır listeyi kullanırken çalışmazlar.</p>
+<p class="small">G: başka bir vuruş kaydet veya kamerayı aç. 1 / 2 / 3: 5 / 10 / 15 saniyelik geri sayım. D: kaydı durdur. R: oynat. E: verilerle birlikte seçilen klasöre aktar. V: topları yeniden yerleştir. C: masanın görüntüsünü al. M: sesli komutları kapat veya aç. T: yörünge takibi. Boşluk: duraklat veya devam et. L: normal, yarım veya çeyrek hız. X: video penceresini ya da yerleştirme ekranını her basışta bir tane kapat. Esc de video penceresini kapatır.</p>
+<button id="tecladoCarpetaBtn" type="button" style="width:100%;">E için dışa aktarma klasörü seç</button>
+<p id="tecladoCarpetaEstado" class="small" role="status" aria-live="polite" style="margin:8px 0; overflow-wrap:anywhere;">Klasör seçilmedi.</p>
+<p class="small">Klasöre bir kez erişim izni verin. İzin geçerli olduğu sürece E, dışa aktarma bitince her videoyu ek onay istemeden ve önceki dosyaların üzerine yazmadan buraya kaydeder. Dışa aktarma sırasında bu sekmeyi görünür tutun.</p>
+</details>
 <details id="ytVozHistorialPanel" style="margin-top:10px;">
 <summary style="cursor:pointer;">Sesli komut geçmişi</summary>
 <p class="small">Yalnızca bu sayfa açıkken konuşma, döküm ve işlemlere ait en fazla 1000 kayıt ile son 200 bağlantı durumu kaydını tutar; ses kaydedilmez. Geçici dökümler ve konuşma algılama olayları, milisaniye hassasiyetinde saat bilgisiyle gösterilir. Oturum ve sonuç referansı, aynı komutu takip etmenizi sağlar. En son kayıtları görmek için «Yenile»ye tıklayın.</p>
@@ -17149,7 +17157,8 @@ function drawStartMarks(){
   // incrustada (marco, diamantes, anillos de bolas, trayectoria y Ataque),
   // conservando el audio original. Ocurre en tiempo real: un video de 30 s
   // tarda unos 30 s. La pestaña debe permanecer visible mientras termina.
-  async function exportVideoReplayWithOverlay(){
+  async function exportVideoReplayWithOverlay(opciones){
+    const carpeta=opciones && opciones.carpeta;
     if(videoReplay.exporting) return;
     if(videoReplay.recordingCheck && videoReplay.recordingCheck.pending){setVideoReplayStatus("Kayıt kontrolünün bitmesini bekleyin.");return;}
     if(videoReplay.recordingIssue){setVideoReplayStatus(videoReplay.recordingIssue+" Kontrol etmek için orijinal kaydı indirin veya yeniden kaydedin.",'bad');return;}
@@ -17264,11 +17273,21 @@ function drawStartMarks(){
           const verified=await videoReplayVerifyExport(blob,total,vw,vh,signal);
           if(disposed) return;
           videoReplay.lastExportCheck={sourceDuration:total,outputDuration:verified.duration,samples:verified.samples,frames:frameCount,maxGap,paintMs};
-          const output=URL.createObjectURL(blob),a=document.createElement('a'),mp4=/mp4/i.test(type);
-          const stamp=new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
-          a.href=output;a.download="pozisyon-verilerle-"+stamp+(mp4?'.mp4':'.webm');document.body.appendChild(a);a.click();a.remove();
-          setTimeout(()=>URL.revokeObjectURL(output),60000);cleanup();ytgTimbreListo();
-          setVideoReplayStatus("Video şu biçimde indirildi: "+(mp4?'MP4':'WebM')+(traceForExport.enabled&&traceForExport.points.length>1?". İzlenen topun gerçek yörüngesi aşamalı olarak gösterilir ve veriler videonun üzerine eklenir.":" üstüne eklenen verilerle birlikte.")+" Başlangıç, son ve süre doğrulandı.",'good');
+          const mp4=/mp4/i.test(type),stamp=new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
+          const nombre="pozisyon-verilerle-"+stamp+(mp4?'.mp4':'.webm');
+          if(carpeta){
+            phase='saving';document.removeEventListener('visibilitychange',visibility);
+            setVideoReplayStatus("Tam video şu klasöre kaydediliyor: "+carpeta.name+'…');
+            const guardado=await tecladoGuardarExportacion(carpeta,blob,nombre,signal);
+            if(disposed) return;
+            tecladoAvisar('E',"Video şu klasöre kaydedildi: "+carpeta.name+': '+guardado,'good');
+          }else{
+            const output=URL.createObjectURL(blob),a=document.createElement('a');
+            a.href=output;a.download=nombre;document.body.appendChild(a);a.click();a.remove();
+            setTimeout(()=>URL.revokeObjectURL(output),60000);
+          }
+          cleanup();ytgTimbreListo();
+          setVideoReplayStatus((carpeta?"Video şu klasöre kaydedildi: "+carpeta.name+" / biçim: ":"Video şu biçimde indirildi: ")+(mp4?'MP4':'WebM')+(traceForExport.enabled&&traceForExport.points.length>1?". İzlenen topun gerçek yörüngesi aşamalı olarak gösterilir ve veriler videonun üzerine eklenir.":" üstüne eklenen verilerle birlikte.")+" Başlangıç, son ve süre doğrulandı.",'good');
         }catch(error){if(error.name!=='AbortError') fail(error.message);}
       };
       const onFrame=(now,meta)=>{
@@ -18816,8 +18835,8 @@ function drawStartMarks(){
   //  · grabando → «detener y revisar»
   //  · revisión → «grabar otra jugada», «descargar con datos»
   //  · cuenta regresiva, exportación, calibración, velos → nada
-  function ytVozContexto(){
-    if(!ytVozActiva() || !ytVozSoportada()) return null;
+  function ytVozContexto(teclado=false){
+    if(!teclado && (!ytVozActiva() || !ytVozSoportada())) return null;
     // La escucha general no depende de una jugada capturada ni del menú abierto.
     if(videoReplay.exporting) return 'exportando';
     if(videoReplay.countdownUntil || videoReplay.anunciando) return 'espera';
@@ -18975,7 +18994,8 @@ function drawStartMarks(){
   }
   // Aviso breve y visible también con los módulos de ayuda plegados.
   // Solo texto en pantalla; no guarda audio ni envía información adicional.
-  function ytVozAvisar(frase, resultado, tono='neutral'){
+  function ytVozAvisar(frase, resultado, tono='neutral', teclado=false){
+    if(teclado){ tecladoAvisar(frase, resultado, tono); return; }
     if(!ytVozActiva()) return;
     ytVozRegistrar(frase, resultado, tono === 'good' ? "İşlem doğrulandı" : "Sonuç");
     const aviso = ids('ytVozAviso'), oida = ids('ytVozAvisoOida'), accion = ids('ytVozAvisoAccion');
@@ -18996,30 +19016,30 @@ function drawStartMarks(){
     if(ytVoz.abriendoModulo) return 'Kamera hazır olduğunda yerleştirme rehberi açılacak';
     return '';
   }
-  function ytVozPedirVolver(frase){
-    if(!ytVozActiva()) return;
+  function ytVozPedirVolver(frase, teclado=false){
+    if(!teclado && !ytVozActiva()) return;
     if(!ytVozHayJugada()){
       ytVoz.volverPendiente = null; ytVoz.volverTrasCalibrar = false;
-      ytVozAvisar(frase, 'Henüz kaydedilmiş bir pozisyon yok. Masanın fotoğrafını çekip “Pozisyonları uygulamaya uygula” düğmesine basın veya YouTube’dan bir pozisyonu onaylayın.', 'warn');
+      ytVozAvisar(frase, 'Henüz kaydedilmiş bir pozisyon yok. Masanın fotoğrafını çekip “Pozisyonları uygulamaya uygula” düğmesine basın veya YouTube’dan bir pozisyonu onaylayın.', 'warn', teclado);
       return;
     }
-    if(ytVoz.volviendo){ ytVozAvisar(frase, 'Yerleştirme rehberi zaten hazırlanıyor.'); return; }
-    if(ytVoz.volverTrasCalibrar){ ytVozAvisar(frase, 'Köşe kalibrasyonunu kaydedin; ardından yerleştirme rehberi açılacak.'); return; }
+    if(ytVoz.volviendo){ ytVozAvisar(frase, 'Yerleştirme rehberi zaten hazırlanıyor.', 'neutral', teclado); return; }
+    if(ytVoz.volverTrasCalibrar){ ytVozAvisar(frase, 'Köşe kalibrasyonunu kaydedin; ardından yerleştirme rehberi açılacak.', 'neutral', teclado); return; }
     const ocupado = ytVozVolverOcupado();
     if(ocupado){
-      ytVoz.volverPendiente = { frase };
-      ytVozAvisar(frase, 'Komut alındı. ' + ocupado + '.');
+      ytVoz.volverPendiente = { frase, teclado };
+      ytVozAvisar(frase, 'Komut alındı. ' + ocupado + '.', 'neutral', teclado);
       return;
     }
     const guia = ids('ytPlaceOverlay');
     if(ytGuia.activa && guia && guia.style.display !== 'none'){
       ytVoz.volverPendiente = null;
-      ytVozAvisar(frase, 'Rehber zaten açık. Her topu kendi dairesine yerleştirin.');
+      ytVozAvisar(frase, 'Rehber zaten açık. Her topu kendi dairesine yerleştirin.', 'neutral', teclado);
       return;
     }
-    ytVozVolverGlobal(frase);
+    ytVozVolverGlobal(frase, teclado);
   }
-  async function ytVozVolverGlobal(frase){
+  async function ytVozVolverGlobal(frase, teclado=false){
     ytVoz.volviendo = true; ytVoz.volverPendiente = null;
     // Cambiar de pantalla no interrumpe la escucha de nuevas órdenes.
     try{
@@ -19031,34 +19051,34 @@ function drawStartMarks(){
       closePhotoLocator();
       if(tableExpandedModeActive()) setTableExpandedMode(false);
       if(!ytRestaurarJugada()){
-        ytVozAvisar(frase, "Kaydedilmiş pozisyon alınamadı. Önce bir pozisyonun fotoğrafını çekip onaylayın.", 'warn');
+        ytVozAvisar(frase, "Kaydedilmiş pozisyon alınamadı. Önce bir pozisyonun fotoğrafını çekip onaylayın.", 'warn', teclado);
         return;
       }
       if(!loadVideoCalibration()){
         ytgDetener();
         const guia = ids('ytPlaceOverlay'); if(guia) guia.style.display = 'none';
-        ytVoz.volverTrasCalibrar = true;
+        ytVoz.volverTrasCalibrar = true; ytVoz.volverTrasCalibrarTeclado = teclado;
         await openVideoReplayModal('calibrate');
-        ytVozAvisar(frase, "Pozisyon kaydedildi. Köşeleri kalibre edip “Kalibrasyonu kaydet ve devam et” düğmesine basarak rehberi açın.");
+        ytVozAvisar(frase, "Pozisyon kaydedildi. Köşeleri kalibre edip “Kalibrasyonu kaydet ve devam et” düğmesine basarak rehberi açın.", 'neutral', teclado);
         return;
       }
       await ytVolverAColocar();
       if(ytGuia.activa){
-        ytVozAceptar(frase, "Son onaylanan top konumlarına dönmek için kılavuz açıldı.");
+        ytVozAceptar(frase, "Son onaylanan top konumlarına dönmek için kılavuz açıldı.", teclado);
       } else {
         const estado = ids('ytPlaceEstado');
-        ytVozAvisar(frase, "Konumlar şemaya geri yüklendi. " + (estado && estado.textContent ? estado.textContent : "Kılavuz kamerası başlatılamadı."), 'warn');
+        ytVozAvisar(frase, "Konumlar şemaya geri yüklendi. " + (estado && estado.textContent ? estado.textContent : "Kılavuz kamerası başlatılamadı."), 'warn', teclado);
       }
     }catch(error){
       ytVoz.volverTrasCalibrar = false;
-      ytVozAvisar(frase, "Rehber açılamadı: " + (error && error.message ? error.message : error), 'warn');
+      ytVozAvisar(frase, "Rehber açılamadı: " + (error && error.message ? error.message : error), 'warn', teclado);
     }finally{
       ytVoz.volviendo = false;
       ytVozSincronizar();
     }
   }
   function ytVozContinuarVolver(){
-    if(!ytVozActiva()){
+    if(!ytVozActiva() && !(ytVoz.volverPendiente && ytVoz.volverPendiente.teclado) && !(ytVoz.volverTrasCalibrar && ytVoz.volverTrasCalibrarTeclado)){
       ytVoz.volverPendiente = null; ytVoz.volverTrasCalibrar = false;
       return;
     }
@@ -19068,11 +19088,11 @@ function drawStartMarks(){
       if(!video || !video.classList.contains('active')){ ytVoz.volverTrasCalibrar = false; return; }
       if(!loadVideoCalibration() || videoReplay.mode === 'calibrate') return;
       ytVoz.volverTrasCalibrar = false;
-      ytVoz.volverPendiente = { frase:'yeniden yerleştir' };
+      ytVoz.volverPendiente = { frase:ytVoz.volverTrasCalibrarTeclado ? 'V' : 'yeniden yerleştir', teclado:!!ytVoz.volverTrasCalibrarTeclado };
     }
     if(ytVoz.volverPendiente && !ytVozVolverOcupado()){
       const pendiente = ytVoz.volverPendiente; ytVoz.volverPendiente = null;
-      ytVozPedirVolver(pendiente.frase);
+      ytVozPedirVolver(pendiente.frase, pendiente.teclado);
     }
   }
 
@@ -19085,7 +19105,7 @@ function drawStartMarks(){
     if(ytVoz.abriendoModulo) return 'Kayıt kamerası hazırlanıyor. Biraz bekleyip “masayı çek” komutunu tekrarlayın.';
     return '';
   }
-  async function ytVozCapturarMesa(frase){
+  async function ytVozCapturarMesa(frase, teclado=false){
     ytVoz.capturandoMesa = true;
     ytVozSincronizar();
     try{
@@ -19106,13 +19126,13 @@ function drawStartMarks(){
       await captureTableFromCamera();
       const foto = ids('photoLocatorModal');
       if(foto && foto.classList.contains('active')){
-        ytVozAceptar(frase, "Fotoğraf alındı. Pozisyonları kontrol edip “Pozisyonları uygulamaya uygula” düğmesine basın.");
+        ytVozAceptar(frase, "Fotoğraf alındı. Pozisyonları kontrol edip “Pozisyonları uygulamaya uygula” düğmesine basın.", teclado);
       } else {
         const estado = ids('cameraCaptureStatus');
-        if(estado && estado.textContent) ytVozAvisar(frase, estado.textContent, 'warn');
+        if(estado && estado.textContent) ytVozAvisar(frase, estado.textContent, 'warn', teclado);
       }
     }catch(error){
-      ytVozAvisar(frase, "Masanın fotoğrafı çekilemedi: " + (error && error.message ? error.message : error), 'warn');
+      ytVozAvisar(frase, "Masanın fotoğrafı çekilemedi: " + (error && error.message ? error.message : error), 'warn', teclado);
     }finally{
       ytVoz.capturandoMesa = false;
       ytVozSincronizar();
@@ -19134,19 +19154,19 @@ function drawStartMarks(){
     }
     return '';
   }
-  async function ytVozAbrirGrabacion(frase){
+  async function ytVozAbrirGrabacion(frase, teclado=false){
     if(ytVoz.abriendoModulo) return;
     const solicitud = ++ytVoz.solicitudModulo;
     ytVoz.abriendoModulo = true;
     ytVozSincronizar();
     try{
       // Una foto ya solicitada termina antes de ceder la cámara al video.
-      if(cameraCaptureState.busy) ytVozAvisar(frase, "Kabul edildi: fotoğraf çekimi tamamlanınca kayıt modülü açılacak.");
+      if(cameraCaptureState.busy) ytVozAvisar(frase, "Kabul edildi: fotoğraf çekimi tamamlanınca kayıt modülü açılacak.", 'neutral', teclado);
       while(cameraCaptureState.busy){
-        if(!ytVozActiva() || solicitud !== ytVoz.solicitudModulo) return;
+        if((!teclado && !ytVozActiva()) || solicitud !== ytVoz.solicitudModulo) return;
         await waitCamera(100);
       }
-      if(!ytVozActiva() || solicitud !== ytVoz.solicitudModulo) return;
+      if((!teclado && !ytVozActiva()) || solicitud !== ytVoz.solicitudModulo) return;
       const modal = ids('videoReplayModal');
       if(modal && modal.classList.contains('active')) return;
       ytgDetener();
@@ -19171,14 +19191,14 @@ function drawStartMarks(){
       if(abierto && abierto.classList.contains('active') && videoReplay.stream){
         ytVozAceptar(frase, videoReplay.mode === 'calibrate'
           ? "Kamera açıldı. Kayıttan önce köşeleri onaylayın."
-          : "Kamera hazır. «Beş», «on» veya «on beş» deyin.");
+          : "Kamera hazır. «Beş», «on» veya «on beş» deyin.", teclado);
         return true;
       } else if(abierto && abierto.classList.contains('active')){
         const estado = ids('videoReplayStatus');
-        ytVozAvisar(frase, estado && estado.textContent ? estado.textContent : "Kayıt kamerası açılamadı.", 'warn');
+        ytVozAvisar(frase, estado && estado.textContent ? estado.textContent : "Kayıt kamerası açılamadı.", 'warn', teclado);
       }
     }catch(error){
-      ytVozAvisar(frase, "Modül açılamadı: " + (error && error.message ? error.message : error), 'warn');
+      ytVozAvisar(frase, "Modül açılamadı: " + (error && error.message ? error.message : error), 'warn', teclado);
     }finally{
       if(solicitud === ytVoz.solicitudModulo){ ytVoz.abriendoModulo = false; ytVozSincronizar(); }
     }
@@ -19201,14 +19221,15 @@ function drawStartMarks(){
     }
     control.style.bottom = abajo + 'px';
   }
-  function ytVozAceptar(frase, mensaje){
+  function ytVozAceptar(frase, mensaje, teclado=false){
+    if(teclado){ tecladoAvisar(frase, mensaje, 'good'); return; }
     if(!ytVozActiva()) return;
     ytVozAcuse();
     ytVozAvisar(frase, mensaje, 'good');
   }
-  async function ytVozEjecutar(orden, frase){
-    if(!ytVozActiva()) return;
-    if(orden.accion === 'volver'){ ytVozPedirVolver(frase); return; }
+  async function ytVozEjecutar(orden, frase, teclado=false){
+    if(!teclado && !ytVozActiva()) return;
+    if(orden.accion === 'volver'){ ytVozPedirVolver(frase, teclado); return; }
     const destinos = {
       capturarMesa:'captureTableBtn', grabarJugada:'videoReplayRecordBtn',
       detener:'videoReplayStopBtn', reproducir:'videoReplayPlayBtn',
@@ -19217,17 +19238,17 @@ function drawStartMarks(){
     };
     if(orden.accion === 'capturarMesa'){
       const enCurso = ytVozCapturaEnCurso();
-      if(enCurso){ ytVozAvisar(frase, enCurso); return; }
+      if(enCurso){ ytVozAvisar(frase, enCurso, 'neutral', teclado); return; }
     }
     if(orden.accion === 'grabarJugada'){
       const enCurso = ytVozGrabacionEnCurso();
-      if(enCurso){ ytVozAvisar(frase, enCurso); return; }
+      if(enCurso){ ytVozAvisar(frase, enCurso, 'neutral', teclado); return; }
     }
     if(orden.accion === 'detener' && (!videoReplay.recorder || videoReplay.recorder.state !== 'recording')) return false;
     const boton = ids(destinos[orden.accion]);
-    if(!boton || boton.disabled){ ytVozAvisar(frase, "Bu komutun kontrolü şu anda kullanılamıyor.", 'warn'); return; }
+    if(!boton || boton.disabled){ ytVozAvisar(frase, "Bu komutun kontrolü şu anda kullanılamıyor.", 'warn', teclado); return; }
     const ahora = Date.now(), clave = orden.accion + (orden.seg ? ':' + orden.seg : '');
-    if(orden.accion !== 'detener' && ytVoz.ultimaOrden === clave && ahora - ytVoz.ultimaVez < 2000){ ytVozRegistrar(frase, "Aynı komut hemen tekrarlandı; işlem ikinci kez yapılmaz.", "İşlem yok"); return; }
+    if(!teclado && orden.accion !== 'detener' && ytVoz.ultimaOrden === clave && ahora - ytVoz.ultimaVez < 2000){ ytVozRegistrar(frase, "Aynı komut hemen tekrarlandı; işlem ikinci kez yapılmaz.", "İşlem yok"); return; }
     if(orden.accion === 'reproducir'){
       const v = ids('videoReplayPlayback');
       if(v && !v.paused){ ytVozRegistrar(frase, "Oynatma zaten sürüyor.", "İşlem yok"); return; }
@@ -19236,9 +19257,9 @@ function drawStartMarks(){
     ytVoz.ultimaOrden = clave; ytVoz.ultimaVez = ahora;
     // Confirmar la acción real. Solo el inicio de la cuenta renueva la escucha.
     try{
-      if(orden.accion === 'capturarMesa'){ await ytVozCapturarMesa(frase); return; }
+      if(orden.accion === 'capturarMesa'){ await ytVozCapturarMesa(frase, teclado); return; }
       if(orden.accion === 'grabarJugada'){
-        const iniciada = await ytVozAbrirGrabacion(frase);
+        const iniciada = await ytVozAbrirGrabacion(frase, teclado);
         if(!iniciada){ ytVoz.ultimaOrden = ''; ytVoz.ultimaVez = 0; }
         return !!iniciada;
       }
@@ -19266,16 +19287,16 @@ function drawStartMarks(){
           mensaje = "Geri sayım başladı: " + orden.seg + " saniye.";
         }
       }
-      if(iniciada) ytVozAceptar(frase, mensaje);
+      if(iniciada) ytVozAceptar(frase, mensaje, teclado);
       else {
         ytVoz.ultimaOrden = ''; ytVoz.ultimaVez = 0;
         const estado = ids('videoReplayStatus');
-        ytVozAvisar(frase, "İşlem başlamadı. " + (estado && estado.textContent ? estado.textContent : "Modülün durumunu kontrol edin."), 'warn');
+        ytVozAvisar(frase, "İşlem başlamadı. " + (estado && estado.textContent ? estado.textContent : "Modülün durumunu kontrol edin."), 'warn', teclado);
       }
       return iniciada;
     }catch(error){
       ytVoz.ultimaOrden = ''; ytVoz.ultimaVez = 0;
-      ytVozAvisar(frase, "Komut yürütülemedi: " + (error && error.message ? error.message : error), 'warn');
+      ytVozAvisar(frase, "Komut yürütülemedi: " + (error && error.message ? error.message : error), 'warn', teclado);
     }finally{
       ytVozSincronizar();
     }
@@ -20300,7 +20321,167 @@ function drawStartMarks(){
     ytgPintar();
   }
 
+  // Atajos de práctica: los controles son compartidos; el teclado no enciende la voz.
+  const tecladoExportacion = { carpeta:null, cargando:null, ocupado:false, memoria:false };
+  function tecladoAvisar(tecla, mensaje, tono='neutral'){
+    const aviso=ids('ytVozAviso'), titulo=ids('ytVozAvisoOida'), accion=ids('ytVozAvisoAccion');
+    if(!aviso || !titulo || !accion) return;
+    titulo.textContent="Klavye"+(tecla ? ': '+tecla : ''); titulo.style.display='block';
+    accion.textContent=mensaje;
+    const color=tono==='good'?'#7de3a0':tono==='warn'?'#ffcb75':'#d8f4ff';
+    accion.style.color=color; aviso.style.borderColor=color; aviso.style.display='block';
+    if(ytVoz.avisoTimer) clearTimeout(ytVoz.avisoTimer);
+    ytVoz.avisoTimer=setTimeout(()=>{aviso.style.display='none';ytVoz.avisoTimer=0;},6000);
+  }
+  function tecladoCarpetaUi(mensaje){
+    const estado=ids('tecladoCarpetaEstado'), boton=ids('tecladoCarpetaBtn');
+    if(boton) boton.disabled=tecladoExportacion.ocupado;
+    if(estado) estado.textContent=mensaje || (tecladoExportacion.carpeta
+      ? "E için klasör: "+tecladoExportacion.carpeta.name+'. '+(tecladoExportacion.memoria?"Bu tarayıcı klasörü hatırlar; Chrome yeniden izin vermenizi isteyebilir.":"Bu oturum boyunca kullanılabilir.")
+      : "Klasör seçilmedi. Buradan veya E tuşuna ilk bastığınızda seçin.");
+  }
+  function tecladoCarpetaMemoria(carpeta){
+    return new Promise((resolve,reject)=>{
+      const request=indexedDB.open('billarTecladoV1',1);
+      request.onupgradeneeded=()=>request.result.createObjectStore('preferencias');
+      request.onerror=()=>reject(request.error);
+      request.onblocked=()=>reject(new Error("Tarayıcı tercihleri açamadı."));
+      request.onsuccess=()=>{
+        const db=request.result, escritura=!!carpeta;
+        let valor=null;
+        try{
+          const tx=db.transaction('preferencias',escritura?'readwrite':'readonly'), store=tx.objectStore('preferencias');
+          const operation=escritura?store.put(carpeta,'carpetaExportacion'):store.get('carpetaExportacion');
+          operation.onsuccess=()=>{valor=operation.result;};
+          tx.oncomplete=()=>{db.close();resolve(valor);};
+          tx.onabort=tx.onerror=()=>{db.close();reject(tx.error || new Error("Klasör hatırlanmak üzere kaydedilemedi."));};
+        }catch(error){db.close();reject(error);}
+      };
+    });
+  }
+  async function tecladoCarpetaObtener(cambiar=false){
+    if(typeof window.showDirectoryPicker!=='function') throw new Error("E ile bir klasöre kaydetmek için uygulamayı Chrome veya Edge’de açın. Verilerle indirme düğmesini kullanmaya devam edebilirsiniz.");
+    if(tecladoExportacion.cargando) await tecladoExportacion.cargando;
+    let carpeta=tecladoExportacion.carpeta;
+    if(cambiar || !carpeta){
+      const opciones={id:'billar-exportacion',mode:'readwrite',startIn:carpeta || 'desktop'};
+      carpeta=await window.showDirectoryPicker(opciones);
+      tecladoExportacion.carpeta=carpeta; tecladoExportacion.memoria=false;
+      try{await tecladoCarpetaMemoria(carpeta);tecladoExportacion.memoria=true;}catch{}
+    }else if(await carpeta.queryPermission({mode:'readwrite'})!=='granted'){
+      if(await carpeta.requestPermission({mode:'readwrite'})!=='granted') throw new Error("E ile kaydetmek için seçilen klasöre yazma izni verin.");
+    }
+    tecladoCarpetaUi(); return carpeta;
+  }
+  async function tecladoElegirCarpeta(){
+    if(tecladoExportacion.ocupado) return;
+    tecladoExportacion.ocupado=true;tecladoCarpetaUi();
+    try{await tecladoCarpetaObtener(true);}
+    catch(error){if(error.name!=='AbortError') tecladoAvisar('E',error.message,'warn');}
+    finally{tecladoExportacion.ocupado=false;tecladoCarpetaUi();}
+  }
+  async function tecladoGuardarExportacion(carpeta,blob,nombre,signal){
+    const guardar=async()=>{
+      let archivo=null,escritor=null,creado=false,completo=false,elegido=nombre;
+      const comprobar=()=>{if(signal && signal.aborted) throw new DOMException("Kaydetme iptal edildi.",'AbortError');};
+      try{
+        for(let n=1;;n++){
+          comprobar();elegido=n===1?nombre:nombre.replace(/(\.[^.]+)$/,' ('+n+')$1');
+          try{await carpeta.getFileHandle(elegido);}
+          catch(error){if(error.name==='NotFoundError') break;if(error.name!=='TypeMismatchError') throw error;}
+        }
+        comprobar();archivo=await carpeta.getFileHandle(elegido,{create:true});creado=true;
+        comprobar();escritor=await archivo.createWritable();
+        comprobar();await escritor.write(blob);comprobar();await escritor.close();escritor=null;
+        comprobar();const guardado=await archivo.getFile();comprobar();
+        if(guardado.size!==blob.size) throw new Error("Kaydedilen dosyanın boyutu tam videonun boyutuyla eşleşmiyor.");
+        completo=true;return elegido;
+      }finally{
+        if(escritor){try{await escritor.abort();}catch{}}
+        if(creado && !completo){try{await carpeta.removeEntry(elegido);}catch{}}
+      }
+    };
+    // Serializar también entre pestañas de esta app para no sobrescribir nombres iguales.
+    return navigator.locks ? navigator.locks.request('billar-exportacion-'+carpeta.name,guardar) : guardar();
+  }
+  function tecladoRevision(){
+    const modal=ids('videoReplayModal');
+    return !!(modal && modal.classList.contains('active') && videoReplay.mode==='replay' && videoReplay.blobUrl);
+  }
+  async function tecladoExportar(){
+    if(tecladoExportacion.ocupado || videoReplay.exporting) return;
+    const boton=ids('videoReplayExportBtn');
+    if(!tecladoRevision() || !boton || boton.disabled){tecladoAvisar('E',"Dışa aktarma henüz kullanılamıyor. Kaydı ve etkinse yörünge analizini tamamlayın.",'warn');return;}
+    const url=videoReplay.blobUrl;
+    tecladoExportacion.ocupado=true;tecladoCarpetaUi();
+    try{
+      const carpeta=await tecladoCarpetaObtener();
+      if(!tecladoRevision() || videoReplay.blobUrl!==url || videoReplay.exporting || boton.disabled) return;
+      await exportVideoReplayWithOverlay({carpeta});
+    }catch(error){if(error.name!=='AbortError') tecladoAvisar('E',error.message,'warn');}
+    finally{tecladoExportacion.ocupado=false;tecladoCarpetaUi();}
+  }
+  async function tecladoEjecutar(tecla){
+    if(tecla==='x'){
+      const modal=ids('videoReplayModal'),cerrar=ids('videoReplayClose');
+      if(modal && modal.classList.contains('active')){
+        if(cerrar && !cerrar.disabled) cerrar.click();
+        return; // Cerrar solo esta ventana, aunque reaparezca la colocación.
+      }
+      const colocacion=ids('ytPlaceOverlay'),cerrarColocacion=ids('ytPlaceClose');
+      if(colocacion && getComputedStyle(colocacion).display!=='none' && cerrarColocacion && !cerrarColocacion.disabled) cerrarColocacion.click();
+      return;
+    }
+    if(tecla==='m'){
+      if(!ytVozSoportada()){tecladoAvisar('M',"Bu tarayıcı konuşma tanımayı desteklemiyor. Diğer kısayollar kullanılabilir.",'warn');return;}
+      ytVozCambiar(!ytVozActiva());
+      tecladoAvisar('M',ytVozActiva()?"Sesli komutlar etkinleştirildi.":"Sesli komutlar kapatıldı. Klavye kullanılabilir.");return;
+    }
+    const ctx=ytVozContexto(true), lista=['grabar','grabarVolver'].includes(ctx), revision=tecladoRevision();
+    if(tecla==='e'){await tecladoExportar();return;}
+    if(tecla===' ' || tecla==='l' || tecla==='t'){
+      if(videoReplay.exporting) return;
+      if(tecla==='t'){
+        const modal=ids('videoReplayModal'),check=ids('videoReplayTraceChk');
+        if(!modal || !modal.classList.contains('active') || !['record','replay'].includes(videoReplay.mode) || !check || check.disabled) return;
+        check.click();videoReplayRender.last=null;
+        tecladoAvisar('T',check.checked?"Bu kayıt için yörünge takibi etkinleştirildi.":"Yörünge takibi kapatıldı.");return;
+      }
+      if(!revision) return;
+      if(tecla===' '){const play=ids('videoReplayPlayBtn');if(play && !play.disabled) play.click();return;}
+      const speed=ids('videoReplaySpeed');if(!speed || speed.disabled) return;
+      const valores=['1','0.5','0.25'];speed.value=valores[(valores.indexOf(speed.value)+1)%valores.length];
+      speed.dispatchEvent(new Event('change',{bubbles:true}));
+      tecladoAvisar('L',"Oynatma hızı: "+(speed.value==='1'?"normal":speed.value==='0.5'?"yarım":"çeyrek")+'.');return;
+    }
+    let orden=null;
+    if(tecla==='g') orden={accion:revision?'grabarOtra':'grabarJugada'};
+    else if(tecla==='v') orden={accion:'volver'};
+    else if(tecla==='c') orden={accion:'capturarMesa'};
+    else if(tecla==='d' && ctx==='grabando') orden={accion:'detener'};
+    else if(tecla==='r' && revision && !videoReplay.exporting) orden={accion:'reproducir'};
+    else if(lista && /^[123]$/.test(tecla)) orden={accion:'grabarEn',seg:{'1':5,'2':10,'3':15}[tecla]};
+    if(orden) await ytVozEjecutar(orden,tecla.toUpperCase(),true);
+  }
+  function tecladoEnlazar(){
+    tecladoExportacion.cargando=tecladoCarpetaMemoria().then(carpeta=>{
+      if(carpeta && carpeta.kind==='directory'){tecladoExportacion.carpeta=carpeta;tecladoExportacion.memoria=true;}
+    }).catch(()=>{}).finally(()=>{tecladoExportacion.cargando=null;tecladoCarpetaUi();});
+    const carpeta=ids('tecladoCarpetaBtn');if(carpeta) carpeta.addEventListener('click',tecladoElegirCarpeta);
+    document.addEventListener('keydown',event=>{
+      if(event.defaultPrevented || event.isComposing || event.ctrlKey || event.altKey || event.metaKey) return;
+      const tecla=event.key.toLowerCase();if(!['g','1','2','3','d','r','e','v','c','m','t',' ','l','x'].includes(tecla)) return;
+      const el=event.target instanceof Element?event.target:null;
+      if(el && (el.isContentEditable || el.closest('textarea,select,[role="textbox"]') || (el.tagName==='INPUT' && !['checkbox','radio','range','button','submit','reset'].includes(el.type)))) return;
+      if(tecla===' ' && (!tecladoRevision() || (el && el.tagName==='INPUT'))) return;
+      event.preventDefault();event.stopPropagation();
+      if(event.repeat) return;
+      tecladoEjecutar(tecla).catch(error=>tecladoAvisar(tecla.toUpperCase(),"İşlem tamamlanamadı: "+error.message,'warn'));
+    },true);
+  }
+
   function ytEnlazar(){
+    tecladoEnlazar();
     const btn = ids('ytCaptureBtn');
     if(!btn) return;
     btn.addEventListener('click', ytCapturarPosicion);

@@ -1986,6 +1986,14 @@
 <div class="small" id="ytVozEstado" style="margin-top:4px; color:#9aa3b2;">With voice enabled, say «record» from any section to open the recording module. The control at the bottom shows when the app is listening and lets you turn voice off. Inside the module, say «record in five, ten or fifteen», «stop and review», «replay», «record» to prepare another recording, or «download with data», as appropriate. Say «capture table» from any section to take a photograph and review the positions. The capture reuses the session’s corners when applicable; check the balls and click «Apply positions to the app». «Put the balls back» retrieves the last confirmed position from any section, even when the purple button is hidden. This position is retained when you leave practice and is replaced when you apply another. If a capture, recording or export is in progress, the request waits until it finishes. Opening the module does not start recording automatically. Voice uses Chrome’s speech service (internet required) and the default Windows microphone: select the Logitech Brio there. When the recording module is ready, you can also simply say «five», «ten» or «fifteen».</div>
 <label for="ytVozCicloSegundos" style="display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-top:10px;">Restart the microphone every <input id="ytVozCicloSegundos" type="number" min="5" max="120" step="1" value="15" aria-describedby="ytVozCicloAyuda" style="width:85px;"/> seconds</label>
 <p id="ytVozCicloAyuda" class="small" style="margin:6px 0 10px;">From 5 to 120 seconds, with an automatic half-second pause. The next listening window starts when listening is confirmed. A command that has just started gets a short grace period to finish. Muting manually stops the cycle. The interval is saved in this browser.</p>
+<details id="tecladoAyuda" style="margin-top:10px;">
+<summary style="cursor:pointer;">Keyboard and export folder</summary>
+<p class="small">Shortcuts work when the app tab is selected, even with voice commands muted. They do not run while you type in a field or use a drop-down list.</p>
+<p class="small">G: record another shot or open the camera. 1 / 2 / 3: 5 / 10 / 15-second countdown. D: stop recording. R: play. E: export with data to the selected folder. V: reposition the balls. C: capture the table. M: mute or enable voice commands. T: trajectory tracking. Space: pause or resume. L: normal, half or quarter speed. X: close the video window or ball-placement screen, one per press. Esc also closes the video window.</p>
+<button id="tecladoCarpetaBtn" type="button" style="width:100%;">Choose export folder for E</button>
+<p id="tecladoCarpetaEstado" class="small" role="status" aria-live="polite" style="margin:8px 0; overflow-wrap:anywhere;">No folder selected.</p>
+<p class="small">Grant access to the folder once. While permission remains valid, E saves each video there when export finishes, without another confirmation or overwriting earlier files. Keep this tab visible during export.</p>
+</details>
 <details id="ytVozHistorialPanel" style="margin-top:10px;">
 <summary style="cursor:pointer;">Voice command history</summary>
 <p class="small">Keeps up to 1000 entries for speech, transcripts and actions, plus the last 200 connection status entries, only while this page is open; no audio is saved. Includes provisional transcripts and speech detection, with millisecond timestamps. The session and result reference lets you follow the same command. Click «Refresh» to see the latest entries.</p>
@@ -17150,7 +17158,8 @@ function drawStartMarks(){
   // incrustada (marco, diamantes, anillos de bolas, trayectoria y Ataque),
   // conservando el audio original. Ocurre en tiempo real: un video de 30 s
   // tarda unos 30 s. La pestaña debe permanecer visible mientras termina.
-  async function exportVideoReplayWithOverlay(){
+  async function exportVideoReplayWithOverlay(opciones){
+    const carpeta=opciones && opciones.carpeta;
     if(videoReplay.exporting) return;
     if(videoReplay.recordingCheck && videoReplay.recordingCheck.pending){setVideoReplayStatus("Wait for the recording check to finish.");return;}
     if(videoReplay.recordingIssue){setVideoReplayStatus(videoReplay.recordingIssue+" Download the original to check it, or record again.",'bad');return;}
@@ -17265,11 +17274,21 @@ function drawStartMarks(){
           const verified=await videoReplayVerifyExport(blob,total,vw,vh,signal);
           if(disposed) return;
           videoReplay.lastExportCheck={sourceDuration:total,outputDuration:verified.duration,samples:verified.samples,frames:frameCount,maxGap,paintMs};
-          const output=URL.createObjectURL(blob),a=document.createElement('a'),mp4=/mp4/i.test(type);
-          const stamp=new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
-          a.href=output;a.download="shot-with-data-"+stamp+(mp4?'.mp4':'.webm');document.body.appendChild(a);a.click();a.remove();
-          setTimeout(()=>URL.revokeObjectURL(output),60000);cleanup();ytgTimbreListo();
-          setVideoReplayStatus("Video downloaded in "+(mp4?'MP4':'WebM')+(traceForExport.enabled&&traceForExport.points.length>1?" with the tracked ball’s progressive actual trajectory and the data overlay.":" with the data overlay.")+" Beginning, end and duration verified.",'good');
+          const mp4=/mp4/i.test(type),stamp=new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
+          const nombre="shot-with-data-"+stamp+(mp4?'.mp4':'.webm');
+          if(carpeta){
+            phase='saving';document.removeEventListener('visibilitychange',visibility);
+            setVideoReplayStatus("Saving the complete video to "+carpeta.name+'…');
+            const guardado=await tecladoGuardarExportacion(carpeta,blob,nombre,signal);
+            if(disposed) return;
+            tecladoAvisar('E',"Video saved to "+carpeta.name+': '+guardado,'good');
+          }else{
+            const output=URL.createObjectURL(blob),a=document.createElement('a');
+            a.href=output;a.download=nombre;document.body.appendChild(a);a.click();a.remove();
+            setTimeout(()=>URL.revokeObjectURL(output),60000);
+          }
+          cleanup();ytgTimbreListo();
+          setVideoReplayStatus((carpeta?"Video saved to "+carpeta.name+" as ":"Video downloaded in ")+(mp4?'MP4':'WebM')+(traceForExport.enabled&&traceForExport.points.length>1?" with the tracked ball’s progressive actual trajectory and the data overlay.":" with the data overlay.")+" Beginning, end and duration verified.",'good');
         }catch(error){if(error.name!=='AbortError') fail(error.message);}
       };
       const onFrame=(now,meta)=>{
@@ -18817,8 +18836,8 @@ function drawStartMarks(){
   //  · grabando → «detener y revisar»
   //  · revisión → «grabar otra jugada», «descargar con datos»
   //  · cuenta regresiva, exportación, calibración, velos → nada
-  function ytVozContexto(){
-    if(!ytVozActiva() || !ytVozSoportada()) return null;
+  function ytVozContexto(teclado=false){
+    if(!teclado && (!ytVozActiva() || !ytVozSoportada())) return null;
     // La escucha general no depende de una jugada capturada ni del menú abierto.
     if(videoReplay.exporting) return 'exportando';
     if(videoReplay.countdownUntil || videoReplay.anunciando) return 'espera';
@@ -18976,7 +18995,8 @@ function drawStartMarks(){
   }
   // Aviso breve y visible también con los módulos de ayuda plegados.
   // Solo texto en pantalla; no guarda audio ni envía información adicional.
-  function ytVozAvisar(frase, resultado, tono='neutral'){
+  function ytVozAvisar(frase, resultado, tono='neutral', teclado=false){
+    if(teclado){ tecladoAvisar(frase, resultado, tono); return; }
     if(!ytVozActiva()) return;
     ytVozRegistrar(frase, resultado, tono === 'good' ? "Action confirmed" : "Result");
     const aviso = ids('ytVozAviso'), oida = ids('ytVozAvisoOida'), accion = ids('ytVozAvisoAccion');
@@ -18997,30 +19017,30 @@ function drawStartMarks(){
     if(ytVoz.abriendoModulo) return 'The placement guide will open when the camera is ready';
     return '';
   }
-  function ytVozPedirVolver(frase){
-    if(!ytVozActiva()) return;
+  function ytVozPedirVolver(frase, teclado=false){
+    if(!teclado && !ytVozActiva()) return;
     if(!ytVozHayJugada()){
       ytVoz.volverPendiente = null; ytVoz.volverTrasCalibrar = false;
-      ytVozAvisar(frase, 'No position has been saved yet. Capture the table and click «Apply positions to the app», or confirm a position from YouTube.', 'warn');
+      ytVozAvisar(frase, 'No position has been saved yet. Capture the table and click «Apply positions to the app», or confirm a position from YouTube.', 'warn', teclado);
       return;
     }
-    if(ytVoz.volviendo){ ytVozAvisar(frase, 'The placement guide is already being prepared.'); return; }
-    if(ytVoz.volverTrasCalibrar){ ytVozAvisar(frase, 'Save the corner calibration; the placement guide will then open.'); return; }
+    if(ytVoz.volviendo){ ytVozAvisar(frase, 'The placement guide is already being prepared.', 'neutral', teclado); return; }
+    if(ytVoz.volverTrasCalibrar){ ytVozAvisar(frase, 'Save the corner calibration; the placement guide will then open.', 'neutral', teclado); return; }
     const ocupado = ytVozVolverOcupado();
     if(ocupado){
-      ytVoz.volverPendiente = { frase };
-      ytVozAvisar(frase, 'Command received. ' + ocupado + '.');
+      ytVoz.volverPendiente = { frase, teclado };
+      ytVozAvisar(frase, 'Command received. ' + ocupado + '.', 'neutral', teclado);
       return;
     }
     const guia = ids('ytPlaceOverlay');
     if(ytGuia.activa && guia && guia.style.display !== 'none'){
       ytVoz.volverPendiente = null;
-      ytVozAvisar(frase, 'The guide is already open. Place each ball in its circle.');
+      ytVozAvisar(frase, 'The guide is already open. Place each ball in its circle.', 'neutral', teclado);
       return;
     }
-    ytVozVolverGlobal(frase);
+    ytVozVolverGlobal(frase, teclado);
   }
-  async function ytVozVolverGlobal(frase){
+  async function ytVozVolverGlobal(frase, teclado=false){
     ytVoz.volviendo = true; ytVoz.volverPendiente = null;
     // Cambiar de pantalla no interrumpe la escucha de nuevas órdenes.
     try{
@@ -19032,34 +19052,34 @@ function drawStartMarks(){
       closePhotoLocator();
       if(tableExpandedModeActive()) setTableExpandedMode(false);
       if(!ytRestaurarJugada()){
-        ytVozAvisar(frase, "Could not retrieve a saved position. Capture and confirm a position first.", 'warn');
+        ytVozAvisar(frase, "Could not retrieve a saved position. Capture and confirm a position first.", 'warn', teclado);
         return;
       }
       if(!loadVideoCalibration()){
         ytgDetener();
         const guia = ids('ytPlaceOverlay'); if(guia) guia.style.display = 'none';
-        ytVoz.volverTrasCalibrar = true;
+        ytVoz.volverTrasCalibrar = true; ytVoz.volverTrasCalibrarTeclado = teclado;
         await openVideoReplayModal('calibrate');
-        ytVozAvisar(frase, "The position is saved. Calibrate the corners and click «Save calibration and continue» to open the guide.");
+        ytVozAvisar(frase, "The position is saved. Calibrate the corners and click «Save calibration and continue» to open the guide.", 'neutral', teclado);
         return;
       }
       await ytVolverAColocar();
       if(ytGuia.activa){
-        ytVozAceptar(frase, "Guide opened to restore the last confirmed ball positions.");
+        ytVozAceptar(frase, "Guide opened to restore the last confirmed ball positions.", teclado);
       } else {
         const estado = ids('ytPlaceEstado');
-        ytVozAvisar(frase, "The positions have been restored on the diagram. " + (estado && estado.textContent ? estado.textContent : "The guide camera could not be started."), 'warn');
+        ytVozAvisar(frase, "The positions have been restored on the diagram. " + (estado && estado.textContent ? estado.textContent : "The guide camera could not be started."), 'warn', teclado);
       }
     }catch(error){
       ytVoz.volverTrasCalibrar = false;
-      ytVozAvisar(frase, "Could not open the guide: " + (error && error.message ? error.message : error), 'warn');
+      ytVozAvisar(frase, "Could not open the guide: " + (error && error.message ? error.message : error), 'warn', teclado);
     }finally{
       ytVoz.volviendo = false;
       ytVozSincronizar();
     }
   }
   function ytVozContinuarVolver(){
-    if(!ytVozActiva()){
+    if(!ytVozActiva() && !(ytVoz.volverPendiente && ytVoz.volverPendiente.teclado) && !(ytVoz.volverTrasCalibrar && ytVoz.volverTrasCalibrarTeclado)){
       ytVoz.volverPendiente = null; ytVoz.volverTrasCalibrar = false;
       return;
     }
@@ -19069,11 +19089,11 @@ function drawStartMarks(){
       if(!video || !video.classList.contains('active')){ ytVoz.volverTrasCalibrar = false; return; }
       if(!loadVideoCalibration() || videoReplay.mode === 'calibrate') return;
       ytVoz.volverTrasCalibrar = false;
-      ytVoz.volverPendiente = { frase:'put the balls back' };
+      ytVoz.volverPendiente = { frase:ytVoz.volverTrasCalibrarTeclado ? 'V' : 'put the balls back', teclado:!!ytVoz.volverTrasCalibrarTeclado };
     }
     if(ytVoz.volverPendiente && !ytVozVolverOcupado()){
       const pendiente = ytVoz.volverPendiente; ytVoz.volverPendiente = null;
-      ytVozPedirVolver(pendiente.frase);
+      ytVozPedirVolver(pendiente.frase, pendiente.teclado);
     }
   }
 
@@ -19086,7 +19106,7 @@ function drawStartMarks(){
     if(ytVoz.abriendoModulo) return 'The recording camera is being prepared. Wait a moment and repeat «capture table».';
     return '';
   }
-  async function ytVozCapturarMesa(frase){
+  async function ytVozCapturarMesa(frase, teclado=false){
     ytVoz.capturandoMesa = true;
     ytVozSincronizar();
     try{
@@ -19107,13 +19127,13 @@ function drawStartMarks(){
       await captureTableFromCamera();
       const foto = ids('photoLocatorModal');
       if(foto && foto.classList.contains('active')){
-        ytVozAceptar(frase, "Capture received. Check the positions and click «Apply positions to the app».");
+        ytVozAceptar(frase, "Capture received. Check the positions and click «Apply positions to the app».", teclado);
       } else {
         const estado = ids('cameraCaptureStatus');
-        if(estado && estado.textContent) ytVozAvisar(frase, estado.textContent, 'warn');
+        if(estado && estado.textContent) ytVozAvisar(frase, estado.textContent, 'warn', teclado);
       }
     }catch(error){
-      ytVozAvisar(frase, "Could not capture the table: " + (error && error.message ? error.message : error), 'warn');
+      ytVozAvisar(frase, "Could not capture the table: " + (error && error.message ? error.message : error), 'warn', teclado);
     }finally{
       ytVoz.capturandoMesa = false;
       ytVozSincronizar();
@@ -19135,19 +19155,19 @@ function drawStartMarks(){
     }
     return '';
   }
-  async function ytVozAbrirGrabacion(frase){
+  async function ytVozAbrirGrabacion(frase, teclado=false){
     if(ytVoz.abriendoModulo) return;
     const solicitud = ++ytVoz.solicitudModulo;
     ytVoz.abriendoModulo = true;
     ytVozSincronizar();
     try{
       // Una foto ya solicitada termina antes de ceder la cámara al video.
-      if(cameraCaptureState.busy) ytVozAvisar(frase, "Accepted: the module will open when the photograph has been captured.");
+      if(cameraCaptureState.busy) ytVozAvisar(frase, "Accepted: the module will open when the photograph has been captured.", 'neutral', teclado);
       while(cameraCaptureState.busy){
-        if(!ytVozActiva() || solicitud !== ytVoz.solicitudModulo) return;
+        if((!teclado && !ytVozActiva()) || solicitud !== ytVoz.solicitudModulo) return;
         await waitCamera(100);
       }
-      if(!ytVozActiva() || solicitud !== ytVoz.solicitudModulo) return;
+      if((!teclado && !ytVozActiva()) || solicitud !== ytVoz.solicitudModulo) return;
       const modal = ids('videoReplayModal');
       if(modal && modal.classList.contains('active')) return;
       ytgDetener();
@@ -19172,14 +19192,14 @@ function drawStartMarks(){
       if(abierto && abierto.classList.contains('active') && videoReplay.stream){
         ytVozAceptar(frase, videoReplay.mode === 'calibrate'
           ? "Camera opened. Confirm the corners before recording."
-          : "Camera ready. Say «five», «ten» or «fifteen».");
+          : "Camera ready. Say «five», «ten» or «fifteen».", teclado);
         return true;
       } else if(abierto && abierto.classList.contains('active')){
         const estado = ids('videoReplayStatus');
-        ytVozAvisar(frase, estado && estado.textContent ? estado.textContent : "The recording camera could not be opened.", 'warn');
+        ytVozAvisar(frase, estado && estado.textContent ? estado.textContent : "The recording camera could not be opened.", 'warn', teclado);
       }
     }catch(error){
-      ytVozAvisar(frase, "Could not open the module: " + (error && error.message ? error.message : error), 'warn');
+      ytVozAvisar(frase, "Could not open the module: " + (error && error.message ? error.message : error), 'warn', teclado);
     }finally{
       if(solicitud === ytVoz.solicitudModulo){ ytVoz.abriendoModulo = false; ytVozSincronizar(); }
     }
@@ -19202,14 +19222,15 @@ function drawStartMarks(){
     }
     control.style.bottom = abajo + 'px';
   }
-  function ytVozAceptar(frase, mensaje){
+  function ytVozAceptar(frase, mensaje, teclado=false){
+    if(teclado){ tecladoAvisar(frase, mensaje, 'good'); return; }
     if(!ytVozActiva()) return;
     ytVozAcuse();
     ytVozAvisar(frase, mensaje, 'good');
   }
-  async function ytVozEjecutar(orden, frase){
-    if(!ytVozActiva()) return;
-    if(orden.accion === 'volver'){ ytVozPedirVolver(frase); return; }
+  async function ytVozEjecutar(orden, frase, teclado=false){
+    if(!teclado && !ytVozActiva()) return;
+    if(orden.accion === 'volver'){ ytVozPedirVolver(frase, teclado); return; }
     const destinos = {
       capturarMesa:'captureTableBtn', grabarJugada:'videoReplayRecordBtn',
       detener:'videoReplayStopBtn', reproducir:'videoReplayPlayBtn',
@@ -19218,17 +19239,17 @@ function drawStartMarks(){
     };
     if(orden.accion === 'capturarMesa'){
       const enCurso = ytVozCapturaEnCurso();
-      if(enCurso){ ytVozAvisar(frase, enCurso); return; }
+      if(enCurso){ ytVozAvisar(frase, enCurso, 'neutral', teclado); return; }
     }
     if(orden.accion === 'grabarJugada'){
       const enCurso = ytVozGrabacionEnCurso();
-      if(enCurso){ ytVozAvisar(frase, enCurso); return; }
+      if(enCurso){ ytVozAvisar(frase, enCurso, 'neutral', teclado); return; }
     }
     if(orden.accion === 'detener' && (!videoReplay.recorder || videoReplay.recorder.state !== 'recording')) return false;
     const boton = ids(destinos[orden.accion]);
-    if(!boton || boton.disabled){ ytVozAvisar(frase, "The control for that command is unavailable right now.", 'warn'); return; }
+    if(!boton || boton.disabled){ ytVozAvisar(frase, "The control for that command is unavailable right now.", 'warn', teclado); return; }
     const ahora = Date.now(), clave = orden.accion + (orden.seg ? ':' + orden.seg : '');
-    if(orden.accion !== 'detener' && ytVoz.ultimaOrden === clave && ahora - ytVoz.ultimaVez < 2000){ ytVozRegistrar(frase, "Immediate repeat of the same command; action not repeated.", "No action"); return; }
+    if(!teclado && orden.accion !== 'detener' && ytVoz.ultimaOrden === clave && ahora - ytVoz.ultimaVez < 2000){ ytVozRegistrar(frase, "Immediate repeat of the same command; action not repeated.", "No action"); return; }
     if(orden.accion === 'reproducir'){
       const v = ids('videoReplayPlayback');
       if(v && !v.paused){ ytVozRegistrar(frase, "Playback is already running.", "No action"); return; }
@@ -19237,9 +19258,9 @@ function drawStartMarks(){
     ytVoz.ultimaOrden = clave; ytVoz.ultimaVez = ahora;
     // Confirmar la acción real. Solo el inicio de la cuenta renueva la escucha.
     try{
-      if(orden.accion === 'capturarMesa'){ await ytVozCapturarMesa(frase); return; }
+      if(orden.accion === 'capturarMesa'){ await ytVozCapturarMesa(frase, teclado); return; }
       if(orden.accion === 'grabarJugada'){
-        const iniciada = await ytVozAbrirGrabacion(frase);
+        const iniciada = await ytVozAbrirGrabacion(frase, teclado);
         if(!iniciada){ ytVoz.ultimaOrden = ''; ytVoz.ultimaVez = 0; }
         return !!iniciada;
       }
@@ -19267,16 +19288,16 @@ function drawStartMarks(){
           mensaje = "Countdown started: " + orden.seg + " seconds.";
         }
       }
-      if(iniciada) ytVozAceptar(frase, mensaje);
+      if(iniciada) ytVozAceptar(frase, mensaje, teclado);
       else {
         ytVoz.ultimaOrden = ''; ytVoz.ultimaVez = 0;
         const estado = ids('videoReplayStatus');
-        ytVozAvisar(frase, "The action did not start. " + (estado && estado.textContent ? estado.textContent : "Check the module status."), 'warn');
+        ytVozAvisar(frase, "The action did not start. " + (estado && estado.textContent ? estado.textContent : "Check the module status."), 'warn', teclado);
       }
       return iniciada;
     }catch(error){
       ytVoz.ultimaOrden = ''; ytVoz.ultimaVez = 0;
-      ytVozAvisar(frase, "The command could not be executed: " + (error && error.message ? error.message : error), 'warn');
+      ytVozAvisar(frase, "The command could not be executed: " + (error && error.message ? error.message : error), 'warn', teclado);
     }finally{
       ytVozSincronizar();
     }
@@ -20301,7 +20322,167 @@ function drawStartMarks(){
     ytgPintar();
   }
 
+  // Atajos de práctica: los controles son compartidos; el teclado no enciende la voz.
+  const tecladoExportacion = { carpeta:null, cargando:null, ocupado:false, memoria:false };
+  function tecladoAvisar(tecla, mensaje, tono='neutral'){
+    const aviso=ids('ytVozAviso'), titulo=ids('ytVozAvisoOida'), accion=ids('ytVozAvisoAccion');
+    if(!aviso || !titulo || !accion) return;
+    titulo.textContent="Keyboard"+(tecla ? ': '+tecla : ''); titulo.style.display='block';
+    accion.textContent=mensaje;
+    const color=tono==='good'?'#7de3a0':tono==='warn'?'#ffcb75':'#d8f4ff';
+    accion.style.color=color; aviso.style.borderColor=color; aviso.style.display='block';
+    if(ytVoz.avisoTimer) clearTimeout(ytVoz.avisoTimer);
+    ytVoz.avisoTimer=setTimeout(()=>{aviso.style.display='none';ytVoz.avisoTimer=0;},6000);
+  }
+  function tecladoCarpetaUi(mensaje){
+    const estado=ids('tecladoCarpetaEstado'), boton=ids('tecladoCarpetaBtn');
+    if(boton) boton.disabled=tecladoExportacion.ocupado;
+    if(estado) estado.textContent=mensaje || (tecladoExportacion.carpeta
+      ? "Folder for E: "+tecladoExportacion.carpeta.name+'. '+(tecladoExportacion.memoria?"This browser remembers it; Chrome may ask you to grant access again.":"Available for this session.")
+      : "No folder selected. Choose one here or when you first press E.");
+  }
+  function tecladoCarpetaMemoria(carpeta){
+    return new Promise((resolve,reject)=>{
+      const request=indexedDB.open('billarTecladoV1',1);
+      request.onupgradeneeded=()=>request.result.createObjectStore('preferencias');
+      request.onerror=()=>reject(request.error);
+      request.onblocked=()=>reject(new Error("The browser could not open the preferences."));
+      request.onsuccess=()=>{
+        const db=request.result, escritura=!!carpeta;
+        let valor=null;
+        try{
+          const tx=db.transaction('preferencias',escritura?'readwrite':'readonly'), store=tx.objectStore('preferencias');
+          const operation=escritura?store.put(carpeta,'carpetaExportacion'):store.get('carpetaExportacion');
+          operation.onsuccess=()=>{valor=operation.result;};
+          tx.oncomplete=()=>{db.close();resolve(valor);};
+          tx.onabort=tx.onerror=()=>{db.close();reject(tx.error || new Error("The folder could not be remembered."));};
+        }catch(error){db.close();reject(error);}
+      };
+    });
+  }
+  async function tecladoCarpetaObtener(cambiar=false){
+    if(typeof window.showDirectoryPicker!=='function') throw new Error("To save to a folder with E, open the app in Chrome or Edge. You can still use the button to download with data.");
+    if(tecladoExportacion.cargando) await tecladoExportacion.cargando;
+    let carpeta=tecladoExportacion.carpeta;
+    if(cambiar || !carpeta){
+      const opciones={id:'billar-exportacion',mode:'readwrite',startIn:carpeta || 'desktop'};
+      carpeta=await window.showDirectoryPicker(opciones);
+      tecladoExportacion.carpeta=carpeta; tecladoExportacion.memoria=false;
+      try{await tecladoCarpetaMemoria(carpeta);tecladoExportacion.memoria=true;}catch{}
+    }else if(await carpeta.queryPermission({mode:'readwrite'})!=='granted'){
+      if(await carpeta.requestPermission({mode:'readwrite'})!=='granted') throw new Error("Allow writing to the selected folder to save with E.");
+    }
+    tecladoCarpetaUi(); return carpeta;
+  }
+  async function tecladoElegirCarpeta(){
+    if(tecladoExportacion.ocupado) return;
+    tecladoExportacion.ocupado=true;tecladoCarpetaUi();
+    try{await tecladoCarpetaObtener(true);}
+    catch(error){if(error.name!=='AbortError') tecladoAvisar('E',error.message,'warn');}
+    finally{tecladoExportacion.ocupado=false;tecladoCarpetaUi();}
+  }
+  async function tecladoGuardarExportacion(carpeta,blob,nombre,signal){
+    const guardar=async()=>{
+      let archivo=null,escritor=null,creado=false,completo=false,elegido=nombre;
+      const comprobar=()=>{if(signal && signal.aborted) throw new DOMException("Save cancelled.",'AbortError');};
+      try{
+        for(let n=1;;n++){
+          comprobar();elegido=n===1?nombre:nombre.replace(/(\.[^.]+)$/,' ('+n+')$1');
+          try{await carpeta.getFileHandle(elegido);}
+          catch(error){if(error.name==='NotFoundError') break;if(error.name!=='TypeMismatchError') throw error;}
+        }
+        comprobar();archivo=await carpeta.getFileHandle(elegido,{create:true});creado=true;
+        comprobar();escritor=await archivo.createWritable();
+        comprobar();await escritor.write(blob);comprobar();await escritor.close();escritor=null;
+        comprobar();const guardado=await archivo.getFile();comprobar();
+        if(guardado.size!==blob.size) throw new Error("The saved file size does not match the complete video.");
+        completo=true;return elegido;
+      }finally{
+        if(escritor){try{await escritor.abort();}catch{}}
+        if(creado && !completo){try{await carpeta.removeEntry(elegido);}catch{}}
+      }
+    };
+    // Serializar también entre pestañas de esta app para no sobrescribir nombres iguales.
+    return navigator.locks ? navigator.locks.request('billar-exportacion-'+carpeta.name,guardar) : guardar();
+  }
+  function tecladoRevision(){
+    const modal=ids('videoReplayModal');
+    return !!(modal && modal.classList.contains('active') && videoReplay.mode==='replay' && videoReplay.blobUrl);
+  }
+  async function tecladoExportar(){
+    if(tecladoExportacion.ocupado || videoReplay.exporting) return;
+    const boton=ids('videoReplayExportBtn');
+    if(!tecladoRevision() || !boton || boton.disabled){tecladoAvisar('E',"Export is not available yet. Finish recording and, if enabled, trajectory analysis.",'warn');return;}
+    const url=videoReplay.blobUrl;
+    tecladoExportacion.ocupado=true;tecladoCarpetaUi();
+    try{
+      const carpeta=await tecladoCarpetaObtener();
+      if(!tecladoRevision() || videoReplay.blobUrl!==url || videoReplay.exporting || boton.disabled) return;
+      await exportVideoReplayWithOverlay({carpeta});
+    }catch(error){if(error.name!=='AbortError') tecladoAvisar('E',error.message,'warn');}
+    finally{tecladoExportacion.ocupado=false;tecladoCarpetaUi();}
+  }
+  async function tecladoEjecutar(tecla){
+    if(tecla==='x'){
+      const modal=ids('videoReplayModal'),cerrar=ids('videoReplayClose');
+      if(modal && modal.classList.contains('active')){
+        if(cerrar && !cerrar.disabled) cerrar.click();
+        return; // Cerrar solo esta ventana, aunque reaparezca la colocación.
+      }
+      const colocacion=ids('ytPlaceOverlay'),cerrarColocacion=ids('ytPlaceClose');
+      if(colocacion && getComputedStyle(colocacion).display!=='none' && cerrarColocacion && !cerrarColocacion.disabled) cerrarColocacion.click();
+      return;
+    }
+    if(tecla==='m'){
+      if(!ytVozSoportada()){tecladoAvisar('M',"This browser does not support speech recognition. The other shortcuts remain available.",'warn');return;}
+      ytVozCambiar(!ytVozActiva());
+      tecladoAvisar('M',ytVozActiva()?"Voice commands enabled.":"Voice commands muted. The keyboard remains available.");return;
+    }
+    const ctx=ytVozContexto(true), lista=['grabar','grabarVolver'].includes(ctx), revision=tecladoRevision();
+    if(tecla==='e'){await tecladoExportar();return;}
+    if(tecla===' ' || tecla==='l' || tecla==='t'){
+      if(videoReplay.exporting) return;
+      if(tecla==='t'){
+        const modal=ids('videoReplayModal'),check=ids('videoReplayTraceChk');
+        if(!modal || !modal.classList.contains('active') || !['record','replay'].includes(videoReplay.mode) || !check || check.disabled) return;
+        check.click();videoReplayRender.last=null;
+        tecladoAvisar('T',check.checked?"Trajectory tracking enabled for this recording.":"Trajectory tracking disabled.");return;
+      }
+      if(!revision) return;
+      if(tecla===' '){const play=ids('videoReplayPlayBtn');if(play && !play.disabled) play.click();return;}
+      const speed=ids('videoReplaySpeed');if(!speed || speed.disabled) return;
+      const valores=['1','0.5','0.25'];speed.value=valores[(valores.indexOf(speed.value)+1)%valores.length];
+      speed.dispatchEvent(new Event('change',{bubbles:true}));
+      tecladoAvisar('L',"Playback speed: "+(speed.value==='1'?"normal":speed.value==='0.5'?"half":"quarter")+'.');return;
+    }
+    let orden=null;
+    if(tecla==='g') orden={accion:revision?'grabarOtra':'grabarJugada'};
+    else if(tecla==='v') orden={accion:'volver'};
+    else if(tecla==='c') orden={accion:'capturarMesa'};
+    else if(tecla==='d' && ctx==='grabando') orden={accion:'detener'};
+    else if(tecla==='r' && revision && !videoReplay.exporting) orden={accion:'reproducir'};
+    else if(lista && /^[123]$/.test(tecla)) orden={accion:'grabarEn',seg:{'1':5,'2':10,'3':15}[tecla]};
+    if(orden) await ytVozEjecutar(orden,tecla.toUpperCase(),true);
+  }
+  function tecladoEnlazar(){
+    tecladoExportacion.cargando=tecladoCarpetaMemoria().then(carpeta=>{
+      if(carpeta && carpeta.kind==='directory'){tecladoExportacion.carpeta=carpeta;tecladoExportacion.memoria=true;}
+    }).catch(()=>{}).finally(()=>{tecladoExportacion.cargando=null;tecladoCarpetaUi();});
+    const carpeta=ids('tecladoCarpetaBtn');if(carpeta) carpeta.addEventListener('click',tecladoElegirCarpeta);
+    document.addEventListener('keydown',event=>{
+      if(event.defaultPrevented || event.isComposing || event.ctrlKey || event.altKey || event.metaKey) return;
+      const tecla=event.key.toLowerCase();if(!['g','1','2','3','d','r','e','v','c','m','t',' ','l','x'].includes(tecla)) return;
+      const el=event.target instanceof Element?event.target:null;
+      if(el && (el.isContentEditable || el.closest('textarea,select,[role="textbox"]') || (el.tagName==='INPUT' && !['checkbox','radio','range','button','submit','reset'].includes(el.type)))) return;
+      if(tecla===' ' && (!tecladoRevision() || (el && el.tagName==='INPUT'))) return;
+      event.preventDefault();event.stopPropagation();
+      if(event.repeat) return;
+      tecladoEjecutar(tecla).catch(error=>tecladoAvisar(tecla.toUpperCase(),"The action could not be completed: "+error.message,'warn'));
+    },true);
+  }
+
   function ytEnlazar(){
+    tecladoEnlazar();
     const btn = ids('ytCaptureBtn');
     if(!btn) return;
     btn.addEventListener('click', ytCapturarPosicion);
