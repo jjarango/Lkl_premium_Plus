@@ -18173,6 +18173,119 @@ function drawStartMarks(){
     return colores[YT_PASOS_BOLAS[Math.min(ytTrain.bolas.length, 2)].key];
   }
 
+  // El aviso se dibuja solo en el visor de marcado. La captura original,
+  // los puntos y la lupa permanecen intactos. El mapa se calcula una vez
+  // por captura/calibración para buscar paño libre incluso antes del primer clic.
+  const ytRotuloMarcado = { frame:null, clave:'', mapa:null };
+
+  function ytMapaRotuloMarcado(){
+    const fc = ytTrain.frameCanvas, esquinas = ytTrain.esquinas;
+    if(!fc || esquinas.length !== 4) return null;
+    const clave = esquinas.map(p => p.x + ',' + p.y).join(';');
+    if(ytRotuloMarcado.frame === fc && ytRotuloMarcado.clave === clave) return ytRotuloMarcado.mapa;
+    Object.assign(ytRotuloMarcado, {frame:fc, clave, mapa:null});
+    const x0 = Math.max(0, Math.floor(Math.min(...esquinas.map(p => p.x))));
+    const y0 = Math.max(0, Math.floor(Math.min(...esquinas.map(p => p.y))));
+    const x1 = Math.min(fc.width, Math.ceil(Math.max(...esquinas.map(p => p.x))));
+    const y1 = Math.min(fc.height, Math.ceil(Math.max(...esquinas.map(p => p.y))));
+    if(x1 <= x0 || y1 <= y0) return null;
+    const escala = Math.min(1, 640 / Math.max(x1-x0, y1-y0));
+    const cv = document.createElement('canvas');
+    cv.width = Math.max(1, Math.ceil((x1-x0)*escala));
+    cv.height = Math.max(1, Math.ceil((y1-y0)*escala));
+    const g = cv.getContext('2d', {willReadFrequently:true});
+    let data;
+    try{
+      g.drawImage(fc, x0, y0, x1-x0, y1-y0, 0, 0, cv.width, cv.height);
+      data = g.getImageData(0, 0, cv.width, cv.height).data;
+    }catch{ return null; }
+    const w=cv.width, h=cv.height, sx=w/(x1-x0), sy=h/(y1-y0);
+    const dentro = new Uint8Array(w*h), hist = new Uint32Array(512);
+    let dominante=0;
+    for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+      const i=y*w+x, k=i*4;
+      if(!ytDentroDelCuadrilatero({x:x0+(x+.5)/sx,y:y0+(y+.5)/sy},esquinas)) continue;
+      dentro[i]=1;
+      const bin=((data[k]>>5)<<6)|((data[k+1]>>5)<<3)|(data[k+2]>>5);
+      if(++hist[bin]>hist[dominante]) dominante=bin;
+    }
+    const r0=((dominante>>6)&7)*32+16, g0=((dominante>>3)&7)*32+16, b0=(dominante&7)*32+16;
+    const suma = new Uint32Array((w+1)*(h+1));
+    for(let y=0;y<h;y++){
+      let fila=0;
+      for(let x=0;x<w;x++){
+        const i=y*w+x,k=i*4,r=data[k],v=data[k+1],b=data[k+2];
+        // Además del contraste con el paño, se reservan los colores de
+        // las tres bolas. Un margen adicional protege sus bordes y anillos.
+        const blanco=Math.min(r,v,b)>150 && Math.max(r,v,b)-Math.min(r,v,b)<65;
+        const amarillo=r>135 && v>95 && b<Math.min(r,v)*.75;
+        const rojo=r>80 && r>v*1.4 && r>b*1.2;
+        const distinto=(r-r0)**2+(v-g0)**2+(b-b0)**2>70**2;
+        if(!dentro[i] || blanco || amarillo || rojo || distinto) fila++;
+        suma[(y+1)*(w+1)+x+1]=suma[y*(w+1)+x+1]+fila;
+      }
+    }
+    const mapa={x0,y0,x1,y1,w,h,sx,sy,suma};
+    ytRotuloMarcado.mapa=mapa;
+    return mapa;
+  }
+
+  function ytDibujarRotuloMarcado(ctx, cv){
+    if(ytTrain.modo !== 'balls' || ytTrain.esquinas.length !== 4) return false;
+    const mapa=ytMapaRotuloMarcado();
+    if(!mapa) return false;
+    const paso=YT_PASOS_BOLAS[Math.min(ytTrain.bolas.length,2)];
+    const texto={white:"WHITE",yellow:"YELLOW",red:"RED"}[paso.key];
+    const lbl=ids('ytMarkLabel'), pantalla=cv.getBoundingClientRect();
+    const escala=(pantalla.width-2)/cv.width;
+    if(escala<=0) return false;
+    const tamBase=lbl ? parseFloat(getComputedStyle(lbl).fontSize) : 26;
+    const deseado=tamBase*4/escala;
+    const ancho=mapa.x1-mapa.x0, alto=mapa.y1-mapa.y0;
+    const puntos=ytTrain.bolas.concat(ytTrain.candidato ? [ytTrain.candidato] : []);
+    const libre=(x,y,w,h)=>{
+      if(x<mapa.x0 || y<mapa.y0 || x+w>mapa.x1 || y+h>mapa.y1) return false;
+      if(![{x,y},{x:x+w,y},{x:x+w,y:y+h},{x,y:y+h}].every(p=>ytDentroDelCuadrilatero(p,ytTrain.esquinas))) return false;
+      const radio=Math.max(30,cv.width/100);
+      if(puntos.some(p=>p.x+radio>x && p.x-radio<x+w && p.y+radio>y && p.y-radio<y+h)) return false;
+      const a=Math.max(0,Math.floor((x-mapa.x0)*mapa.sx)),b=Math.max(0,Math.floor((y-mapa.y0)*mapa.sy));
+      const c=Math.min(mapa.w,Math.ceil((x+w-mapa.x0)*mapa.sx)),d=Math.min(mapa.h,Math.ceil((y+h-mapa.y0)*mapa.sy));
+      const s=mapa.suma,z=mapa.w+1;
+      return s[d*z+c]-s[b*z+c]-s[d*z+a]+s[b*z+a]===0;
+    };
+    ctx.save();
+    ctx.textAlign='left'; ctx.textBaseline='top'; ctx.lineJoin='round';
+    // Se conserva el tamaño cuádruple si cabe. Solo un paño pequeño u
+    // obstruido obliga a reducirlo para mantener la palabra dentro y libre.
+    for(let intento=0;intento<16;intento++){
+      const tam=deseado*Math.pow(.87,intento);
+      ctx.font='800 '+tam+'px system-ui';
+      const medidas=ctx.measureText(texto);
+      const borde=Math.max(2/escala,tam*.035), margen=Math.max(12/escala,tam*.14);
+      // Reserva también los acentos y los trazos altos de otros alfabetos.
+      const extraX=Math.max(0,medidas.actualBoundingBoxLeft||0);
+      const extraY=Math.max(0,medidas.actualBoundingBoxAscent||0);
+      const w=Math.max(medidas.width,medidas.actualBoundingBoxRight||0)+extraX+2*margen;
+      const h=Math.max(tam*1.2,medidas.actualBoundingBoxDescent||0)+extraY+2*margen;
+      const minX=mapa.x0+ancho*.04,minY=mapa.y0+alto*.07;
+      const maxX=mapa.x1-ancho*.04-w,maxY=mapa.y1-alto*.07-h;
+      if(maxX<minX || maxY<minY) continue;
+      for(let iy=0;iy<=20;iy++) for(let ix=0;ix<=30;ix++){
+        const x=minX+(maxX-minX)*ix/30,y=minY+(maxY-minY)*iy/20;
+        if(!libre(x,y,w,h)) continue;
+        ctx.strokeStyle='rgba(0,0,0,.95)'; ctx.lineWidth=borde;
+        ctx.fillStyle=ytColorEtiqueta();
+        ctx.strokeText(texto,x+margen+extraX,y+margen+extraY);
+        ctx.fillText(texto,x+margen+extraX,y+margen+extraY);
+        ctx.restore();
+        return true;
+      }
+    }
+    ctx.restore();
+    return false;
+  }
+
+
   function ytPintarMarcado(){
     const cv = ids('ytMarkCanvas');
     const fc = ytTrain.frameCanvas;
@@ -18218,6 +18331,9 @@ function drawStartMarks(){
     if(lbl){
       lbl.textContent = ytEtiquetaMarcado();
       lbl.style.color = ytColorEtiqueta();
+      // Opacidad conserva el espacio original y el texto accesible, sin
+      // desplazar la imagen ni los controles de ajuste fino.
+      lbl.style.opacity = ytDibujarRotuloMarcado(ctx2, cv) ? '0' : '';
     }
     const recal = ids('ytMarkRecal');
     if(recal) recal.style.display = ytTrain.modo === 'balls' ? '' : 'none';
@@ -20503,6 +20619,10 @@ function drawStartMarks(){
     }
     const cv = ids('ytMarkCanvas');
     if(cv) cv.addEventListener('click', ytClicMarcado);
+    window.addEventListener('resize', () => {
+      const marcado = ids('ytMarkOverlay');
+      if(marcado && marcado.style.display !== 'none') ytPintarMarcado();
+    });
     const okFino = ids('ytMarkOk');
     if(okFino) okFino.addEventListener('click', ytConfirmarPunto);
     const flechasFinas = [['ytFineUp', 0, -1], ['ytFineDown', 0, 1], ['ytFineLeft', -1, 0], ['ytFineRight', 1, 0]];
@@ -20743,7 +20863,7 @@ function drawStartMarks(){
 
 
 <div id="ytMarkOverlay" style="display:none; position:fixed; inset:0; z-index:9500; background:rgba(6,8,12,.93); flex-direction:column; align-items:center; justify-content:center; gap:10px;">
-<p class="small" id="ytMarkLabel" style="margin:0; color:#fff; font-size:clamp(19px,2.6vw,26px); font-weight:800; letter-spacing:.2px; text-shadow:0 2px 10px rgba(0,0,0,.95), 0 0 2px rgba(0,0,0,.9);"></p>
+<p class="small" id="ytMarkLabel" role="status" aria-live="polite" aria-atomic="true" style="margin:0; color:#fff; font-size:clamp(19px,2.6vw,26px); font-weight:800; letter-spacing:.2px; text-shadow:0 2px 10px rgba(0,0,0,.95), 0 0 2px rgba(0,0,0,.9);"></p>
 <canvas id="ytMarkCanvas" style="max-width:94vw; max-height:80vh; border:1px solid #c9a4ff66; border-radius:8px; cursor:crosshair;"></canvas>
 <div id="ytMarkFine" style="display:none; align-items:center; gap:14px;">
 <canvas height="180" id="ytMarkLupa" style="width:180px; height:180px; border:2px solid #c9a4ff; border-radius:12px; background:#000;" width="180"></canvas>
