@@ -15382,6 +15382,57 @@ function drawStartMarks(){
     tracks:null, metrics:null, paused:false
   };
 
+  // Aviso de trayectoria lista: dos campanillas suaves, sin archivos externos.
+  // La señal pertenece a un análisis concreto; los redibujados y la activación
+  // de un recorrido ya calculado no vuelven a anunciarlo.
+  const videoReplayTraceSound = { pending:null };
+
+  function videoReplayTracePrimeSound(){
+    try{
+      const AC=window.AudioContext||window.webkitAudioContext;
+      if(!AC) return null;
+      if(!ytGuia.audio||ytGuia.audio.state==='closed') ytGuia.audio=new AC();
+      const audio=ytGuia.audio;
+      if(audio.state==='suspended') audio.resume().catch(()=>{});
+      return audio;
+    }catch{ return null; }
+  }
+
+  function videoReplayTraceSoundReady(){
+    const tr=videoReplayTrace,pending=videoReplayTraceSound.pending;
+    const valid=()=>pending && videoReplayTraceSound.pending===pending
+      && tr.job===pending.job && tr.url===pending.url && videoReplay.blobUrl===pending.url
+      && tr.enabled && !tr.busy && tr.status==='ready' && tr.points.length>1 && videoReplay.mode==='replay';
+    if(!valid()||pending.notifying) return;
+    const audio=videoReplayTracePrimeSound();
+    if(!audio) return;
+    pending.notifying=true;
+    const play=()=>{
+      if(!valid()) return;
+      videoReplayTraceSound.pending=null;
+      try{
+        const start=audio.currentTime+.025;
+        // Mi y si ascendentes. Los armónicos decaen antes que la nota base:
+        // suenan como campanillas cálidas, distintas del pitido de grabación.
+        for(const [frequency,offset] of [[659.25,0],[987.77,.24]]){
+          for(const [multiple,level,duration] of [[1,.23,.48],[2,.055,.28],[3,.02,.18]]){
+            const oscillator=audio.createOscillator(),gain=audio.createGain(),t=start+offset;
+            oscillator.type='sine';oscillator.frequency.value=frequency*multiple;
+            gain.gain.setValueAtTime(.0001,t);
+            gain.gain.exponentialRampToValueAtTime(level,t+.012);
+            gain.gain.exponentialRampToValueAtTime(.0001,t+duration);
+            oscillator.connect(gain);gain.connect(audio.destination);
+            oscillator.onended=()=>{oscillator.disconnect();gain.disconnect();};
+            oscillator.start(t);oscillator.stop(t+duration+.02);
+          }
+        }
+      }catch{}
+    };
+    if(audio.state==='running') play();
+    else audio.resume().then(play).catch(()=>{pending.notifying=false;});
+  }
+
+
   function videoReplayTraceUi(){
     const tr = videoReplayTrace, box = ids('videoReplayTracePanel');
     if(box) box.style.display = ['record','replay'].includes(videoReplay.mode) ? '' : 'none';
@@ -15410,6 +15461,7 @@ function drawStartMarks(){
   function videoReplayTraceCancel(notify=false){
     const tr = videoReplayTrace;
     tr.job++;
+    videoReplayTraceSound.pending=null;
     if(tr.controller) tr.controller.abort();
     tr.controller = null;
     if(tr.busy){
@@ -15631,7 +15683,9 @@ function drawStartMarks(){
       ? (manual ? "Bi đã chọn: " : "Bi chuyển động đầu tiên: ")+ballDisplayName(key, true)+". Quỹ đạo đã sẵn sàng để phát lại và “Tải về kèm dữ liệu”. Theo dõi sẽ tự tắt cho bản ghi tiếp theo."
       : "Không phát hiện chuyển động đủ rõ. Bi: "+ballDisplayName(key, true)+'.';
     if(points.length>1 && points.some((p,i)=>i>0&&p.break)) tr.message+=" Một số đoạn không thể theo dõi tin cậy nên được để ngắt, không nối liền.";
-    videoReplayTraceUi();return true;
+    videoReplayTraceUi();
+    if(manual) videoReplayTraceSoundReady();
+    return true;
   }
 
   // Índice de inserción temporal: reutilizar el orden ya conocido, sin volver
@@ -15688,6 +15742,8 @@ function drawStartMarks(){
     if(!meta||!meta.calib||meta.calib.corners.length<4)return videoReplayTraceAnalyzeLegacy();
     videoReplayTraceCancel();
     const job=tr.job,url=videoReplay.blobUrl,controller=new AbortController(),signal=controller.signal,started=performance.now();
+    videoReplayTraceSound.pending={job,url,notifying:false};
+    videoReplayTracePrimeSound();
     Object.assign(tr,{controller,busy:true,status:'working',progress:0,points:[],url:null,message:'',missing:0,samples:0,tracks:null,paused:false});
     const manual=ids('videoReplayTraceBall');if(manual)manual.value='';videoReplayTraceUi();
     let fallback=null;
@@ -15711,7 +15767,7 @@ function drawStartMarks(){
     }catch(error){
       if(error.name!=='AbortError'&&tr.job===job&&videoReplay.blobUrl===url)fallback=error.message;
     }finally{
-      if(tr.job===job){tr.busy=false;tr.controller=null;tr.paused=false;videoReplayTraceUi();}
+      if(tr.job===job){tr.busy=false;tr.controller=null;tr.paused=false;videoReplayTraceUi();videoReplayTraceSoundReady();}
     }
     if(fallback&&tr.job===job&&videoReplay.blobUrl===url){
       const result=await videoReplayTraceAnalyzeLegacy();
@@ -15730,6 +15786,8 @@ function drawStartMarks(){
       tr.status='error';tr.message="Không có thông tin hiệu chuẩn được lưu cho bản ghi này. Hãy hiệu chuẩn camera rồi ghi một cú đánh mới.";videoReplayTraceUi();return false;
     }
     const controller=new AbortController(),signal=controller.signal,started=performance.now();
+    videoReplayTraceSound.pending={job,url,notifying:false};
+    videoReplayTracePrimeSound();
     Object.assign(tr,{controller,busy:true,status:'working',progress:0,points:[],url:null,message:'',missing:0,samples:0,tracks:null,paused:false});
     const manual=ids('videoReplayTraceBall');if(manual) manual.value='';
     videoReplayTraceUi();
@@ -15865,7 +15923,7 @@ function drawStartMarks(){
       return false;
     }finally{
       video.pause();video.removeAttribute('src');video.load();canvas.width=canvas.height=1;
-      if(tr.job===job){tr.busy=false;tr.controller=null;tr.paused=false;videoReplayTraceUi();}
+      if(tr.job===job){tr.busy=false;tr.controller=null;tr.paused=false;videoReplayTraceUi();videoReplayTraceSoundReady();}
     }
   }
 
@@ -15915,6 +15973,7 @@ function drawStartMarks(){
     const tr=videoReplayTrace,chk=ids('videoReplayTraceChk');
     if(chk) chk.addEventListener('change',()=>{
       tr.enabled=chk.checked;
+      if(tr.enabled) videoReplayTracePrimeSound();
       if(!tr.enabled) videoReplayTraceCancel();
       else if(videoReplay.mode==='replay'&&videoReplay.blobUrl&&(tr.url!==videoReplay.blobUrl||tr.status!=='ready')) videoReplayTraceAnalyze();
       videoReplayTraceUi();
