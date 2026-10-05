@@ -20292,6 +20292,108 @@ function drawStartMarks(){
     }
   }
 
+  // Espacio libre para las letras de la guía. Este mapa visual no interviene
+  // en la precisión de colocación, los círculos, las campanadas ni la grabación.
+  const ytgRotulos = { video:null, frame:null, canvas:null, mapa:null, clave:'', posiciones:{} };
+
+  function ytgMapaLetras(v, cw, ch){
+    const quality = v.getVideoPlaybackQuality ? v.getVideoPlaybackQuality() : null;
+    const frame = quality && quality.totalVideoFrames > 0 ? quality.totalVideoFrames : Math.floor(v.currentTime * 30);
+    if(ytgRotulos.video === v && ytgRotulos.frame === frame && ytgRotulos.mapa
+      && ytgRotulos.mapa.cw === cw && ytgRotulos.mapa.ch === ch) return ytgRotulos.mapa;
+    if(ytgRotulos.video !== v){ ytgRotulos.posiciones = {}; ytgRotulos.clave = ''; }
+    ytgRotulos.video = v; ytgRotulos.frame = frame; ytgRotulos.mapa = null;
+    const cv = ytgRotulos.canvas || (ytgRotulos.canvas = document.createElement('canvas'));
+    const w = Math.min(640, cw), h = Math.max(1, Math.round(ch * w / cw));
+    if(cv.width !== w || cv.height !== h){ cv.width = w; cv.height = h; }
+    const g = cv.getContext('2d', {willReadFrequently:true});
+    let data;
+    try{
+      g.setTransform(-1,0,0,-1,w,h);
+      g.drawImage(v,0,0,w,h);
+      g.setTransform(1,0,0,1,0,0);
+      data = g.getImageData(0,0,w,h).data;
+    }catch{ return null; }
+    const suma = new Uint32Array((w+1)*(h+1));
+    for(let y=0;y<h;y++){
+      let fila=0;
+      for(let x=0;x<w;x++){
+        const k=(y*w+x)*4,r=data[k],a=data[k+1],b=data[k+2];
+        // Reservar también reflejos y bordes de bolas lejos de su destino.
+        const blanca=Math.min(r,a,b)>110 && Math.max(r,a,b)-Math.min(r,a,b)<80;
+        const amarilla=r>120 && a>80 && b<Math.min(r,a)*.85;
+        const roja=r>80 && r>a*1.35 && r>b*1.2;
+        if(blanca || amarilla || roja) fila++;
+        suma[(y+1)*(w+1)+x+1]=suma[y*(w+1)+x+1]+fila;
+      }
+    }
+    return ytgRotulos.mapa={cw,ch,w,h,sx:w/cw,sy:h/ch,suma};
+  }
+
+  function ytgPintarLetras(g,v,cw,ch,objetivos,letras,H){
+    const mapa=ytgMapaLetras(v,cw,ch);
+    if(!mapa) return;
+    const esquinas=[{x:0,y:0},{x:TABLE.W,y:0},{x:TABLE.W,y:TABLE.H},{x:0,y:TABLE.H}].map(p=>applyHomography(H,p));
+    const clave=objetivos.map(o=>[o.key,o.x,o.y,o.r].join(',')).join(';')+'|'+cw+'|'+ch;
+    if(ytgRotulos.clave!==clave){ytgRotulos.clave=clave;ytgRotulos.posiciones={};}
+    const tam=2*Math.max(20,Math.round(cw/42)), borde=Math.max(4,cw/240), margen=Math.max(8,cw/180);
+    const ocupados=[], circulos=objetivos.map(o=>({x:o.x,y:o.y,r:o.r*1.5+Math.max(4,cw/260)/2+4}));
+    for(const o of objetivos){
+      const p=ytGuia.centroides[o.key];
+      if(p) circulos.push({x:p.x,y:p.y,r:o.r*1.35});
+    }
+    // El recuadro de aumento mantiene su ubicación y su funcionamiento.
+    const lupa=ytgElegirLupa(objetivos);
+    if(lupa){
+      const bw=Math.round(cw/3), m=Math.round(cw/90);
+      const boxes=[{x:m,y:m},{x:cw-bw-m,y:m},{x:m,y:ch-bw-m},{x:cw-bw-m,y:ch-bw-m}];
+      boxes.sort((a,b)=>Math.hypot(b.x+bw/2-lupa.x,b.y+bw/2-lupa.y)-Math.hypot(a.x+bw/2-lupa.x,a.y+bw/2-lupa.y));
+      const box=boxes[0], anuncio=Math.max(26,Math.round(bw/7))*1.3+24;
+      ocupados.push({x:box.x-5,y:box.y>ch/2 ? box.y-anuncio : box.y-5,w:bw+10,h:bw+anuncio+10});
+    }
+    const libre=r=>{
+      if(r.x<0 || r.y<0 || r.x+r.w>cw || r.y+r.h>ch) return false;
+      if(![{x:r.x,y:r.y},{x:r.x+r.w,y:r.y},{x:r.x+r.w,y:r.y+r.h},{x:r.x,y:r.y+r.h}].every(p=>ytDentroDelCuadrilatero(p,esquinas))) return false;
+      if(ocupados.some(q=>r.x<q.x+q.w && r.x+r.w>q.x && r.y<q.y+q.h && r.y+r.h>q.y)) return false;
+      if(circulos.some(c=>Math.hypot(c.x-Math.max(r.x,Math.min(c.x,r.x+r.w)),c.y-Math.max(r.y,Math.min(c.y,r.y+r.h)))<=c.r)) return false;
+      const a=Math.max(0,Math.floor(r.x*mapa.sx)),b=Math.max(0,Math.floor(r.y*mapa.sy));
+      const c=Math.min(mapa.w,Math.ceil((r.x+r.w)*mapa.sx)),d=Math.min(mapa.h,Math.ceil((r.y+r.h)*mapa.sy));
+      const s=mapa.suma,z=mapa.w+1;
+      return s[d*z+c]-s[b*z+c]-s[d*z+a]+s[b*z+a]===0;
+    };
+    g.save();g.font='900 '+tam+'px system-ui';g.textAlign='left';g.textBaseline='alphabetic';g.lineJoin='round';
+    for(const o of objetivos){
+      const texto=letras[o.key], m=g.measureText(texto);
+      const left=Math.max(0,m.actualBoundingBoxLeft||0),right=Math.max(m.width,m.actualBoundingBoxRight||0);
+      const up=Math.max(1,m.actualBoundingBoxAscent||tam),down=Math.max(0,m.actualBoundingBoxDescent||0);
+      const pad=margen+borde/2,w=Math.ceil(left+right+pad*2),h=Math.ceil(up+down+pad*2),r=o.r*1.5+8;
+      const opciones=[], previa=ytgRotulos.posiciones[o.key];
+      if(previa && previa.w===w && previa.h===h) opciones.push(previa);
+      opciones.push({x:o.x-w/2,y:o.y-r-h,w,h},{x:o.x-w/2,y:o.y+r,w,h},{x:o.x+r,y:o.y-h/2,w,h},{x:o.x-r-w,y:o.y-h/2,w,h});
+      for(let anillo=1;anillo<=4;anillo++) for(let i=0;i<16;i++){
+        const ang=-Math.PI/2+i*Math.PI/8;
+        opciones.push({x:o.x+Math.cos(ang)*(r+w/2+anillo*tam*.45)-w/2,y:o.y+Math.sin(ang)*(r+h/2+anillo*tam*.45)-h/2,w,h});
+      }
+      let sitio=opciones.find(libre);
+      if(!sitio){
+        // Mantener el tamaño doble aun con destinos juntos o junto a una banda.
+        const lejos=[];
+        for(let y=0;y+h<=ch;y+=Math.max(12,h/2)) for(let x=0;x+w<=cw;x+=Math.max(12,w/2)) lejos.push({x,y,w,h});
+        lejos.sort((a,b)=>Math.hypot(a.x+w/2-o.x,a.y+h/2-o.y)-Math.hypot(b.x+w/2-o.x,b.y+h/2-o.y));
+        sitio=lejos.find(libre);
+      }
+      if(!sitio){delete ytgRotulos.posiciones[o.key];continue;}
+      ytgRotulos.posiciones[o.key]=sitio;ocupados.push(sitio);
+      const puesta=!!ytGuia.puestas[o.key],cerca=!puesta && !!ytGuia.cerca[o.key];
+      g.lineWidth=borde;g.strokeStyle='rgba(0,0,0,.85)';
+      g.fillStyle=puesta ? '#37e37c' : (cerca ? '#ffb347' : YT_COLORES_BOLA[o.key]);
+      const x=sitio.x+pad+left,y=sitio.y+pad+up;
+      g.strokeText(texto,x,y);g.fillText(texto,x,y);
+    }
+    g.restore();
+  }
+
+
   function ytgPintar(){
     if(!ytGuia.activa) return;
     const cv = ids('ytPlaceCanvas'), v = ytGuia.video;
@@ -20323,16 +20425,8 @@ function drawStartMarks(){
           g.strokeStyle = tinte;
           g.beginPath(); g.arc(o.x, o.y, o.r * 1.5 - 1.5, 0, Math.PI * 2); g.stroke();
           g.setLineDash([]);
-          g.font = '900 ' + Math.max(20, Math.round(cw / 42)) + 'px system-ui';
-          g.textAlign = 'center';
-          g.lineWidth = Math.max(4, cw / 320);
-          g.strokeStyle = 'rgba(0,0,0,.85)';
-          const ty = o.y - o.r * 1.5 - 12;
-          g.strokeText(letras[o.key], o.x, ty);
-          g.fillStyle = tinte;
-          g.fillText(letras[o.key], o.x, ty);
-          g.textAlign = 'start';
         }
+        ytgPintarLetras(g, v, cw, ch, objetivos, letras, H);
         ytgPintarLupa(g, v, cw, ch, objetivos);
         ytgPintarFestejos(g, cw, ch, objetivos);
       }
