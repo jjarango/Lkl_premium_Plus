@@ -20371,9 +20371,8 @@ function drawStartMarks(){
       }
       if(!sitio){delete ytgRotulos.posiciones[o.key];continue;}
       ytgRotulos.posiciones[o.key]=sitio;ocupados.push(sitio);
-      const puesta=!!ytGuia.puestas[o.key],cerca=!puesta && !!ytGuia.cerca[o.key];
       g.lineWidth=borde;g.strokeStyle='rgba(0,0,0,.85)';
-      g.fillStyle=puesta ? '#37e37c' : (cerca ? '#ffb347' : YT_COLORES_BOLA[o.key]);
+      g.fillStyle=YT_COLORES_BOLA[o.key];
       const x=sitio.x+pad+left,y=sitio.y+pad+up;
       g.strokeText(texto,x,y);g.fillText(texto,x,y);
     }
