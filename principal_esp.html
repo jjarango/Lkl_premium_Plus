@@ -1989,7 +1989,7 @@
 <details id="tecladoAyuda" style="margin-top:10px;">
 <summary style="cursor:pointer;">Teclado y carpeta de exportación</summary>
 <p class="small">Los atajos funcionan con la pestaña de la app seleccionada, también con la voz silenciada. No actúan mientras escribe en un campo o utiliza un selector.</p>
-<p class="small">G: grabar otra jugada o abrir la cámara. 1 / 2 / 3: cuenta de 5 / 10 / 15 segundos. D: detener. R: reproducir. E: exportar con datos a la carpeta elegida. V: volver a colocar. C: capturar mesa. M: silenciar o activar voz. T: seguimiento de la trayectoria. Espacio: pausar o continuar. L: velocidad normal, media o un cuarto. X: cerrar la ventana de video o la pantalla de colocación, una por pulsación. Esc también cierra la ventana de video.</p>
+<p class="small">G: grabar otra jugada o abrir la cámara. 1 / 2 / 3: cuenta de 5 / 10 / 15 segundos. D: detener. DD: detener y volver a colocar (dos pulsaciones dentro de un segundo). R: reproducir. E: exportar con datos a la carpeta elegida. V: volver a colocar. C: capturar mesa. M: silenciar o activar voz. T: seguimiento de la trayectoria. Espacio: pausar o continuar. L: velocidad normal, media o un cuarto. X: cerrar la ventana de video o la pantalla de colocación, una por pulsación. Esc también cierra la ventana de video.</p>
 <button id="tecladoCarpetaBtn" type="button" style="width:100%;">Elegir carpeta de exportación para E</button>
 <p id="tecladoCarpetaEstado" class="small" role="status" aria-live="polite" style="margin:8px 0; overflow-wrap:anywhere;">Sin carpeta elegida.</p>
 <p class="small">Autorice la carpeta una vez. Mientras el permiso siga vigente, E guardará allí cada video al terminar la exportación, sin otra confirmación y sin sobrescribir los anteriores. Mantenga la pestaña visible durante la exportación.</p>
@@ -16695,6 +16695,7 @@ function drawStartMarks(){
   }
 
   function closeVideoReplayModal(){
+    tecladoDobleDLimpiar();
     videoReplayViewStop();
     videoReplayTraceReset();
     videoReplay.apertura = (videoReplay.apertura || 0) + 1;
@@ -16951,7 +16952,10 @@ function drawStartMarks(){
       videoReplay.recordingIssue='El navegador informó un error al grabar. Revise el original antes de usarlo.';
       interrupted(videoReplay.recordingIssue);
     };
-    recorder.onstop=()=>finishVideoReplayRecording(check);
+    recorder.onstop=async()=>{
+      try{ await finishVideoReplayRecording(check); }
+      finally{ check.finalizada=true; tecladoDobleDContinuar(); }
+    };
     videoReplayTracePrepare();
     try{recorder.start(250);}catch(error){
       check.dispose();videoReplay.recorder=null;resetVideoReplayRecordButtons();
@@ -20743,7 +20747,51 @@ function drawStartMarks(){
     }catch(error){if(error.name!=='AbortError') tecladoAvisar('E',error.message,'warn');}
     finally{tecladoExportacion.ocupado=false;tecladoCarpetaUi();}
   }
+  // DD solo enlaza la detención hecha por D con esa misma grabación.
+  const tecladoDobleD = { ultima:null, pendiente:null };
+  function tecladoDobleDLimpiar(){
+    tecladoDobleD.ultima = null;
+    tecladoDobleD.pendiente = null;
+  }
+  function tecladoDobleDValida(solicitud){
+    const modal = ids('videoReplayModal');
+    return !!(solicitud && solicitud.check
+      && solicitud.check === videoReplay.recordingCheck
+      && solicitud.apertura === videoReplay.apertura
+      && modal && modal.classList.contains('active'));
+  }
+  function tecladoDobleDContinuar(){
+    const solicitud = tecladoDobleD.pendiente;
+    if(!solicitud) return;
+    if(!tecladoDobleDValida(solicitud)){ tecladoDobleDLimpiar(); return; }
+    // El estado inactive del grabador no significa que el archivo esté listo.
+    if(!solicitud.check.finalizada) return;
+    tecladoDobleDLimpiar();
+    if(videoReplay.recordingIssue || videoReplay.mode !== 'replay'
+      || !videoReplay.blobUrl || !(videoReplay.duration > 0)){
+      tecladoAvisar('DD', 'No se pudo completar la comprobación de la grabación. Revise el aviso del video antes de volver a colocar.', 'warn');
+      return;
+    }
+    ytVozPedirVolver('DD', true);
+  }
+  async function tecladoDetenerDoble(ctx){
+    const ahora = performance.now(), anterior = tecladoDobleD.ultima;
+    tecladoDobleD.ultima = null;
+    if(ctx === 'grabando'){
+      tecladoDobleD.pendiente = null;
+      const solicitud = { check:videoReplay.recordingCheck, apertura:videoReplay.apertura, momento:ahora };
+      const detenida = await ytVozEjecutar({accion:'detener'}, 'D', true);
+      if(detenida && tecladoDobleDValida(solicitud)) tecladoDobleD.ultima = solicitud;
+      return;
+    }
+    if(!tecladoDobleDValida(anterior) || ahora - anterior.momento > 1000) return;
+    tecladoDobleD.pendiente = anterior;
+    if(!anterior.check.finalizada) tecladoAvisar('DD', 'Al terminar de preparar la grabación, volveré a colocar las bolas.');
+    tecladoDobleDContinuar();
+  }
+
   async function tecladoEjecutar(tecla){
+    if(tecla !== 'd') tecladoDobleDLimpiar();
     if(tecla==='x'){
       const modal=ids('videoReplayModal'),cerrar=ids('videoReplayClose');
       if(modal && modal.classList.contains('active')){
@@ -20760,6 +20808,7 @@ function drawStartMarks(){
       tecladoAvisar('M',ytVozActiva()?'Órdenes de voz activadas.':'Órdenes de voz silenciadas. El teclado sigue disponible.');return;
     }
     const ctx=ytVozContexto(true), lista=['grabar','grabarVolver'].includes(ctx), revision=tecladoRevision();
+    if(tecla==='d'){await tecladoDetenerDoble(ctx);return;}
     if(tecla==='e'){await tecladoExportar();return;}
     if(tecla===' ' || tecla==='l' || tecla==='t'){
       if(videoReplay.exporting) return;
@@ -20780,7 +20829,6 @@ function drawStartMarks(){
     if(tecla==='g') orden={accion:revision?'grabarOtra':'grabarJugada'};
     else if(tecla==='v') orden={accion:'volver'};
     else if(tecla==='c') orden={accion:'capturarMesa'};
-    else if(tecla==='d' && ctx==='grabando') orden={accion:'detener'};
     else if(tecla==='r' && revision && !videoReplay.exporting) orden={accion:'reproducir'};
     else if(lista && /^[123]$/.test(tecla)) orden={accion:'grabarEn',seg:{'1':5,'2':10,'3':15}[tecla]};
     if(orden) await ytVozEjecutar(orden,tecla.toUpperCase(),true);
