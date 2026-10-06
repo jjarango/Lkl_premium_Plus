@@ -1989,7 +1989,7 @@
 <details id="tecladoAyuda" style="margin-top:10px;">
 <summary style="cursor:pointer;">Keyboard and export folder</summary>
 <p class="small">Shortcuts work when the app tab is selected, even with voice commands muted. They do not run while you type in a field or use a drop-down list.</p>
-<p class="small">G: record another shot or open the camera. 1 / 2 / 3: 5 / 10 / 15-second countdown. D: stop recording. R: play. E: export with data to the selected folder. V: reposition the balls. C: capture the table. M: mute or enable voice commands. T: trajectory tracking. Space: pause or resume. L: normal, half or quarter speed. X: close the video window or ball-placement screen, one per press. Esc also closes the video window.</p>
+<p class="small">G: record another shot or open the camera. 1 / 2 / 3: 5 / 10 / 15-second countdown. D: stop recording. DD: stop and reposition the balls (two presses within one second). R: play. E: export with data to the selected folder. V: reposition the balls. C: capture the table. M: mute or enable voice commands. T: trajectory tracking. Space: pause or resume. L: normal, half or quarter speed. X: close the video window or ball-placement screen, one per press. Esc also closes the video window.</p>
 <button id="tecladoCarpetaBtn" type="button" style="width:100%;">Choose export folder for E</button>
 <p id="tecladoCarpetaEstado" class="small" role="status" aria-live="polite" style="margin:8px 0; overflow-wrap:anywhere;">No folder selected.</p>
 <p class="small">Grant access to the folder once. While permission remains valid, E saves each video there when export finishes, without another confirmation or overwriting earlier files. Keep this tab visible during export.</p>
@@ -16694,6 +16694,7 @@ function drawStartMarks(){
   }
 
   function closeVideoReplayModal(){
+    tecladoDobleDLimpiar();
     videoReplayViewStop();
     videoReplayTraceReset();
     videoReplay.apertura = (videoReplay.apertura || 0) + 1;
@@ -16950,7 +16951,10 @@ function drawStartMarks(){
       videoReplay.recordingIssue="The browser reported a recording error. Check the original before using it.";
       interrupted(videoReplay.recordingIssue);
     };
-    recorder.onstop=()=>finishVideoReplayRecording(check);
+    recorder.onstop=async()=>{
+      try{ await finishVideoReplayRecording(check); }
+      finally{ check.finalizada=true; tecladoDobleDContinuar(); }
+    };
     videoReplayTracePrepare();
     try{recorder.start(250);}catch(error){
       check.dispose();videoReplay.recorder=null;resetVideoReplayRecordButtons();
@@ -20757,7 +20761,51 @@ function drawStartMarks(){
     }catch(error){if(error.name!=='AbortError') tecladoAvisar('E',error.message,'warn');}
     finally{tecladoExportacion.ocupado=false;tecladoCarpetaUi();}
   }
+  // DD solo enlaza la detención hecha por D con esa misma grabación.
+  const tecladoDobleD = { ultima:null, pendiente:null };
+  function tecladoDobleDLimpiar(){
+    tecladoDobleD.ultima = null;
+    tecladoDobleD.pendiente = null;
+  }
+  function tecladoDobleDValida(solicitud){
+    const modal = ids('videoReplayModal');
+    return !!(solicitud && solicitud.check
+      && solicitud.check === videoReplay.recordingCheck
+      && solicitud.apertura === videoReplay.apertura
+      && modal && modal.classList.contains('active'));
+  }
+  function tecladoDobleDContinuar(){
+    const solicitud = tecladoDobleD.pendiente;
+    if(!solicitud) return;
+    if(!tecladoDobleDValida(solicitud)){ tecladoDobleDLimpiar(); return; }
+    // El estado inactive del grabador no significa que el archivo esté listo.
+    if(!solicitud.check.finalizada) return;
+    tecladoDobleDLimpiar();
+    if(videoReplay.recordingIssue || videoReplay.mode !== 'replay'
+      || !videoReplay.blobUrl || !(videoReplay.duration > 0)){
+      tecladoAvisar('DD', "The recording check could not be completed. Review the video message before repositioning the balls.", 'warn');
+      return;
+    }
+    ytVozPedirVolver('DD', true);
+  }
+  async function tecladoDetenerDoble(ctx){
+    const ahora = performance.now(), anterior = tecladoDobleD.ultima;
+    tecladoDobleD.ultima = null;
+    if(ctx === 'grabando'){
+      tecladoDobleD.pendiente = null;
+      const solicitud = { check:videoReplay.recordingCheck, apertura:videoReplay.apertura, momento:ahora };
+      const detenida = await ytVozEjecutar({accion:'detener'}, 'D', true);
+      if(detenida && tecladoDobleDValida(solicitud)) tecladoDobleD.ultima = solicitud;
+      return;
+    }
+    if(!tecladoDobleDValida(anterior) || ahora - anterior.momento > 1000) return;
+    tecladoDobleD.pendiente = anterior;
+    if(!anterior.check.finalizada) tecladoAvisar('DD', "Once the recording is ready, the ball-placement guide will open.");
+    tecladoDobleDContinuar();
+  }
+
   async function tecladoEjecutar(tecla){
+    if(tecla !== 'd') tecladoDobleDLimpiar();
     if(tecla==='x'){
       const modal=ids('videoReplayModal'),cerrar=ids('videoReplayClose');
       if(modal && modal.classList.contains('active')){
@@ -20774,6 +20822,7 @@ function drawStartMarks(){
       tecladoAvisar('M',ytVozActiva()?"Voice commands enabled.":"Voice commands muted. The keyboard remains available.");return;
     }
     const ctx=ytVozContexto(true), lista=['grabar','grabarVolver'].includes(ctx), revision=tecladoRevision();
+    if(tecla==='d'){await tecladoDetenerDoble(ctx);return;}
     if(tecla==='e'){await tecladoExportar();return;}
     if(tecla===' ' || tecla==='l' || tecla==='t'){
       if(videoReplay.exporting) return;
@@ -20794,7 +20843,6 @@ function drawStartMarks(){
     if(tecla==='g') orden={accion:revision?'grabarOtra':'grabarJugada'};
     else if(tecla==='v') orden={accion:'volver'};
     else if(tecla==='c') orden={accion:'capturarMesa'};
-    else if(tecla==='d' && ctx==='grabando') orden={accion:'detener'};
     else if(tecla==='r' && revision && !videoReplay.exporting) orden={accion:'reproducir'};
     else if(lista && /^[123]$/.test(tecla)) orden={accion:'grabarEn',seg:{'1':5,'2':10,'3':15}[tecla]};
     if(orden) await ytVozEjecutar(orden,tecla.toUpperCase(),true);

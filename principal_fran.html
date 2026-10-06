@@ -1989,7 +1989,7 @@
 <details id="tecladoAyuda" style="margin-top:10px;">
 <summary style="cursor:pointer;">Clavier et dossier d’exportation</summary>
 <p class="small">Les raccourcis fonctionnent lorsque l’onglet de l’application est sélectionné, même si les commandes vocales sont désactivées. Ils n’agissent pas pendant la saisie dans un champ ou l’utilisation d’une liste déroulante.</p>
-<p class="small">G : enregistrer un autre coup ou ouvrir la caméra. 1 / 2 / 3 : compte à rebours de 5 / 10 / 15 secondes. D : arrêter l’enregistrement. R : lire. E : exporter avec données dans le dossier choisi. V : replacer les billes. C : capturer la table. M : désactiver ou activer les commandes vocales. T : suivi de trajectoire. Espace : pause ou reprise. L : vitesse normale, moitié ou quart. X : fermer la fenêtre vidéo ou l’écran de placement, un seul par appui. Échap ferme aussi la fenêtre vidéo.</p>
+<p class="small">G : enregistrer un autre coup ou ouvrir la caméra. 1 / 2 / 3 : compte à rebours de 5 / 10 / 15 secondes. D : arrêter l’enregistrement. DD : arrêter et replacer les billes (deux appuis en une seconde). R : lire. E : exporter avec données dans le dossier choisi. V : replacer les billes. C : capturer la table. M : désactiver ou activer les commandes vocales. T : suivi de trajectoire. Espace : pause ou reprise. L : vitesse normale, moitié ou quart. X : fermer la fenêtre vidéo ou l’écran de placement, un seul par appui. Échap ferme aussi la fenêtre vidéo.</p>
 <button id="tecladoCarpetaBtn" type="button" style="width:100%;">Choisir le dossier d’exportation pour E</button>
 <p id="tecladoCarpetaEstado" class="small" role="status" aria-live="polite" style="margin:8px 0; overflow-wrap:anywhere;">Aucun dossier choisi.</p>
 <p class="small">Autorisez l’accès au dossier une fois. Tant que l’autorisation reste valable, E y enregistre chaque vidéo à la fin de l’exportation, sans autre confirmation ni écrasement des fichiers précédents. Gardez cet onglet visible pendant l’exportation.</p>
@@ -16693,6 +16693,7 @@ function drawStartMarks(){
   }
 
   function closeVideoReplayModal(){
+    tecladoDobleDLimpiar();
     videoReplayViewStop();
     videoReplayTraceReset();
     videoReplay.apertura = (videoReplay.apertura || 0) + 1;
@@ -16949,7 +16950,10 @@ function drawStartMarks(){
       videoReplay.recordingIssue="Le navigateur a signalé une erreur d’enregistrement. Vérifiez l’original avant de l’utiliser.";
       interrupted(videoReplay.recordingIssue);
     };
-    recorder.onstop=()=>finishVideoReplayRecording(check);
+    recorder.onstop=async()=>{
+      try{ await finishVideoReplayRecording(check); }
+      finally{ check.finalizada=true; tecladoDobleDContinuar(); }
+    };
     videoReplayTracePrepare();
     try{recorder.start(250);}catch(error){
       check.dispose();videoReplay.recorder=null;resetVideoReplayRecordButtons();
@@ -20756,7 +20760,51 @@ function drawStartMarks(){
     }catch(error){if(error.name!=='AbortError') tecladoAvisar('E',error.message,'warn');}
     finally{tecladoExportacion.ocupado=false;tecladoCarpetaUi();}
   }
+  // DD solo enlaza la detención hecha por D con esa misma grabación.
+  const tecladoDobleD = { ultima:null, pendiente:null };
+  function tecladoDobleDLimpiar(){
+    tecladoDobleD.ultima = null;
+    tecladoDobleD.pendiente = null;
+  }
+  function tecladoDobleDValida(solicitud){
+    const modal = ids('videoReplayModal');
+    return !!(solicitud && solicitud.check
+      && solicitud.check === videoReplay.recordingCheck
+      && solicitud.apertura === videoReplay.apertura
+      && modal && modal.classList.contains('active'));
+  }
+  function tecladoDobleDContinuar(){
+    const solicitud = tecladoDobleD.pendiente;
+    if(!solicitud) return;
+    if(!tecladoDobleDValida(solicitud)){ tecladoDobleDLimpiar(); return; }
+    // El estado inactive del grabador no significa que el archivo esté listo.
+    if(!solicitud.check.finalizada) return;
+    tecladoDobleDLimpiar();
+    if(videoReplay.recordingIssue || videoReplay.mode !== 'replay'
+      || !videoReplay.blobUrl || !(videoReplay.duration > 0)){
+      tecladoAvisar('DD', "La vérification de l’enregistrement n’a pas pu être terminée. Consultez le message de la vidéo avant de replacer les billes.", 'warn');
+      return;
+    }
+    ytVozPedirVolver('DD', true);
+  }
+  async function tecladoDetenerDoble(ctx){
+    const ahora = performance.now(), anterior = tecladoDobleD.ultima;
+    tecladoDobleD.ultima = null;
+    if(ctx === 'grabando'){
+      tecladoDobleD.pendiente = null;
+      const solicitud = { check:videoReplay.recordingCheck, apertura:videoReplay.apertura, momento:ahora };
+      const detenida = await ytVozEjecutar({accion:'detener'}, 'D', true);
+      if(detenida && tecladoDobleDValida(solicitud)) tecladoDobleD.ultima = solicitud;
+      return;
+    }
+    if(!tecladoDobleDValida(anterior) || ahora - anterior.momento > 1000) return;
+    tecladoDobleD.pendiente = anterior;
+    if(!anterior.check.finalizada) tecladoAvisar('DD', "Une fois l’enregistrement prêt, le guide de placement des billes s’ouvrira.");
+    tecladoDobleDContinuar();
+  }
+
   async function tecladoEjecutar(tecla){
+    if(tecla !== 'd') tecladoDobleDLimpiar();
     if(tecla==='x'){
       const modal=ids('videoReplayModal'),cerrar=ids('videoReplayClose');
       if(modal && modal.classList.contains('active')){
@@ -20773,6 +20821,7 @@ function drawStartMarks(){
       tecladoAvisar('M',ytVozActiva()?"Commandes vocales activées.":"Commandes vocales désactivées. Le clavier reste disponible.");return;
     }
     const ctx=ytVozContexto(true), lista=['grabar','grabarVolver'].includes(ctx), revision=tecladoRevision();
+    if(tecla==='d'){await tecladoDetenerDoble(ctx);return;}
     if(tecla==='e'){await tecladoExportar();return;}
     if(tecla===' ' || tecla==='l' || tecla==='t'){
       if(videoReplay.exporting) return;
@@ -20793,7 +20842,6 @@ function drawStartMarks(){
     if(tecla==='g') orden={accion:revision?'grabarOtra':'grabarJugada'};
     else if(tecla==='v') orden={accion:'volver'};
     else if(tecla==='c') orden={accion:'capturarMesa'};
-    else if(tecla==='d' && ctx==='grabando') orden={accion:'detener'};
     else if(tecla==='r' && revision && !videoReplay.exporting) orden={accion:'reproducir'};
     else if(lista && /^[123]$/.test(tecla)) orden={accion:'grabarEn',seg:{'1':5,'2':10,'3':15}[tecla]};
     if(orden) await ytVozEjecutar(orden,tecla.toUpperCase(),true);

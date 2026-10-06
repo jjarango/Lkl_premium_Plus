@@ -1989,7 +1989,7 @@
 <details id="tecladoAyuda" style="margin-top:10px;">
 <summary style="cursor:pointer;">Klavye ve dışa aktarma klasörü</summary>
 <p class="small">Uygulama sekmesi seçiliyken, sesli komutlar kapalı olsa da kısayollar çalışır. Bir alana yazarken veya açılır listeyi kullanırken çalışmazlar.</p>
-<p class="small">G: başka bir vuruş kaydet veya kamerayı aç. 1 / 2 / 3: 5 / 10 / 15 saniyelik geri sayım. D: kaydı durdur. R: oynat. E: verilerle birlikte seçilen klasöre aktar. V: topları yeniden yerleştir. C: masanın görüntüsünü al. M: sesli komutları kapat veya aç. T: yörünge takibi. Boşluk: duraklat veya devam et. L: normal, yarım veya çeyrek hız. X: video penceresini ya da yerleştirme ekranını her basışta bir tane kapat. Esc de video penceresini kapatır.</p>
+<p class="small">G: başka bir vuruş kaydet veya kamerayı aç. 1 / 2 / 3: 5 / 10 / 15 saniyelik geri sayım. D: kaydı durdur. DD: kaydı durdur ve topları yeniden yerleştir (bir saniye içinde iki kez basın). R: oynat. E: verilerle birlikte seçilen klasöre aktar. V: topları yeniden yerleştir. C: masanın görüntüsünü al. M: sesli komutları kapat veya aç. T: yörünge takibi. Boşluk: duraklat veya devam et. L: normal, yarım veya çeyrek hız. X: video penceresini ya da yerleştirme ekranını her basışta bir tane kapat. Esc de video penceresini kapatır.</p>
 <button id="tecladoCarpetaBtn" type="button" style="width:100%;">E için dışa aktarma klasörü seç</button>
 <p id="tecladoCarpetaEstado" class="small" role="status" aria-live="polite" style="margin:8px 0; overflow-wrap:anywhere;">Klasör seçilmedi.</p>
 <p class="small">Klasöre bir kez erişim izni verin. İzin geçerli olduğu sürece E, dışa aktarma bitince her videoyu ek onay istemeden ve önceki dosyaların üzerine yazmadan buraya kaydeder. Dışa aktarma sırasında bu sekmeyi görünür tutun.</p>
@@ -16693,6 +16693,7 @@ function drawStartMarks(){
   }
 
   function closeVideoReplayModal(){
+    tecladoDobleDLimpiar();
     videoReplayViewStop();
     videoReplayTraceReset();
     videoReplay.apertura = (videoReplay.apertura || 0) + 1;
@@ -16949,7 +16950,10 @@ function drawStartMarks(){
       videoReplay.recordingIssue="Tarayıcı bir kayıt hatası bildirdi. Kullanmadan önce orijinal kaydı kontrol edin.";
       interrupted(videoReplay.recordingIssue);
     };
-    recorder.onstop=()=>finishVideoReplayRecording(check);
+    recorder.onstop=async()=>{
+      try{ await finishVideoReplayRecording(check); }
+      finally{ check.finalizada=true; tecladoDobleDContinuar(); }
+    };
     videoReplayTracePrepare();
     try{recorder.start(250);}catch(error){
       check.dispose();videoReplay.recorder=null;resetVideoReplayRecordButtons();
@@ -20756,7 +20760,51 @@ function drawStartMarks(){
     }catch(error){if(error.name!=='AbortError') tecladoAvisar('E',error.message,'warn');}
     finally{tecladoExportacion.ocupado=false;tecladoCarpetaUi();}
   }
+  // DD solo enlaza la detención hecha por D con esa misma grabación.
+  const tecladoDobleD = { ultima:null, pendiente:null };
+  function tecladoDobleDLimpiar(){
+    tecladoDobleD.ultima = null;
+    tecladoDobleD.pendiente = null;
+  }
+  function tecladoDobleDValida(solicitud){
+    const modal = ids('videoReplayModal');
+    return !!(solicitud && solicitud.check
+      && solicitud.check === videoReplay.recordingCheck
+      && solicitud.apertura === videoReplay.apertura
+      && modal && modal.classList.contains('active'));
+  }
+  function tecladoDobleDContinuar(){
+    const solicitud = tecladoDobleD.pendiente;
+    if(!solicitud) return;
+    if(!tecladoDobleDValida(solicitud)){ tecladoDobleDLimpiar(); return; }
+    // El estado inactive del grabador no significa que el archivo esté listo.
+    if(!solicitud.check.finalizada) return;
+    tecladoDobleDLimpiar();
+    if(videoReplay.recordingIssue || videoReplay.mode !== 'replay'
+      || !videoReplay.blobUrl || !(videoReplay.duration > 0)){
+      tecladoAvisar('DD', "Kayıt kontrolü tamamlanamadı. Topları yeniden yerleştirmeden önce video uyarısını inceleyin.", 'warn');
+      return;
+    }
+    ytVozPedirVolver('DD', true);
+  }
+  async function tecladoDetenerDoble(ctx){
+    const ahora = performance.now(), anterior = tecladoDobleD.ultima;
+    tecladoDobleD.ultima = null;
+    if(ctx === 'grabando'){
+      tecladoDobleD.pendiente = null;
+      const solicitud = { check:videoReplay.recordingCheck, apertura:videoReplay.apertura, momento:ahora };
+      const detenida = await ytVozEjecutar({accion:'detener'}, 'D', true);
+      if(detenida && tecladoDobleDValida(solicitud)) tecladoDobleD.ultima = solicitud;
+      return;
+    }
+    if(!tecladoDobleDValida(anterior) || ahora - anterior.momento > 1000) return;
+    tecladoDobleD.pendiente = anterior;
+    if(!anterior.check.finalizada) tecladoAvisar('DD', "Kayıt hazır olduğunda topları yerleştirme kılavuzu açılacak.");
+    tecladoDobleDContinuar();
+  }
+
   async function tecladoEjecutar(tecla){
+    if(tecla !== 'd') tecladoDobleDLimpiar();
     if(tecla==='x'){
       const modal=ids('videoReplayModal'),cerrar=ids('videoReplayClose');
       if(modal && modal.classList.contains('active')){
@@ -20773,6 +20821,7 @@ function drawStartMarks(){
       tecladoAvisar('M',ytVozActiva()?"Sesli komutlar etkinleştirildi.":"Sesli komutlar kapatıldı. Klavye kullanılabilir.");return;
     }
     const ctx=ytVozContexto(true), lista=['grabar','grabarVolver'].includes(ctx), revision=tecladoRevision();
+    if(tecla==='d'){await tecladoDetenerDoble(ctx);return;}
     if(tecla==='e'){await tecladoExportar();return;}
     if(tecla===' ' || tecla==='l' || tecla==='t'){
       if(videoReplay.exporting) return;
@@ -20793,7 +20842,6 @@ function drawStartMarks(){
     if(tecla==='g') orden={accion:revision?'grabarOtra':'grabarJugada'};
     else if(tecla==='v') orden={accion:'volver'};
     else if(tecla==='c') orden={accion:'capturarMesa'};
-    else if(tecla==='d' && ctx==='grabando') orden={accion:'detener'};
     else if(tecla==='r' && revision && !videoReplay.exporting) orden={accion:'reproducir'};
     else if(lista && /^[123]$/.test(tecla)) orden={accion:'grabarEn',seg:{'1':5,'2':10,'3':15}[tecla]};
     if(orden) await ytVozEjecutar(orden,tecla.toUpperCase(),true);
