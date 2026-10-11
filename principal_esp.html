@@ -18263,8 +18263,116 @@ function drawStartMarks(){
     { key:'red', texto:'la bola ROJA' }
   ];
 
+  // Propuestas pendientes: nunca se transfieren a la mesa sin confirmar.
+  const ytSugerenciasBolas = {frame:null, clave:'', puntos:{}};
+
+  function ytDetectarSugerenciasBolas(){
+    const fc = ytTrain.frameCanvas, esquinas = ytTrain.esquinas;
+    if(!fc || esquinas.length !== 4) return {};
+    const vista = ytEncuadreMarcado();
+    const escala = Math.min(1, 1400/Math.max(vista.w, vista.h));
+    const cv = document.createElement('canvas');
+    cv.width = Math.max(1, Math.round(vista.w*escala));
+    cv.height = Math.max(1, Math.round(vista.h*escala));
+    const w = cv.width, h = cv.height, sx = w/vista.w, sy = h/vista.h;
+    const g = cv.getContext('2d', {willReadFrequently:true});
+    g.drawImage(fc, vista.x, vista.y, vista.w, vista.h, 0, 0, w, h);
+    const data = g.getImageData(0,0,w,h).data;
+    const poligono = esquinas.map(p => ({x:(p.x-vista.x)*sx, y:(p.y-vista.y)*sy}));
+    const mesa = [{x:0,y:0},{x:TABLE.W,y:0},{x:TABLE.W,y:TABLE.H},{x:0,y:TABLE.H}];
+    const aMesa = homographyFromFourPoints(esquinas, mesa);
+    const aImagen = homographyFromFourPoints(mesa, esquinas);
+    if(!aMesa || !aImagen) return {};
+    // Radio físico aproximado; se toleran cambios de perspectiva y luz.
+    const radioMesa = 6.15/2/TABLE_CM.W*TABLE.W;
+    const colores = new Uint8Array(w*h), cola = new Int32Array(w*h);
+    const listas = {white:[], yellow:[], red:[]};
+    for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+      if(!pointInPolygon(x+.5,y+.5,poligono)) continue;
+      const p=y*w+x, i=p*4, r=data[i], v=data[i+1], b=data[i+2];
+      colores[p] = isRedBallPixel(r,v,b) ? 3 : isYellowBallPixel(r,v,b) ? 2 : isWhiteBallPixel(r,v,b) ? 1 : 0;
+    }
+    // Las tres familias de color se recorren juntas, sin releer la imagen.
+    for(let inicio=0;inicio<colores.length;inicio++){
+      const color = colores[inicio];
+      if(!color) continue;
+      let cabeza=0, fin=1, area=0, minX=w, minY=h, maxX=0, maxY=0;
+      cola[0]=inicio; colores[inicio]=0;
+      while(cabeza<fin){
+        const p=cola[cabeza++], x=p%w, y=(p/w)|0;
+        area++; minX=Math.min(minX,x); maxX=Math.max(maxX,x); minY=Math.min(minY,y); maxY=Math.max(maxY,y);
+        for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++){
+          if(!dx && !dy) continue;
+          const xx=x+dx, yy=y+dy;
+          if(xx<0 || xx>=w || yy<0 || yy>=h) continue;
+          const q=yy*w+xx;
+          if(colores[q]===color){ colores[q]=0; cola[fin++]=q; }
+        }
+      }
+      if(area<6) continue;
+      const ancho=maxX-minX+1, alto=maxY-minY+1, relleno=area/(ancho*alto);
+      if(relleno<.50 || relleno>.94) continue;
+      const punto={x:vista.x+(minX+maxX+1)/2/sx, y:vista.y+(minY+maxY+1)/2/sy};
+      const centro=applyHomography(aMesa,punto);
+      if(!centro || !Number.isFinite(centro.x) || !Number.isFinite(centro.y) ||
+         centro.x<0 || centro.x>TABLE.W || centro.y<0 || centro.y>TABLE.H) continue;
+      const px=applyHomography(aImagen,{x:centro.x+radioMesa,y:centro.y});
+      const py=applyHomography(aImagen,{x:centro.x,y:centro.y+radioMesa});
+      if(!px || !py) continue;
+      const ux=(px.x-punto.x)*sx, uy=(px.y-punto.y)*sy;
+      const vx=(py.x-punto.x)*sx, vy=(py.y-punto.y)*sy;
+      const esperado=Math.PI*Math.abs(ux*vy-uy*vx);
+      const anchoEsperado=2*Math.hypot(ux,vx), altoEsperado=2*Math.hypot(uy,vy);
+      if(!Number.isFinite(esperado) || esperado<6 || !anchoEsperado || !altoEsperado) continue;
+      const proporcion=area/esperado, ax=ancho/anchoEsperado, ay=alto/altoEsperado;
+      if(proporcion<.45 || proporcion>1.9 || ax<.55 || ax>1.7 || ay<.55 || ay>1.7) continue;
+      const error=Math.abs(Math.log(proporcion))*.45 + Math.abs(Math.log(ax))*.35 +
+        Math.abs(Math.log(ay))*.35 + Math.abs(relleno-Math.PI/4)*1.2;
+      if(error>.65) continue;
+      const key=['','white','yellow','red'][color];
+      listas[key].push({...punto, centro, error});
+    }
+    const elegidas={};
+    for(const key of ['white','yellow','red']){
+      const lista=listas[key].sort((a,b)=>a.error-b.error);
+      // Dos objetos verosímiles del mismo color: dejar la elección al usuario.
+      if(lista.length && (!lista[1] || lista[1].error-lista[0].error>.30)) elegidas[key]=lista[0];
+    }
+    const ambiguas=new Set(), keys=Object.keys(elegidas);
+    for(let i=0;i<keys.length;i++) for(let j=i+1;j<keys.length;j++){
+      const a=elegidas[keys[i]].centro, b=elegidas[keys[j]].centro;
+      if(Math.hypot(a.x-b.x,a.y-b.y)<radioMesa*1.25){ ambiguas.add(keys[i]); ambiguas.add(keys[j]); }
+    }
+    const puntos={};
+    for(const key of keys) if(!ambiguas.has(key)) puntos[key]={x:elegidas[key].x,y:elegidas[key].y};
+    return puntos;
+  }
+
+  function ytSugerirBolaPendiente(){
+    if(ytTrain.modo !== 'balls' || ytTrain.esquinas.length !== 4 || ytTrain.candidato || ytTrain.bolas.length>=3) return;
+    const clave=ytTrain.esquinas.map(p=>p.x+','+p.y).join(';');
+    if(ytSugerenciasBolas.frame !== ytTrain.frameCanvas || ytSugerenciasBolas.clave !== clave){
+      ytSugerenciasBolas.frame=ytTrain.frameCanvas;
+      ytSugerenciasBolas.clave=clave;
+      ytSugerenciasBolas.puntos={};
+      try{ ytSugerenciasBolas.puntos=ytDetectarSugerenciasBolas(); }catch{}
+    }
+    const key=YT_PASOS_BOLAS[ytTrain.bolas.length].key;
+    const p=ytSugerenciasBolas.puntos[key];
+    if(p){
+      // Una corrección manual previa puede haber ocupado este mismo centro.
+      const H=homographyFromFourPoints(ytTrain.esquinas,[{x:0,y:0},{x:TABLE.W,y:0},{x:TABLE.W,y:TABLE.H},{x:0,y:TABLE.H}]);
+      if(!H) return;
+      const q=applyHomography(H,p);
+      if(!q || !Number.isFinite(q.x) || !Number.isFinite(q.y)) return;
+      if(ytTrain.bolas.some(b=>{const r=applyHomography(H,b);return r && Math.hypot(q.x-r.x,q.y-r.y)<BALL_R;})) return;
+      ytTrain.candidato={x:p.x,y:p.y};
+    }
+  }
+
   function ytAbrirMarcado(frameCanvas){
     ytTrain.frameCanvas = frameCanvas;
+    ytSugerenciasBolas.frame = null;
     ytTrain.bolas = [];
     ytTrain.candidato = null;
     const calGuardada = ytLeerCalibracion(ytTrain.claveCal);
@@ -18284,6 +18392,7 @@ function drawStartMarks(){
       ytTrain.modo = 'corners';
     }
     ids('ytMarkOverlay').style.display = 'flex';
+    ytSugerirBolaPendiente();
     ytPintarMarcado();
   }
 
@@ -18562,6 +18671,7 @@ function drawStartMarks(){
         return;
       }
     }
+    ytSugerirBolaPendiente();
     ytPintarMarcado();
   }
 
@@ -20938,7 +21048,7 @@ function drawStartMarks(){
       if(!velo || velo.style.display === 'none' || !ytTrain.candidato) return;
       const paso = { ArrowUp:[0,-1], ArrowDown:[0,1], ArrowLeft:[-1,0], ArrowRight:[1,0] }[ev.key];
       if(paso){ ev.preventDefault(); ytMoverCandidato(paso[0], paso[1]); return; }
-      if(ev.key === 'Enter'){ ev.preventDefault(); ytConfirmarPunto(); }
+      if(ev.key === 'Enter'){ ev.preventDefault(); if(!ev.repeat) ytConfirmarPunto(); }
     });
     const cancel = ids('ytMarkCancel');
     if(cancel) cancel.addEventListener('click', () => {
@@ -20948,7 +21058,7 @@ function drawStartMarks(){
     const undo = ids('ytMarkUndo');
     if(undo) undo.addEventListener('click', () => {
       if(ytTrain.candidato){ ytTrain.candidato = null; }
-      else if(ytTrain.modo === 'balls' && ytTrain.bolas.length) ytTrain.bolas.pop();
+      else if(ytTrain.modo === 'balls' && ytTrain.bolas.length) ytTrain.candidato = {...ytTrain.bolas.pop()};
       else if(ytTrain.modo === 'corners' && ytTrain.esquinas.length) ytTrain.esquinas.pop();
       else if(ytTrain.modo === 'balls' && !ytTrain.bolas.length){
         ytTrain.modo = 'corners';
