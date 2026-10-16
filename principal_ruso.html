@@ -18260,7 +18260,63 @@ function drawStartMarks(){
   ];
 
   // Propuestas pendientes: nunca se transfieren a la mesa sin confirmar.
-  const ytSugerenciasBolas = {frame:null, clave:'', puntos:{}};
+  // Este perfil solo se usa al señalar bolas de una fuente compartida.
+  // Los detectores de cámara, grabación y trayectoria conservan sus criterios.
+  function ytEsPanoMagenta(r,g,b){
+    return r>65 && r>g*1.45 && b>g*1.25 && r>b*.88 && r-g>35;
+  }
+
+  function ytPerfilPano(data,w,h,poligono){
+    const hist=new Uint32Array(512), sumas=new Float64Array(512*3);
+    let total=0, dominante=0;
+    for(let y=2;y<h;y+=4) for(let x=2;x<w;x+=4){
+      if(!pointInPolygon(x+.5,y+.5,poligono)) continue;
+      const i=(y*w+x)*4,r=data[i],g=data[i+1],b=data[i+2];
+      const bin=((r>>5)<<6)|((g>>5)<<3)|(b>>5);
+      total++; hist[bin]++; sumas[bin*3]+=r; sumas[bin*3+1]+=g; sumas[bin*3+2]+=b;
+      if(hist[bin]>hist[dominante]) dominante=bin;
+    }
+    if(!total || !hist[dominante]) return null;
+    const n=hist[dominante],r=sumas[dominante*3]/n,g=sumas[dominante*3+1]/n,b=sumas[dominante*3+2]/n;
+    const suma=r+g+b;
+    if(suma<60 || (Math.max(r,g,b)-Math.min(r,g,b))/Math.max(r,g,b)<.25) return null;
+    const cr=r/suma,cg=g/suma,cb=b/suma;
+    let apoyo=0;
+    for(let bin=0;bin<hist.length;bin++){
+      const count=hist[bin];if(!count) continue;
+      const rr=sumas[bin*3]/count,gg=sumas[bin*3+1]/count,bb=sumas[bin*3+2]/count,s=rr+gg+bb;
+      if(s>45 && Math.hypot(rr/s-cr,gg/s-cg,bb/s-cb)<.13) apoyo+=count;
+    }
+    if(apoyo/total<.45) return null;
+    return {r,g,b,cr,cg,cb,magenta:ytEsPanoMagenta(r,g,b)};
+  }
+
+  function ytPixelDelPano(r,g,b,perfil){
+    if(!perfil) return false;
+    const s=r+g+b,max=Math.max(r,g,b),min=Math.min(r,g,b);
+    return s>45 && max-min>30 && (max-min)/max>.25 &&
+      Math.hypot(r/s-perfil.cr,g/s-perfil.cg,b/s-perfil.cb)<.11;
+  }
+
+  function ytColorBolaPanoMagenta(r,g,b){
+    const max=Math.max(r,g,b),min=Math.min(r,g,b),saturacion=max ? (max-min)/max : 0;
+    // El azul incluye luces y sombras del cobalto; nunca se busca en paño azul.
+    if(b>55 && b>r*1.12 && b>g*1.05 && b-r>15 && b-g>10) return 4;
+    // La blanca puede verse marfil. La amarilla debe conservar color suficiente,
+    // aunque sus reflejos sean blancos. Los reflejos aislados no forman una bola.
+    if(max>145 && min>100 && saturacion<.40 && Math.abs(r-g)<max*.24) return 1;
+    if(r>115 && g>75 && b<Math.min(r,g)*.78 && saturacion>=.40 && r+g-2*b>95) return 2;
+    return isRedBallPixel(r,g,b) ? 3 : 0;
+  }
+
+  function ytTerceraBolaAzul(){
+    return ytTrain.modo==='balls' && ytSugerenciasBolas.frame===ytTrain.frameCanvas &&
+      ytSugerenciasBolas.clave===ytTrain.esquinas.map(p=>p.x+','+p.y).join(';') &&
+      ytSugerenciasBolas.terceraAzul;
+  }
+
+
+  const ytSugerenciasBolas = {frame:null, clave:'', puntos:{}, terceraAzul:false, pano:null};
 
   function ytDetectarSugerenciasBolas(){
     const fc = ytTrain.frameCanvas, esquinas = ytTrain.esquinas;
@@ -18282,13 +18338,17 @@ function drawStartMarks(){
     // Radio físico aproximado; se toleran cambios de perspectiva y luz.
     const radioMesa = 6.15/2/TABLE_CM.W*TABLE.W;
     const colores = new Uint8Array(w*h), cola = new Int32Array(w*h);
-    const listas = {white:[], yellow:[], red:[]};
+    const listas = {white:[], yellow:[], red:[], blue:[]};
+    const pano=ytPerfilPano(data,w,h,poligono);
+    ytSugerenciasBolas.pano=pano;
     for(let y=0;y<h;y++) for(let x=0;x<w;x++){
       if(!pointInPolygon(x+.5,y+.5,poligono)) continue;
       const p=y*w+x, i=p*4, r=data[i], v=data[i+1], b=data[i+2];
-      colores[p] = isRedBallPixel(r,v,b) ? 3 : isYellowBallPixel(r,v,b) ? 2 : isWhiteBallPixel(r,v,b) ? 1 : 0;
+      if(ytPixelDelPano(r,v,b,pano)) continue;
+      colores[p] = pano && pano.magenta ? ytColorBolaPanoMagenta(r,v,b) :
+        isRedBallPixel(r,v,b) ? 3 : isYellowBallPixel(r,v,b) ? 2 : isWhiteBallPixel(r,v,b) ? 1 : 0;
     }
-    // Las tres familias de color se recorren juntas, sin releer la imagen.
+    // Todos los colores se recorren juntos, sin releer la imagen.
     for(let inicio=0;inicio<colores.length;inicio++){
       const color = colores[inicio];
       if(!color) continue;
@@ -18325,9 +18385,13 @@ function drawStartMarks(){
       const error=Math.abs(Math.log(proporcion))*.45 + Math.abs(Math.log(ax))*.35 +
         Math.abs(Math.log(ay))*.35 + Math.abs(relleno-Math.PI/4)*1.2;
       if(error>.65) continue;
-      const key=['','white','yellow','red'][color];
+      const key=['','white','yellow','red','blue'][color];
       listas[key].push({...punto, centro, error});
     }
+    // La azul del video ocupa la clave roja solo al transferir la posición.
+    // Si aparecen dos alternativas de tercer color, se conserva la elección manual.
+    ytSugerenciasBolas.terceraAzul=!!(pano && pano.magenta && listas.blue.length);
+    if(ytSugerenciasBolas.terceraAzul) listas.red=listas.red.length ? [] : listas.blue;
     const elegidas={};
     for(const key of ['white','yellow','red']){
       const lista=listas[key].sort((a,b)=>a.error-b.error);
@@ -18351,7 +18415,12 @@ function drawStartMarks(){
       ytSugerenciasBolas.frame=ytTrain.frameCanvas;
       ytSugerenciasBolas.clave=clave;
       ytSugerenciasBolas.puntos={};
-      try{ ytSugerenciasBolas.puntos=ytDetectarSugerenciasBolas(); }catch{}
+      ytSugerenciasBolas.terceraAzul=false;
+      ytSugerenciasBolas.pano=null;
+      try{ ytSugerenciasBolas.puntos=ytDetectarSugerenciasBolas(); }catch{
+        ytSugerenciasBolas.terceraAzul=false;
+        ytSugerenciasBolas.pano=null;
+      }
     }
     const key=YT_PASOS_BOLAS[ytTrain.bolas.length].key;
     const p=ytSugerenciasBolas.puntos[key];
@@ -18369,6 +18438,8 @@ function drawStartMarks(){
   function ytAbrirMarcado(frameCanvas){
     ytTrain.frameCanvas = frameCanvas;
     ytSugerenciasBolas.frame = null;
+    ytSugerenciasBolas.terceraAzul = false;
+    ytSugerenciasBolas.pano = null;
     ytTrain.bolas = [];
     ytTrain.candidato = null;
     const calGuardada = ytLeerCalibracion(ytTrain.claveCal);
@@ -18396,6 +18467,7 @@ function drawStartMarks(){
     if(ytTrain.modo === 'corners'){
       return 'Калибровка кадра (один раз) · коснитесь ' + YT_PASOS_ESQUINAS[ytTrain.esquinas.length];
     }
+    if(ytTrain.bolas.length===2 && ytTerceraBolaAzul()) return 'Коснитесь центра СИНЕГО шара';
     return 'Коснитесь центра ' + YT_PASOS_BOLAS[ytTrain.bolas.length].texto;
   }
 
@@ -18407,7 +18479,7 @@ function drawStartMarks(){
     if(ytTrain.modo === 'corners'){
       return ['#ff5a5a', '#ffd34d', '#ff5a5a', '#ffd34d'][Math.min(ytTrain.esquinas.length, 3)];
     }
-    const colores = { white:'#ffffff', yellow:'#ffd34d', red:'#ff5a5a' };
+    const colores = { white:'#ffffff', yellow:'#ffd34d', red:ytTerceraBolaAzul() ? '#80baff' : '#ff5a5a' };
     return colores[YT_PASOS_BOLAS[Math.min(ytTrain.bolas.length, 2)].key];
   }
 
@@ -18448,6 +18520,7 @@ function drawStartMarks(){
       if(++hist[bin]>hist[dominante]) dominante=bin;
     }
     const r0=((dominante>>6)&7)*32+16, g0=((dominante>>3)&7)*32+16, b0=(dominante&7)*32+16;
+    const panoMagenta=ytEsPanoMagenta(r0,g0,b0);
     const suma = new Uint32Array((w+1)*(h+1));
     for(let y=0;y<h;y++){
       let fila=0;
@@ -18459,7 +18532,7 @@ function drawStartMarks(){
         const amarillo=r>135 && v>95 && b<Math.min(r,v)*.75;
         const rojo=r>80 && r>v*1.4 && r>b*1.2;
         const distinto=(r-r0)**2+(v-g0)**2+(b-b0)**2>70**2;
-        if(!dentro[i] || blanco || amarillo || rojo || distinto) fila++;
+        if(!dentro[i] || blanco || amarillo || (rojo && !panoMagenta) || distinto) fila++;
         suma[(y+1)*(w+1)+x+1]=suma[y*(w+1)+x+1]+fila;
       }
     }
@@ -18473,7 +18546,7 @@ function drawStartMarks(){
     const mapa=ytMapaRotuloMarcado();
     if(!mapa) return false;
     const paso=YT_PASOS_BOLAS[Math.min(ytTrain.bolas.length,2)];
-    const texto={white:"БЕЛЫЙ",yellow:"ЖЁЛТЫЙ",red:"КРАСНЫЙ"}[paso.key];
+    const texto={white:'БЕЛЫЙ',yellow:'ЖЁЛТЫЙ',red:ytTerceraBolaAzul() ? 'СИНИЙ' : 'КРАСНЫЙ'}[paso.key];
     const lbl=ids('ytMarkLabel'), pantalla=cv.getBoundingClientRect();
     const escala=(pantalla.width-2)/cv.width;
     if(escala<=0) return false;
@@ -18594,7 +18667,7 @@ function drawStartMarks(){
       for(let i = 1; i < 4; i++) ctx2.lineTo(ytTrain.esquinas[i].x, ytTrain.esquinas[i].y);
       ctx2.closePath(); ctx2.stroke();
     }
-    const colores = { white:'#ffffff', yellow:'#ffd34d', red:'#ff5a5a' };
+    const colores = { white:'#ffffff', yellow:'#ffd34d', red:ytTerceraBolaAzul() ? '#80baff' : '#ff5a5a' };
     for(let i = 0; i < ytTrain.bolas.length; i++){
       const b = ytTrain.bolas[i];
       ctx2.strokeStyle = colores[YT_PASOS_BOLAS[i].key];
