@@ -21051,7 +21051,7 @@ function drawStartMarks(){
           // Relleno tenue en el color propio de la bola; el reborde y
           // sus avisos de proximidad conservan su dibujo original.
           g.save();
-          g.globalAlpha = 0.20;
+          g.globalAlpha = 0.50;
           g.fillStyle = YT_COLORES_BOLA[o.key];
           g.beginPath(); g.arc(o.x, o.y, o.r * 1.5 - 1.5, 0, Math.PI * 2); g.fill();
           g.restore();
