@@ -21062,6 +21062,13 @@ function drawStartMarks(){
           // falta, ámbar sólido cuando está casi, verde sólido y pip
           // cuando quedó exacta.
           const tinte = puesta ? '#37e37c' : (cerca ? '#ffb347' : YT_COLORES_BOLA[o.key]);
+          // Relleno tenue en el color propio de la bola; el reborde y
+          // sus avisos de proximidad conservan su dibujo original.
+          g.save();
+          g.globalAlpha = 0.50;
+          g.fillStyle = YT_COLORES_BOLA[o.key];
+          g.beginPath(); g.arc(o.x, o.y, o.r * 1.5 - 1.5, 0, Math.PI * 2); g.fill();
+          g.restore();
           g.lineWidth = Math.max(4, cw / 260);
           g.setLineDash(puesta || cerca ? [] : [14, 10]);
           g.strokeStyle = 'rgba(0,0,0,.65)';
