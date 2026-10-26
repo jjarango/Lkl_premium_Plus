@@ -2030,9 +2030,9 @@
 <summary style="cursor:pointer;">Teclado y carpeta de exportación</summary>
 <p class="small">Los atajos funcionan con la pestaña de la app seleccionada, también con la voz silenciada. No actúan mientras escribe en un campo o utiliza un selector.</p>
 <p class="small">G: grabar otra jugada o abrir la cámara. 1 / 2 / 3: cuenta de 5 / 10 / 15 segundos. D: detener. DD: detener y volver a colocar (dos pulsaciones dentro de un segundo). R: reproducir. E: exportar con datos a la carpeta elegida. O: guardar sin datos (Original) en la misma carpeta. V: volver a colocar. C: capturar mesa. M: silenciar o activar voz. T: seguimiento de la trayectoria. Espacio: pausar o continuar. L: velocidad normal, media o un cuarto. X: cerrar la ventana de video o la pantalla de colocación, una por pulsación. Esc también cierra la ventana de video.</p>
-<button id="tecladoCarpetaBtn" type="button" style="width:100%;">Elegir carpeta de exportación para E y O</button>
+<button id="tecladoCarpetaBtn" type="button" style="width:100%;">Elegir o cambiar carpeta de exportación</button>
 <p id="tecladoCarpetaEstado" class="small" role="status" aria-live="polite" style="margin:8px 0; overflow-wrap:anywhere;">Sin carpeta elegida.</p>
-<p class="small">Autorice la carpeta una vez. Mientras el permiso siga vigente, E y O guardarán allí cada video al terminar la exportación, sin otra confirmación y sin sobrescribir los anteriores. Mantenga la pestaña visible durante la exportación.</p>
+<p class="small">Autorice la carpeta una vez. Los botones «Descargar con datos» y «Descargar sin datos», y los atajos E y O, comparten esta carpeta. Mientras el permiso siga vigente, todas las exportaciones se guardarán allí sin volver a elegirla y sin sobrescribir los videos anteriores. Mantenga la pestaña visible durante la exportación.</p>
 </details>
 <details id="ytVozHistorialPanel" style="margin-top:10px;">
 <summary style="cursor:pointer;">Historial de órdenes de voz</summary>
@@ -18102,10 +18102,10 @@ function drawStartMarks(){
     });
 
     const exportBtn = ids('videoReplayExportBtn');
-    if(exportBtn) exportBtn.addEventListener('click', exportVideoReplayWithOverlay);
+    if(exportBtn) exportBtn.addEventListener('click', () => tecladoExportar());
 
     const downloadBtn = ids('videoReplayDownloadBtn');
-    if(downloadBtn) downloadBtn.addEventListener('click', () => exportVideoReplayWithOverlay({sinDatos:true}));
+    if(downloadBtn) downloadBtn.addEventListener('click', () => tecladoExportar(true));
   }
 
 
@@ -20137,6 +20137,9 @@ function drawStartMarks(){
           iniciada = !v.paused;
         }
         mensaje = 'Reproduciendo la jugada.';
+      } else if(orden.accion === 'descargar'){
+        iniciada = !!(await tecladoExportar());
+        mensaje = 'Exportación con datos iniciada.';
       } else {
         const grabador = videoReplay.recorder;
         boton.click();
@@ -20145,8 +20148,6 @@ function drawStartMarks(){
           mensaje = 'Grabación detenida; preparando la revisión.';
         } else if(orden.accion === 'grabarOtra'){
           iniciada = videoReplay.mode === 'record'; mensaje = 'Preparando otra grabación.';
-        } else if(orden.accion === 'descargar'){
-          iniciada = !!videoReplay.exporting; mensaje = 'Exportación con datos iniciada.';
         } else if(orden.accion === 'grabarEn'){
           iniciada = !!(videoReplay.countdownUntil || videoReplay.anunciando || (videoReplay.recorder && videoReplay.recorder.state === 'recording'));
           mensaje = 'Cuenta de ' + orden.seg + ' segundos iniciada.';
@@ -21340,8 +21341,8 @@ function drawStartMarks(){
     const estado=ids('tecladoCarpetaEstado'), boton=ids('tecladoCarpetaBtn');
     if(boton) boton.disabled=tecladoExportacion.ocupado;
     if(estado) estado.textContent=mensaje || (tecladoExportacion.carpeta
-      ? 'Carpeta para E y O: '+tecladoExportacion.carpeta.name+'. '+(tecladoExportacion.memoria?'Queda recordada en este navegador; Chrome puede pedir renovar el permiso.':'Disponible durante esta sesión.')
-      : 'Sin carpeta elegida. Selecciónela aquí o al pulsar E u O por primera vez.');
+      ? 'Carpeta de exportación (botones, E y O): '+tecladoExportacion.carpeta.name+'. '+(tecladoExportacion.memoria?'Queda recordada en este navegador; Chrome puede pedir renovar el permiso.':'Disponible durante esta sesión.')
+      : 'Sin carpeta elegida. Selecciónela aquí o al iniciar la primera exportación.');
   }
   function tecladoCarpetaMemoria(carpeta){
     return new Promise((resolve,reject)=>{
@@ -21363,7 +21364,7 @@ function drawStartMarks(){
     });
   }
   async function tecladoCarpetaObtener(cambiar=false){
-    if(typeof window.showDirectoryPicker!=='function') throw new Error('Para guardar con E u O en una carpeta, abra la app en Chrome o Edge. Los botones de descarga siguen disponibles.');
+    if(typeof window.showDirectoryPicker!=='function') throw new Error('Para elegir y recordar la carpeta de exportación, abra la app en Chrome o Edge.');
     if(tecladoExportacion.cargando) await tecladoExportacion.cargando;
     let carpeta=tecladoExportacion.carpeta;
     if(cambiar || !carpeta){
@@ -21372,7 +21373,7 @@ function drawStartMarks(){
       tecladoExportacion.carpeta=carpeta; tecladoExportacion.memoria=false;
       try{await tecladoCarpetaMemoria(carpeta);tecladoExportacion.memoria=true;}catch{}
     }else if(await carpeta.queryPermission({mode:'readwrite'})!=='granted'){
-      if(await carpeta.requestPermission({mode:'readwrite'})!=='granted') throw new Error('Autorice la escritura en la carpeta elegida para guardar con E u O.');
+      if(await carpeta.requestPermission({mode:'readwrite'})!=='granted') throw new Error('Autorice la escritura en la carpeta de exportación elegida.');
     }
     tecladoCarpetaUi(); return carpeta;
   }
@@ -21421,10 +21422,11 @@ function drawStartMarks(){
     const url=videoReplay.blobUrl;
     tecladoExportacion.ocupado=true;tecladoCarpetaUi();
     try{
-      // E y O comparten la misma carpeta y el mismo permiso recordado.
+      // Los dos botones y E/O comparten la misma carpeta y el mismo permiso.
       const carpeta=await tecladoCarpetaObtener();
       if(!tecladoRevision() || videoReplay.blobUrl!==url || videoReplay.exporting || boton.disabled) return;
       await exportVideoReplayWithOverlay({carpeta,sinDatos});
+      return !!videoReplay.exporting;
     }catch(error){if(error.name!=='AbortError') tecladoAvisar(tecla,error.message,'warn');}
     finally{tecladoExportacion.ocupado=false;tecladoCarpetaUi();}
   }
