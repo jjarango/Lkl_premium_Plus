@@ -2029,10 +2029,10 @@
 <details id="tecladoAyuda" style="margin-top:10px;">
 <summary style="cursor:pointer;">Klavye ve dışa aktarma klasörü</summary>
 <p class="small">Uygulama sekmesi seçiliyken, sesli komutlar kapalı olsa da kısayollar çalışır. Bir alana yazarken veya açılır listeyi kullanırken çalışmazlar.</p>
-<p class="small">G: başka bir vuruş kaydet veya kamerayı aç. 1 / 2 / 3: 5 / 10 / 15 saniyelik geri sayım. D: kaydı durdur. DD: kaydı durdur ve topları yeniden yerleştir (bir saniye içinde iki kez basın). R: oynat. E: verilerle birlikte seçilen klasöre aktar. V: topları yeniden yerleştir. C: masanın görüntüsünü al. M: sesli komutları kapat veya aç. T: yörünge takibi. Boşluk: duraklat veya devam et. L: normal, yarım veya çeyrek hız. X: video penceresini ya da yerleştirme ekranını her basışta bir tane kapat. Esc de video penceresini kapatır.</p>
-<button id="tecladoCarpetaBtn" type="button" style="width:100%;">E için dışa aktarma klasörü seç</button>
+<p class="small">G: başka bir vuruş kaydet veya kamerayı aç. 1 / 2 / 3: 5 / 10 / 15 saniyelik geri sayım. D: kaydı durdur. DD: kaydı durdur ve topları yeniden yerleştir (bir saniye içinde iki kez basın). R: oynat. E: verilerle birlikte seçilen klasöre aktar. O: aynı klasöre verisiz kaydet (Original). V: topları yeniden yerleştir. C: masanın görüntüsünü al. M: sesli komutları kapat veya aç. T: yörünge takibi. Boşluk: duraklat veya devam et. L: normal, yarım veya çeyrek hız. X: video penceresini ya da yerleştirme ekranını her basışta bir tane kapat. Esc de video penceresini kapatır.</p>
+<button id="tecladoCarpetaBtn" type="button" style="width:100%;">Dışa aktarma klasörünü seç veya değiştir</button>
 <p id="tecladoCarpetaEstado" class="small" role="status" aria-live="polite" style="margin:8px 0; overflow-wrap:anywhere;">Klasör seçilmedi.</p>
-<p class="small">Klasöre bir kez erişim izni verin. İzin geçerli olduğu sürece E, dışa aktarma bitince her videoyu ek onay istemeden ve önceki dosyaların üzerine yazmadan buraya kaydeder. Dışa aktarma sırasında bu sekmeyi görünür tutun.</p>
+<p class="small">Klasöre erişim iznini bir kez verin. “Verilerle indir” ve “Verisiz indir” düğmeleri ile E ve O kısayolları aynı klasörü kullanır. İzin geçerli olduğu sürece tüm videolar, klasörü yeniden seçmeniz gerekmeden ve önceki videoların üzerine yazılmadan bu klasöre kaydedilir. Dışa aktarma sırasında bu sekmeyi görünür tutun.</p>
 </details>
 <details id="ytVozHistorialPanel" style="margin-top:10px;">
 <summary style="cursor:pointer;">Sesli komut geçmişi</summary>
@@ -2183,7 +2183,7 @@
 <label style="display:flex; gap:8px; align-items:center; cursor:pointer;"><input checked="" id="videoReplayShowGuide" style="width:auto" type="checkbox"/> <span class="small">Pozisyon verilerini bindir</span></label>
 <div class="videoReplayRow">
 <button id="videoReplayAgainBtn" type="button">Başka bir pozisyon kaydet</button>
-<button id="videoReplayDownloadBtn" type="button">Orijinal videoyu indir</button>
+<button id="videoReplayDownloadBtn" title="O: seçilen klasöre verisiz kaydet (Original)" aria-keyshortcuts="O" type="button">Verisiz indir</button>
 </div>
 <div class="videoReplayRow">
 <button class="cameraCaptureBtn" id="videoReplayExportBtn" style="margin:0" type="button">Verilerle indir</button>
@@ -15626,8 +15626,7 @@ function drawStartMarks(){
   // Homografía de la salida rectificada (normalizada, arriba-abajo) al
   // video sin distorsión, en el espacio girado donde viven las
   // esquinas calibradas.
-  function rectifiedOutputHomography(cw, ch){
-    const calib = videoReplay.calib;
+  function rectifiedOutputHomography(cw, ch, calib = videoReplay.calib){
     if(!calib || !Array.isArray(calib.corners) || calib.corners.length < 4) return null;
     const k1 = Number.isFinite(calib.k1) ? calib.k1 : 0;
     const R = rectifiedClothRect(cw, ch);
@@ -17420,7 +17419,7 @@ function drawStartMarks(){
       if(videoReplayTrace.enabled) videoReplayTraceAnalyze();else videoReplayTraceUi();
     }catch(error){
       if(error.name!=='AbortError' && valid()){
-        videoReplay.recordingIssue="Kaydın tam olduğu doğrulanamadı. Kontrol etmek için orijinal kaydı indirebilirsiniz.";
+        videoReplay.recordingIssue="Kaydın tamamlandığı doğrulanamadı. Dışa aktarmadan önce yeniden kaydedin.";
         setVideoReplayStatus(videoReplay.recordingIssue,'bad');
       }
     }finally{check.pending=false;}
@@ -17666,9 +17665,10 @@ function drawStartMarks(){
     if(!silent) setVideoReplayStatus("Dışa aktarma iptal edildi.");
   }
 
-  function setVideoReplayExportUi(busy){
-    const exportBtn=ids('videoReplayExportBtn');
-    if(exportBtn){exportBtn.disabled=busy;exportBtn.textContent=busy?'Exportando…':"Verilerle indir";}
+  function setVideoReplayExportUi(busy, withData=true){
+    const exportBtn=ids('videoReplayExportBtn'), cleanBtn=ids('videoReplayDownloadBtn');
+    if(exportBtn){exportBtn.disabled=busy;exportBtn.textContent=busy&&withData?"Dışa aktarılıyor…":"Verilerle indir";}
+    if(cleanBtn) cleanBtn.textContent=busy&&!withData?"Dışa aktarılıyor…":"Verisiz indir";
     for(const id of ['videoReplayAgainBtn','videoReplayDownloadBtn','videoReplayPlayBtn','videoReplayStepBack','videoReplayStepFwd','videoReplayScrub','videoReplaySpeed']){
       const el=ids(id);if(el) el.disabled=busy;
     }
@@ -17682,17 +17682,16 @@ function drawStartMarks(){
     videoReplayRender.last=null;videoReplayTraceUi();
   }
 
-  // Exportación posterior: reproduce internamente la grabación y la vuelve a
-  // codificar cuadro a cuadro con la orientación corregida y la superposición
-  // incrustada (marco, diamantes, anillos de bolas, trayectoria y Ataque),
-  // conservando el audio original. Ocurre en tiempo real: un video de 30 s
-  // tarda unos 30 s. La pestaña debe permanecer visible mientras termina.
+  // El archivo original queda intacto. La exportación sigue a cada imagen
+  // decodificada, captura el cuadro ya compuesto y verifica el resultado.
   async function exportVideoReplayWithOverlay(opciones){
     const carpeta=opciones && opciones.carpeta;
+    const withData=!(opciones && opciones.sinDatos === true);
+    const actionLabel=withData?"Verilerle indir":"Verisiz indir";
     if(videoReplay.exporting) return;
     if(videoReplay.recordingCheck && videoReplay.recordingCheck.pending){setVideoReplayStatus("Kayıt kontrolünün bitmesini bekleyin.");return;}
-    if(videoReplay.recordingIssue){setVideoReplayStatus(videoReplay.recordingIssue+" Kontrol etmek için orijinal kaydı indirin veya yeniden kaydedin.",'bad');return;}
-    if(videoReplayTrace.enabled && videoReplay.blobUrl){
+    if(videoReplay.recordingIssue){setVideoReplayStatus(videoReplay.recordingIssue+" Dışa aktarmadan önce yeniden kaydedin.",'bad');return;}
+    if(withData && videoReplayTrace.enabled && videoReplay.blobUrl){
       if(videoReplayTrace.status==='choice'){setVideoReplayStatus("Gerçek yörünge bölümünden topu seçin veya yörünge olmadan indirmek için izlemeyi kapatın.");return;}
       if(videoReplayTrace.busy){setVideoReplayStatus("Dışa aktarmadan önce yörünge analizinin tamamlanmasını bekleyin.");return;}
       if(videoReplayTrace.url!==videoReplay.blobUrl || videoReplayTrace.status!=='ready'){
@@ -17701,11 +17700,11 @@ function drawStartMarks(){
       }
     }
     if(!videoReplay.blobUrl){setVideoReplayStatus("Dışa aktarılacak kayıt yok.",'bad');return;}
-    if(!(videoReplay.calib && videoReplay.calib.corners)){setVideoReplayStatus("Kayıtlı kalibrasyon yok: veriler gömülemez.",'bad');return;}
+    if(!(videoReplay.calib && videoReplay.calib.corners)){setVideoReplayStatus("Kayıtlı kalibrasyon yok: düzeltilmiş görüntüyü dışa aktarmadan önce kamerayı kalibre edin.",'bad');return;}
     if(!window.MediaRecorder){setVideoReplayStatus("Bu tarayıcı videoyu yeniden kodlamaya izin vermiyor. Güncel bir Chrome veya Edge sürümü kullanın.",'bad');return;}
     if(document.hidden){setVideoReplayStatus("Videonun tamamını dışa aktarmak için bu sekmeyi görünür tutun.",'bad');return;}
     const playback=ids('videoReplayPlayback');if(playback) playback.pause();
-    const traceForExport={...videoReplayTrace},url=videoReplay.blobUrl;
+    const traceForExport=withData?{...videoReplayTrace}:{enabled:false,points:[]},url=videoReplay.blobUrl;
     const controller=new AbortController(),signal=controller.signal;
     const srcVideo=document.createElement('video');srcVideo.muted=false;srcVideo.volume=1;
     let recorder=null,canvasStream=null,combined=null,sourceNode=null,destNode=null;
@@ -17733,9 +17732,9 @@ function drawStartMarks(){
     };
     const fail=message=>{if(disposed) return;cleanup();if(message) setVideoReplayStatus(message+" Orijinal kayıt korunuyor.",'bad');};
     job.cancel=message=>{cleanup();if(message) setVideoReplayStatus(message);};
-    const visibility=()=>{if(document.hidden) fail("Sekme gizlendiği için dışa aktarma kesildi. Yeniden “Verilerle indir” düğmesine basın ve bu sekmeyi görünür tutun.");};
+    const visibility=()=>{if(document.hidden) fail("Sekme gizlendiği için dışa aktarma kesildi. “"+actionLabel+"” düğmesine tekrar basın ve bu sekmeyi görünür tutun.");};
     videoReplay.exportJob=job;videoReplay.exportVideoEl=srcVideo;videoReplay.exporting=true;
-    setVideoReplayExportUi(true);setVideoReplayStatus("Dışa aktarma hazırlanıyor…");
+    setVideoReplayExportUi(true,withData);setVideoReplayStatus("Dışa aktarma hazırlanıyor…");
     document.addEventListener('visibilitychange',visibility);
     try{
       const total=await videoReplayPrepareFile(srcVideo,url,signal);
@@ -17744,8 +17743,8 @@ function drawStartMarks(){
       const exportCanvas=document.createElement('canvas');exportCanvas.width=vw;exportCanvas.height=vh;
       const g=exportCanvas.getContext('2d',{alpha:false});
       // Los datos planeados son estáticos. Se calculan una vez y se reutilizan.
-      const guide=document.createElement('canvas');guide.width=vw;guide.height=vh;
-      drawVideoReplayOverlay(guide.getContext('2d'),vw,vh,{route:true,handles:false});
+      const guide=withData?document.createElement('canvas'):null;
+      if(guide){guide.width=vw;guide.height=vh;drawVideoReplayOverlay(guide.getContext('2d'),vw,vh,{route:true,handles:false});}
       const rectify=videoReplayRectifyActive(),dewarp=videoReplayDewarpActive();
       const Hh=rectify?rectifiedOutputHomography(vw,vh):null,k1=Number.isFinite(videoReplay.calib.k1)?videoReplay.calib.k1:0;
       const rectifier=rectify?getVideoRectifier('exportacion'):null,warper=dewarp?getVideoDewarper('exportacion'):null;
@@ -17779,7 +17778,7 @@ function drawStartMarks(){
           if(dewarp && warper.ok){warper.render(srcVideo,vw,vh,k1,vw/vh);picture=warper.canvas;traceView='dewarped';}
           g.save();g.translate(vw,vh);g.rotate(Math.PI);g.drawImage(picture,0,0,vw,vh);g.restore();
         }
-        g.drawImage(guide,0,0);drawVideoReplayTrace(g,vw,vh,time,traceView,traceForExport);
+        if(withData){g.drawImage(guide,0,0);drawVideoReplayTrace(g,vw,vh,time,traceView,traceForExport);}
         requestFrame();paintMs+=performance.now()-began;
       };
       draw(0);
@@ -17804,20 +17803,20 @@ function drawStartMarks(){
           if(disposed) return;
           videoReplay.lastExportCheck={sourceDuration:total,outputDuration:verified.duration,samples:verified.samples,frames:frameCount,maxGap,paintMs};
           const mp4=/mp4/i.test(type),stamp=new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
-          const nombre="pozisyon-verilerle-"+stamp+(mp4?'.mp4':'.webm');
+          const nombre=(withData?"pozisyon-verilerle-":"pozisyon-verisiz-")+stamp+(mp4?'.mp4':'.webm');
           if(carpeta){
             phase='saving';document.removeEventListener('visibilitychange',visibility);
             setVideoReplayStatus("Tam video şu klasöre kaydediliyor: "+carpeta.name+'…');
             const guardado=await tecladoGuardarExportacion(carpeta,blob,nombre,signal);
             if(disposed) return;
-            tecladoAvisar('E',"Video şu klasöre kaydedildi: "+carpeta.name+': '+guardado,'good');
+            tecladoAvisar(withData?'E':'O',"Video şu klasöre kaydedildi: "+carpeta.name+': '+guardado,'good');
           }else{
             const output=URL.createObjectURL(blob),a=document.createElement('a');
             a.href=output;a.download=nombre;document.body.appendChild(a);a.click();a.remove();
             setTimeout(()=>URL.revokeObjectURL(output),60000);
           }
           cleanup();ytgTimbreListo();
-          setVideoReplayStatus((carpeta?"Video şu klasöre kaydedildi: "+carpeta.name+" / biçim: ":"Video şu biçimde indirildi: ")+(mp4?'MP4':'WebM')+(traceForExport.enabled&&traceForExport.points.length>1?". İzlenen topun gerçek yörüngesi aşamalı olarak gösterilir ve veriler videonun üzerine eklenir.":" üstüne eklenen verilerle birlikte.")+" Başlangıç, son ve süre doğrulandı.",'good');
+          setVideoReplayStatus((carpeta?"Video şu klasöre kaydedildi: "+carpeta.name+" / biçim: ":"Video şu biçimde indirildi: ")+(mp4?'MP4':'WebM')+(!withData?" düzeltilmiş görüntüyle, veri katmanı olmadan.":traceForExport.enabled&&traceForExport.points.length>1?". İzlenen topun gerçek yörüngesi aşamalı olarak gösterilir ve veriler videonun üzerine eklenir.":" üstüne eklenen verilerle birlikte.")+" Başlangıç, son ve süre doğrulandı.",'good');
         }catch(error){if(error.name!=='AbortError') fail(error.message);}
       };
       const onFrame=(now,meta)=>{
@@ -17829,7 +17828,7 @@ function drawStartMarks(){
             if(gap>.35) throw new Error("Dışa aktarma sırasında bir kare dizisi kayboldu. Diğer video işlemlerini durdurup yeniden deneyin.");
             draw(time);lastTime=time;lastFrameAt=performance.now();frameCount++;
           }
-          if(performance.now()-lastUi>250){lastUi=performance.now();setVideoReplayStatus("Verilerle dışa aktarılıyor… "+Math.min(99,Math.round(srcVideo.currentTime/total*100))+" %. Bu sekmeyi görünür tutun.");}
+          if(performance.now()-lastUi>250){lastUi=performance.now();setVideoReplayStatus((withData?"Verilerle dışa aktarılıyor… ":"Verisiz dışa aktarılıyor… ")+Math.min(99,Math.round(srcVideo.currentTime/total*100))+" %. Bu sekmeyi görünür tutun.");}
           if(nativeFrames) frameHandle=srcVideo.requestVideoFrameCallback(onFrame);else rafHandle=requestAnimationFrame(now=>onFrame(now,null));
         }catch(error){fail(error.message);}
       };
@@ -18096,24 +18095,10 @@ function drawStartMarks(){
     });
 
     const exportBtn = ids('videoReplayExportBtn');
-    if(exportBtn) exportBtn.addEventListener('click', exportVideoReplayWithOverlay);
+    if(exportBtn) exportBtn.addEventListener('click', () => tecladoExportar());
 
     const downloadBtn = ids('videoReplayDownloadBtn');
-    if(downloadBtn) downloadBtn.addEventListener('click', () => {
-      if(!videoReplay.blobUrl){
-        setVideoReplayStatus("İndirilecek kayıt yok.", 'bad');
-        return;
-      }
-      const a = document.createElement('a');
-      const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-      a.href = videoReplay.blobUrl;
-      a.download = `pozisyon-tavan-${stamp}.` + (/mp4/i.test(videoReplay.blobType) ? 'mp4' : 'webm');
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      if(videoReplay.recordingIssue){ setVideoReplayStatus("Orijinal kayıt kontrol için indirildi. Uyarı: " + videoReplay.recordingIssue, 'bad'); return; }
-      setVideoReplayStatus("Orijinal video sesiyle indirildi. Kameranın yönünü korur (180° döndürülmüş) ve hiçbir bindirme içermez. Düzeltilmiş yön ve gömülü verilerle bir dosya için Verilerle indir'i kullanın.", 'good');
-    });
+    if(downloadBtn) downloadBtn.addEventListener('click', () => tecladoExportar(true));
   }
 
 
@@ -20158,6 +20143,9 @@ function drawStartMarks(){
           iniciada = !v.paused;
         }
         mensaje = "Vuruş oynatılıyor.";
+      } else if(orden.accion === 'descargar'){
+        iniciada = !!(await tecladoExportar());
+        mensaje = "Verilerle dışa aktarma başladı.";
       } else {
         const grabador = videoReplay.recorder;
         boton.click();
@@ -20166,8 +20154,6 @@ function drawStartMarks(){
           mensaje = "Kayıt durduruldu; inceleme hazırlanıyor.";
         } else if(orden.accion === 'grabarOtra'){
           iniciada = videoReplay.mode === 'record'; mensaje = "Yeni kayıt hazırlanıyor.";
-        } else if(orden.accion === 'descargar'){
-          iniciada = !!videoReplay.exporting; mensaje = "Verilerle dışa aktarma başladı.";
         } else if(orden.accion === 'grabarEn'){
           iniciada = !!(videoReplay.countdownUntil || videoReplay.anunciando || (videoReplay.recorder && videoReplay.recorder.state === 'recording'));
           mensaje = "Geri sayım başladı: " + orden.seg + " saniye.";
@@ -20692,16 +20678,67 @@ function drawStartMarks(){
     if(el){ el.style.display = msg ? '' : 'none'; el.textContent = msg || ''; }
   }
 
-  // Homografía mesa -> píxel del video crudo, con las esquinas de la
-  // calibración de la superposición. Para colocar bolas la precisión
-  // de la homografía plana sobra: la tolerancia del pip es de bola y
-  // media, muy por encima de la distorsión residual del lente.
-  function ytgHomografia(cw, ch){
+  // Imagen limpia de colocación: mismos ajustes y mismos renderizadores que
+  // la revisión/exportación. El detector, las letras y la lupa leen este
+  // cuadro ANTES de dibujar círculos, para que las marcas no detecten bolas.
+  const ytgVista = {canvas:null, video:null, frame:null, key:'', geometryKey:'', H:null, mode:'raw', version:0};
+
+  function ytgHomografia(cw, ch, calib, mode){
+    if(!calib || !Array.isArray(calib.corners) || calib.corners.length < 4) return null;
+    const src = [{x:0,y:0},{x:TABLE.W,y:0},{x:TABLE.W,y:TABLE.H},{x:0,y:TABLE.H}];
+    let dst;
+    if(mode === 'rectified'){
+      const R = rectifiedClothRect(cw, ch);
+      dst = [{x:R.x,y:R.y},{x:R.x+R.w,y:R.y},{x:R.x+R.w,y:R.y+R.h},{x:R.x,y:R.y+R.h}];
+    }else{
+      dst = calib.corners.slice(0,4).map(p => {
+        const q = mode === 'dewarped' ? videoUndistortPoint(p, calib.k1, cw/ch) : p;
+        return {x:q.x*cw, y:q.y*ch};
+      });
+    }
+    return homographyFromFourPoints(src, dst);
+  }
+
+  function ytgCuadroCorregido(v, cw, ch){
+    if(!v || !cw || !ch || v.readyState < 2) return null;
     const calib = loadVideoCalibration();
     if(!calib) return null;
-    const src = [{x:0,y:0},{x:TABLE.W,y:0},{x:TABLE.W,y:TABLE.H},{x:0,y:TABLE.H}];
-    const dst = calib.corners.map(p => ({ x:p.x*cw, y:p.y*ch }));
-    return homographyFromFourPoints(src, dst);
+    const key = JSON.stringify([cw,ch,calib.corners,calib.k1,calib.dewarp,calib.rectified]);
+    const quality = v.getVideoPlaybackQuality ? v.getVideoPlaybackQuality() : null;
+    const frame = quality && quality.totalVideoFrames > 0 ? quality.totalVideoFrames : v.currentTime;
+    if(ytgVista.video === v && ytgVista.frame === frame && ytgVista.key === key && ytgVista.H) return ytgVista;
+    const canvas = ytgVista.canvas || (ytgVista.canvas = document.createElement('canvas'));
+    if(canvas.width !== cw || canvas.height !== ch){canvas.width=cw;canvas.height=ch;}
+    const g = canvas.getContext('2d', {alpha:false});
+    g.setTransform(1,0,0,1,0,0);g.fillStyle='#05070a';g.fillRect(0,0,cw,ch);
+    let mode='raw', painted=false;
+    if(calib.rectified){
+      const rc=getVideoRectifier('colocacion'), Hh=rectifiedOutputHomography(cw,ch,calib);
+      if(rc.ok && Hh){
+        try{
+          rc.render(v,cw,ch,Number.isFinite(calib.k1)?calib.k1:0,cw/ch,Hh);
+          g.drawImage(rc.canvas,0,0,cw,ch);painted=true;mode='rectified';
+        }catch{}
+      }
+    }
+    if(!painted){
+      let picture=v;
+      if(calib.dewarp && Number.isFinite(calib.k1)){
+        const dw=getVideoDewarper('colocacion');
+        if(dw.ok){try{dw.render(v,cw,ch,calib.k1,cw/ch);picture=dw.canvas;mode='dewarped';}catch{}}
+      }
+      g.save();g.translate(cw,ch);g.rotate(Math.PI);g.drawImage(picture,0,0,cw,ch);g.restore();
+    }
+    const geometryKey=key+'|'+mode;
+    if(ytgVista.geometryKey && ytgVista.geometryKey !== geometryKey){
+      // Una nueva calibración o resolución invalida mediciones en píxeles anteriores.
+      ytGuia.puestas={};ytGuia.firmes={};ytGuia.ausencias={};ytGuia.cerca={};ytGuia.desvios={};
+      ytGuia.centroides={};ytGuia.cercaDesde={};ytGuia.festejos={};ytGuia.gloria=0;
+      if(ytGuia.cierre){clearTimeout(ytGuia.cierre);ytGuia.cierre=0;}
+    }
+    ytgVista.video=v;ytgVista.frame=frame;ytgVista.key=key;ytgVista.geometryKey=geometryKey;
+    ytgVista.H=ytgHomografia(cw,ch,calib,mode);ytgVista.mode=mode;ytgVista.version++;
+    return ytgVista;
   }
 
   // Objetivos en píxeles del video: centro y radio proyectados de la
@@ -20813,7 +20850,8 @@ function drawStartMarks(){
   function ytgMuestrear(){
     if(!ytGuia.activa || !ytGuia.video || !ytGuia.video.videoWidth) return;
     const v = ytGuia.video, cw = v.videoWidth, ch = v.videoHeight;
-    const H = ytgHomografia(cw, ch);
+    const vista = ytgCuadroCorregido(v, cw, ch);
+    const H = vista && vista.H;
     const objetivos = H && ytgObjetivos(H, cw, ch);
     if(!objetivos) return;
     if(!ytGuia.lector){
@@ -20822,13 +20860,8 @@ function drawStartMarks(){
     const lc = ytGuia.lector;
     lc.width = cw; lc.height = ch;
     const g2 = lc.getContext('2d', { willReadFrequently:true });
-    // Giro de 180°, igual que toda la tubería de cámara de la casa: la
-    // calibración de la superposición vive en el mundo girado.
-    g2.save();
-    g2.translate(cw, ch);
-    g2.rotate(Math.PI);
-    g2.drawImage(v, 0, 0);
-    g2.restore();
+    // Medir la imagen corregida y limpia, sin círculos ni letras pintados.
+    g2.drawImage(vista.canvas, 0, 0);
     let recienPuestas = 0;
     for(const o of objetivos){
       // Ventana de búsqueda de 1.6 radios alrededor del destino. El juez
@@ -20910,7 +20943,7 @@ function drawStartMarks(){
           if(ytGuia.cierre){
             clearTimeout(ytGuia.cierre);
             ytGuia.cierre = 0;
-            ytgEstado('Her topu kendi dairesine koyun: kehribar neredeyse demektir (biraz ince ayar yapın), sesli yeşil ise tam demektir.');
+            ytgEstado("Her topu kendi dairesine koyun: kehribar neredeyse demektir (biraz ince ayar yapın), sesli yeşil ise tam demektir.");
           }
         }
       }
@@ -20921,7 +20954,7 @@ function drawStartMarks(){
       // el marco verde respira mientras el letrero anuncia la hazaña.
       ytGuia.gloria = Date.now();
       ytGuia.festejos.white = ytGuia.festejos.yellow = ytGuia.festejos.red = Date.now();
-      ytgEstado('Üç top da tam yerinde. 3 saniye içinde uygulamaya dönülüyor…');
+      ytgEstado("Üç top da tam yerinde. 3 saniye içinde uygulamaya dönülüyor…");
       // Regreso automático: tras el acorde, el velo se cierra solo y la
       // app queda lista para estudiar y tacar, sin viaje hasta el PC.
       // El botón morado de «volver» queda abajo para la siguiente vuelta.
@@ -20941,8 +20974,7 @@ function drawStartMarks(){
   const ytgRotulos = { video:null, frame:null, canvas:null, mapa:null, clave:'', posiciones:{} };
 
   function ytgMapaLetras(v, cw, ch){
-    const quality = v.getVideoPlaybackQuality ? v.getVideoPlaybackQuality() : null;
-    const frame = quality && quality.totalVideoFrames > 0 ? quality.totalVideoFrames : Math.floor(v.currentTime * 30);
+    const frame = ytgVista.version;
     if(ytgRotulos.video === v && ytgRotulos.frame === frame && ytgRotulos.mapa
       && ytgRotulos.mapa.cw === cw && ytgRotulos.mapa.ch === ch) return ytgRotulos.mapa;
     if(ytgRotulos.video !== v){ ytgRotulos.posiciones = {}; ytgRotulos.clave = ''; }
@@ -20953,7 +20985,7 @@ function drawStartMarks(){
     const g = cv.getContext('2d', {willReadFrequently:true});
     let data;
     try{
-      g.setTransform(-1,0,0,-1,w,h);
+      g.setTransform(1,0,0,1,0,0);
       g.drawImage(v,0,0,w,h);
       g.setTransform(1,0,0,1,0,0);
       data = g.getImageData(0,0,w,h).data;
@@ -21042,18 +21074,15 @@ function drawStartMarks(){
     const cv = ids('ytPlaceCanvas'), v = ytGuia.video;
     if(cv && v && v.videoWidth){
       const cw = v.videoWidth, ch = v.videoHeight;
-      if(cv.width !== cw){ cv.width = cw; cv.height = ch; }
+      if(cv.width !== cw || cv.height !== ch){ cv.width = cw; cv.height = ch; }
+      const vista = ytgCuadroCorregido(v, cw, ch);
+      if(!vista){ytGuia.raf=requestAnimationFrame(ytgPintar);return;}
       const g = cv.getContext('2d');
-      // Giro de 180°, igual que toda la tubería de cámara de la casa.
-      g.save();
-      g.translate(cw, ch);
-      g.rotate(Math.PI);
-      g.drawImage(v, 0, 0);
-      g.restore();
-      const H = ytgHomografia(cw, ch);
+      g.drawImage(vista.canvas, 0, 0);
+      const H = vista.H;
       const objetivos = H && ytgObjetivos(H, cw, ch);
       if(objetivos){
-        const letras = { white:'B', yellow:'S', red:'K' };
+        const letras = { white:'B', yellow:"S", red:"K" };
         for(const o of objetivos){
           const puesta = !!ytGuia.puestas[o.key];
           const cerca = !puesta && !!ytGuia.cerca[o.key];
@@ -21076,8 +21105,8 @@ function drawStartMarks(){
           g.beginPath(); g.arc(o.x, o.y, o.r * 1.5 - 1.5, 0, Math.PI * 2); g.stroke();
           g.setLineDash([]);
         }
-        ytgPintarLetras(g, v, cw, ch, objetivos, letras, H);
-        ytgPintarLupa(g, v, cw, ch, objetivos);
+        ytgPintarLetras(g, vista.canvas, cw, ch, objetivos, letras, H);
+        ytgPintarLupa(g, vista.canvas, cw, ch, objetivos);
         ytgPintarFestejos(g, cw, ch, objetivos);
       }
     }
@@ -21118,14 +21147,12 @@ function drawStartMarks(){
     }
     const rx0 = o.x - zr, ry0 = o.y - zr;
     const escala = bw / (2 * zr);
-    // El video ampliado, con el giro de 180° de la casa: el recorte se
-    // toma del cuadro crudo en las coordenadas espejadas.
+    // Ampliar el mismo cuadro corregido: el centroide y el destino ya
+    // están expresados en estas coordenadas, sin volver a girar la imagen.
     g.save();
     g.beginPath(); g.rect(box.x, box.y, bw, bh); g.clip();
     g.fillStyle = '#000'; g.fillRect(box.x, box.y, bw, bh);
-    g.translate(box.x + bw, box.y + bh);
-    g.rotate(Math.PI);
-    g.drawImage(v, cw - (rx0 + 2 * zr), ch - (ry0 + 2 * zr), 2 * zr, 2 * zr, 0, 0, bw, bh);
+    g.drawImage(v, rx0, ry0, 2 * zr, 2 * zr, box.x, box.y, bw, bh);
     g.restore();
     const EN = p => ({ x: box.x + (p.x - rx0) * escala, y: box.y + (p.y - ry0) * escala });
     const c = EN(o), rL = o.r * escala, tolL = o.r * YTG_TOL_RADIO * escala;
@@ -21169,7 +21196,7 @@ function drawStartMarks(){
     g.lineWidth = 4;
     g.strokeStyle = YT_COLORES_BOLA[o.key];
     g.strokeRect(box.x, box.y, bw, bh);
-    const letras = { white:'B', yellow:'S', red:'K' };
+    const letras = { white:'B', yellow:"S", red:"K" };
     g.font = '900 ' + Math.max(18, Math.round(bw / 9)) + 'px system-ui';
     g.textAlign = 'left';
     g.lineWidth = 4; g.strokeStyle = 'rgba(0,0,0,.85)';
@@ -21181,7 +21208,7 @@ function drawStartMarks(){
     // lupa quedó arriba del lienzo, encima si quedó abajo), con tamaño
     // para leerse desde la mesa. Doble seguridad: aunque no alcance a
     // leer el texto, el color del letrero ya dice cuál bola es.
-    const anuncios = { white:'BEYAZ TOP', yellow:'SARI TOP', red:'KIRMIZI TOP' };
+    const anuncios = { white:"BEYAZ TOP", yellow:"SARI TOP", red:"KIRMIZI TOP" };
     const tam = Math.max(26, Math.round(bw / 7));
     g.font = '900 ' + tam + 'px system-ui';
     g.textAlign = 'center';
@@ -21262,10 +21289,11 @@ function drawStartMarks(){
     if(ytGuia.cierre){ clearTimeout(ytGuia.cierre); ytGuia.cierre = 0; }
     try{ if(ytGuia.stream) ytGuia.stream.getTracks().forEach(t => t.stop()); }catch{}
     ytGuia.stream = null; ytGuia.video = null;
+    ytgVista.video=null;ytgVista.frame=null;ytgVista.key='';ytgVista.geometryKey='';ytgVista.H=null;
     ytGuia.puestas = {}; ytGuia.firmes = {}; ytGuia.ausencias = {}; ytGuia.cerca = {}; ytGuia.desvios = {};
     ytGuia.centroides = {}; ytGuia.cercaDesde = {}; ytGuia.festejos = {}; ytGuia.gloria = 0;
     const btn = ids('ytPlaceLive');
-    if(btn) btn.textContent = 'Canlı rehber';
+    if(btn) btn.textContent = "Canlı rehber";
     ytgCompactarCabecera(false);
     if(estaba){
       ytgEstado('');
@@ -21323,8 +21351,8 @@ function drawStartMarks(){
     const estado=ids('tecladoCarpetaEstado'), boton=ids('tecladoCarpetaBtn');
     if(boton) boton.disabled=tecladoExportacion.ocupado;
     if(estado) estado.textContent=mensaje || (tecladoExportacion.carpeta
-      ? "E için klasör: "+tecladoExportacion.carpeta.name+'. '+(tecladoExportacion.memoria?"Bu tarayıcı klasörü hatırlar; Chrome yeniden izin vermenizi isteyebilir.":"Bu oturum boyunca kullanılabilir.")
-      : "Klasör seçilmedi. Buradan veya E tuşuna ilk bastığınızda seçin.");
+      ? "Dışa aktarma klasörü (düğmeler, E ve O): "+tecladoExportacion.carpeta.name+'. '+(tecladoExportacion.memoria?"Bu tarayıcı klasörü hatırlar; Chrome yeniden izin vermenizi isteyebilir.":"Bu oturum boyunca kullanılabilir.")
+      : "Klasör seçilmedi. Buradan veya ilk dışa aktarma sırasında seçin.");
   }
   function tecladoCarpetaMemoria(carpeta){
     return new Promise((resolve,reject)=>{
@@ -21346,7 +21374,7 @@ function drawStartMarks(){
     });
   }
   async function tecladoCarpetaObtener(cambiar=false){
-    if(typeof window.showDirectoryPicker!=='function') throw new Error("E ile bir klasöre kaydetmek için uygulamayı Chrome veya Edge’de açın. Verilerle indirme düğmesini kullanmaya devam edebilirsiniz.");
+    if(typeof window.showDirectoryPicker!=='function') throw new Error("Dışa aktarma klasörünü seçmek ve hatırlamak için uygulamayı Chrome veya Edge’de açın.");
     if(tecladoExportacion.cargando) await tecladoExportacion.cargando;
     let carpeta=tecladoExportacion.carpeta;
     if(cambiar || !carpeta){
@@ -21355,7 +21383,7 @@ function drawStartMarks(){
       tecladoExportacion.carpeta=carpeta; tecladoExportacion.memoria=false;
       try{await tecladoCarpetaMemoria(carpeta);tecladoExportacion.memoria=true;}catch{}
     }else if(await carpeta.queryPermission({mode:'readwrite'})!=='granted'){
-      if(await carpeta.requestPermission({mode:'readwrite'})!=='granted') throw new Error("E ile kaydetmek için seçilen klasöre yazma izni verin.");
+      if(await carpeta.requestPermission({mode:'readwrite'})!=='granted') throw new Error("Seçilen dışa aktarma klasörüne yazma izni verin.");
     }
     tecladoCarpetaUi(); return carpeta;
   }
@@ -21394,17 +21422,22 @@ function drawStartMarks(){
     const modal=ids('videoReplayModal');
     return !!(modal && modal.classList.contains('active') && videoReplay.mode==='replay' && videoReplay.blobUrl);
   }
-  async function tecladoExportar(){
+  async function tecladoExportar(sinDatos=false){
     if(tecladoExportacion.ocupado || videoReplay.exporting) return;
-    const boton=ids('videoReplayExportBtn');
-    if(!tecladoRevision() || !boton || boton.disabled){tecladoAvisar('E',"Dışa aktarma henüz kullanılamıyor. Kaydı ve etkinse yörünge analizini tamamlayın.",'warn');return;}
+    const tecla=sinDatos?'O':'E';
+    const boton=ids(sinDatos?'videoReplayDownloadBtn':'videoReplayExportBtn');
+    if(!tecladoRevision() || !boton || boton.disabled){
+      tecladoAvisar(tecla,sinDatos?"Verisiz indirme henüz kullanılamıyor. Kaydı tamamlayın.":"Dışa aktarma henüz kullanılamıyor. Kaydı ve etkinse yörünge analizini tamamlayın.",'warn');return;
+    }
     const url=videoReplay.blobUrl;
     tecladoExportacion.ocupado=true;tecladoCarpetaUi();
     try{
+      // Los dos botones y E/O comparten la misma carpeta y el mismo permiso.
       const carpeta=await tecladoCarpetaObtener();
       if(!tecladoRevision() || videoReplay.blobUrl!==url || videoReplay.exporting || boton.disabled) return;
-      await exportVideoReplayWithOverlay({carpeta});
-    }catch(error){if(error.name!=='AbortError') tecladoAvisar('E',error.message,'warn');}
+      await exportVideoReplayWithOverlay({carpeta,sinDatos});
+      return !!videoReplay.exporting;
+    }catch(error){if(error.name!=='AbortError') tecladoAvisar(tecla,error.message,'warn');}
     finally{tecladoExportacion.ocupado=false;tecladoCarpetaUi();}
   }
   // DD solo enlaza la detención hecha por D con esa misma grabación.
@@ -21470,6 +21503,7 @@ function drawStartMarks(){
     const ctx=ytVozContexto(true), lista=['grabar','grabarVolver'].includes(ctx), revision=tecladoRevision();
     if(tecla==='d'){await tecladoDetenerDoble(ctx);return;}
     if(tecla==='e'){await tecladoExportar();return;}
+    if(tecla==='o'){if(revision) await tecladoExportar(true);return;}
     if(tecla===' ' || tecla==='l' || tecla==='t'){
       if(videoReplay.exporting) return;
       if(tecla==='t'){
@@ -21483,7 +21517,7 @@ function drawStartMarks(){
       const speed=ids('videoReplaySpeed');if(!speed || speed.disabled) return;
       const valores=['1','0.5','0.25'];speed.value=valores[(valores.indexOf(speed.value)+1)%valores.length];
       speed.dispatchEvent(new Event('change',{bubbles:true}));
-      tecladoAvisar('L',"Oynatma hızı: "+(speed.value==='1'?"normal":speed.value==='0.5'?"yarım":"çeyrek")+'.');return;
+      tecladoAvisar('L',"Oynatma hızı: "+(speed.value==='1'?'normal':speed.value==='0.5'?"yarım":"çeyrek")+'.');return;
     }
     let orden=null;
     if(tecla==='g') orden={accion:revision?'grabarOtra':'grabarJugada'};
@@ -21500,7 +21534,7 @@ function drawStartMarks(){
     const carpeta=ids('tecladoCarpetaBtn');if(carpeta) carpeta.addEventListener('click',tecladoElegirCarpeta);
     document.addEventListener('keydown',event=>{
       if(event.defaultPrevented || event.isComposing || event.ctrlKey || event.altKey || event.metaKey) return;
-      const tecla=event.key.toLowerCase();if(!['g','1','2','3','d','r','e','v','c','m','t',' ','l','x'].includes(tecla)) return;
+      const tecla=event.key.toLowerCase();if(!['g','1','2','3','d','r','e','o','v','c','m','t',' ','l','x'].includes(tecla)) return;
       const el=event.target instanceof Element?event.target:null;
       if(el && (el.isContentEditable || el.closest('textarea,select,[role="textbox"]') || (el.tagName==='INPUT' && !['checkbox','radio','range','button','submit','reset'].includes(el.type)))) return;
       if(tecla===' ' && (!tecladoRevision() || (el && el.tagName==='INPUT'))) return;
