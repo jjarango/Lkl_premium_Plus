@@ -2029,10 +2029,10 @@
 <details id="tecladoAyuda" style="margin-top:10px;">
 <summary style="cursor:pointer;">Teclado y carpeta de exportación</summary>
 <p class="small">Los atajos funcionan con la pestaña de la app seleccionada, también con la voz silenciada. No actúan mientras escribe en un campo o utiliza un selector.</p>
-<p class="small">G: grabar otra jugada o abrir la cámara. 1 / 2 / 3: cuenta de 5 / 10 / 15 segundos. D: detener. DD: detener y volver a colocar (dos pulsaciones dentro de un segundo). R: reproducir. E: exportar con datos a la carpeta elegida. O: descargar sin datos (Original). V: volver a colocar. C: capturar mesa. M: silenciar o activar voz. T: seguimiento de la trayectoria. Espacio: pausar o continuar. L: velocidad normal, media o un cuarto. X: cerrar la ventana de video o la pantalla de colocación, una por pulsación. Esc también cierra la ventana de video.</p>
-<button id="tecladoCarpetaBtn" type="button" style="width:100%;">Elegir carpeta de exportación para E</button>
+<p class="small">G: grabar otra jugada o abrir la cámara. 1 / 2 / 3: cuenta de 5 / 10 / 15 segundos. D: detener. DD: detener y volver a colocar (dos pulsaciones dentro de un segundo). R: reproducir. E: exportar con datos a la carpeta elegida. O: guardar sin datos (Original) en la misma carpeta. V: volver a colocar. C: capturar mesa. M: silenciar o activar voz. T: seguimiento de la trayectoria. Espacio: pausar o continuar. L: velocidad normal, media o un cuarto. X: cerrar la ventana de video o la pantalla de colocación, una por pulsación. Esc también cierra la ventana de video.</p>
+<button id="tecladoCarpetaBtn" type="button" style="width:100%;">Elegir carpeta de exportación para E y O</button>
 <p id="tecladoCarpetaEstado" class="small" role="status" aria-live="polite" style="margin:8px 0; overflow-wrap:anywhere;">Sin carpeta elegida.</p>
-<p class="small">Autorice la carpeta una vez. Mientras el permiso siga vigente, E guardará allí cada video al terminar la exportación, sin otra confirmación y sin sobrescribir los anteriores. Mantenga la pestaña visible durante la exportación.</p>
+<p class="small">Autorice la carpeta una vez. Mientras el permiso siga vigente, E y O guardarán allí cada video al terminar la exportación, sin otra confirmación y sin sobrescribir los anteriores. Mantenga la pestaña visible durante la exportación.</p>
 </details>
 <details id="ytVozHistorialPanel" style="margin-top:10px;">
 <summary style="cursor:pointer;">Historial de órdenes de voz</summary>
@@ -2183,7 +2183,7 @@
 <label style="display:flex; gap:8px; align-items:center; cursor:pointer;"><input checked="" id="videoReplayShowGuide" style="width:auto" type="checkbox"/> <span class="small">Superponer datos de la jugada</span></label>
 <div class="videoReplayRow">
 <button id="videoReplayAgainBtn" type="button">Grabar otra jugada</button>
-<button id="videoReplayDownloadBtn" title="O: descargar sin datos (Original)" aria-keyshortcuts="O" type="button">Descargar sin datos</button>
+<button id="videoReplayDownloadBtn" title="O: guardar sin datos (Original) en la carpeta elegida" aria-keyshortcuts="O" type="button">Descargar sin datos</button>
 </div>
 <div class="videoReplayRow">
 <button class="cameraCaptureBtn" id="videoReplayExportBtn" style="margin:0" type="button">Descargar con datos</button>
@@ -17816,7 +17816,7 @@ function drawStartMarks(){
             setVideoReplayStatus('Guardando el video completo en '+carpeta.name+'…');
             const guardado=await tecladoGuardarExportacion(carpeta,blob,nombre,signal);
             if(disposed) return;
-            tecladoAvisar('E','Video guardado en '+carpeta.name+': '+guardado,'good');
+            tecladoAvisar(withData?'E':'O','Video guardado en '+carpeta.name+': '+guardado,'good');
           }else{
             const output=URL.createObjectURL(blob),a=document.createElement('a');
             a.href=output;a.download=nombre;document.body.appendChild(a);a.click();a.remove();
@@ -21340,8 +21340,8 @@ function drawStartMarks(){
     const estado=ids('tecladoCarpetaEstado'), boton=ids('tecladoCarpetaBtn');
     if(boton) boton.disabled=tecladoExportacion.ocupado;
     if(estado) estado.textContent=mensaje || (tecladoExportacion.carpeta
-      ? 'Carpeta para E: '+tecladoExportacion.carpeta.name+'. '+(tecladoExportacion.memoria?'Queda recordada en este navegador; Chrome puede pedir renovar el permiso.':'Disponible durante esta sesión.')
-      : 'Sin carpeta elegida. Selecciónela aquí o al pulsar E por primera vez.');
+      ? 'Carpeta para E y O: '+tecladoExportacion.carpeta.name+'. '+(tecladoExportacion.memoria?'Queda recordada en este navegador; Chrome puede pedir renovar el permiso.':'Disponible durante esta sesión.')
+      : 'Sin carpeta elegida. Selecciónela aquí o al pulsar E u O por primera vez.');
   }
   function tecladoCarpetaMemoria(carpeta){
     return new Promise((resolve,reject)=>{
@@ -21363,7 +21363,7 @@ function drawStartMarks(){
     });
   }
   async function tecladoCarpetaObtener(cambiar=false){
-    if(typeof window.showDirectoryPicker!=='function') throw new Error('Para guardar con E en una carpeta, abra la app en Chrome o Edge. El botón «Descargar con datos» sigue disponible.');
+    if(typeof window.showDirectoryPicker!=='function') throw new Error('Para guardar con E u O en una carpeta, abra la app en Chrome o Edge. Los botones de descarga siguen disponibles.');
     if(tecladoExportacion.cargando) await tecladoExportacion.cargando;
     let carpeta=tecladoExportacion.carpeta;
     if(cambiar || !carpeta){
@@ -21372,7 +21372,7 @@ function drawStartMarks(){
       tecladoExportacion.carpeta=carpeta; tecladoExportacion.memoria=false;
       try{await tecladoCarpetaMemoria(carpeta);tecladoExportacion.memoria=true;}catch{}
     }else if(await carpeta.queryPermission({mode:'readwrite'})!=='granted'){
-      if(await carpeta.requestPermission({mode:'readwrite'})!=='granted') throw new Error('Autorice la escritura en la carpeta elegida para guardar con E.');
+      if(await carpeta.requestPermission({mode:'readwrite'})!=='granted') throw new Error('Autorice la escritura en la carpeta elegida para guardar con E u O.');
     }
     tecladoCarpetaUi(); return carpeta;
   }
@@ -21411,17 +21411,21 @@ function drawStartMarks(){
     const modal=ids('videoReplayModal');
     return !!(modal && modal.classList.contains('active') && videoReplay.mode==='replay' && videoReplay.blobUrl);
   }
-  async function tecladoExportar(){
+  async function tecladoExportar(sinDatos=false){
     if(tecladoExportacion.ocupado || videoReplay.exporting) return;
-    const boton=ids('videoReplayExportBtn');
-    if(!tecladoRevision() || !boton || boton.disabled){tecladoAvisar('E','La exportación aún no está disponible. Termine la grabación y, si corresponde, el análisis de la trayectoria.','warn');return;}
+    const tecla=sinDatos?'O':'E';
+    const boton=ids(sinDatos?'videoReplayDownloadBtn':'videoReplayExportBtn');
+    if(!tecladoRevision() || !boton || boton.disabled){
+      tecladoAvisar(tecla,sinDatos?'La descarga sin datos aún no está disponible. Termine la grabación.':'La exportación aún no está disponible. Termine la grabación y, si corresponde, el análisis de la trayectoria.','warn');return;
+    }
     const url=videoReplay.blobUrl;
     tecladoExportacion.ocupado=true;tecladoCarpetaUi();
     try{
+      // E y O comparten la misma carpeta y el mismo permiso recordado.
       const carpeta=await tecladoCarpetaObtener();
       if(!tecladoRevision() || videoReplay.blobUrl!==url || videoReplay.exporting || boton.disabled) return;
-      await exportVideoReplayWithOverlay({carpeta});
-    }catch(error){if(error.name!=='AbortError') tecladoAvisar('E',error.message,'warn');}
+      await exportVideoReplayWithOverlay({carpeta,sinDatos});
+    }catch(error){if(error.name!=='AbortError') tecladoAvisar(tecla,error.message,'warn');}
     finally{tecladoExportacion.ocupado=false;tecladoCarpetaUi();}
   }
   // DD solo enlaza la detención hecha por D con esa misma grabación.
@@ -21487,12 +21491,7 @@ function drawStartMarks(){
     const ctx=ytVozContexto(true), lista=['grabar','grabarVolver'].includes(ctx), revision=tecladoRevision();
     if(tecla==='d'){await tecladoDetenerDoble(ctx);return;}
     if(tecla==='e'){await tecladoExportar();return;}
-    if(tecla==='o'){
-      if(!revision || videoReplay.exporting || tecladoExportacion.ocupado) return;
-      const boton=ids('videoReplayDownloadBtn');
-      if(boton && !boton.disabled) boton.click();
-      return;
-    }
+    if(tecla==='o'){if(revision) await tecladoExportar(true);return;}
     if(tecla===' ' || tecla==='l' || tecla==='t'){
       if(videoReplay.exporting) return;
       if(tecla==='t'){
