@@ -20072,7 +20072,19 @@ function drawStartMarks(){
     const retorno = ytVoz.retorno;
     ytVoz.retorno = null;
     if(!retorno) return;
-    for(const panel of retorno.paneles){ if(panel.el.isConnected) panel.el.style.display = panel.display; }
+    let colocacionCerrada = false;
+    for(const panel of retorno.paneles){
+      if(!panel.el.isConnected) continue;
+      if(panel.el.id === 'ytPlaceOverlay'){
+        // Al abrir la grabación se detuvo la guía y quedó preparado el mapa.
+        // No recuperarlo al cerrar el video: el mapa sigue disponible a pedido.
+        panel.el.style.display = 'none';
+        colocacionCerrada = true;
+      } else {
+        panel.el.style.display = panel.display;
+      }
+    }
+    if(colocacionCerrada) ytActualizarFab(ytLeerJugada() ? 'volver' : null);
     if(retorno.foto){ photoLocator.active = retorno.fotoActiva; openPhotoLocator(); }
   }
   // El interruptor tiene su propio lugar, incluso sin el botón de entrenamiento.
