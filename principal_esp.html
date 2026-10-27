@@ -15789,10 +15789,10 @@ function drawStartMarks(){
     tracks:null, metrics:null, paused:false
   };
 
-  // Aviso de trayectoria lista: dos campanillas suaves, sin archivos externos.
+  // Trayectoria lista: la misma voz local que confirma la grabación.
   // La señal pertenece a un análisis concreto; los redibujados y la activación
   // de un recorrido ya calculado no vuelven a anunciarlo.
-  const videoReplayTraceSound = { pending:null, until:0 };
+  const videoReplayTraceSound = { pending:null };
 
   function videoReplayTracePrimeSound(){
     try{
@@ -15806,38 +15806,17 @@ function drawStartMarks(){
   }
 
   function videoReplayTraceSoundReady(){
-    const tr=videoReplayTrace,pending=videoReplayTraceSound.pending;
-    const valid=()=>pending && videoReplayTraceSound.pending===pending
-      && tr.job===pending.job && tr.url===pending.url && videoReplay.blobUrl===pending.url
-      && tr.enabled && !tr.busy && tr.status==='ready' && tr.points.length>1 && videoReplay.mode==='replay';
-    if(!valid()||pending.notifying) return;
-    const audio=videoReplayTracePrimeSound();
-    if(!audio) return;
-    pending.notifying=true;
-    const play=()=>{
-      if(!valid()) return;
-      videoReplayTraceSound.pending=null;
-      videoReplayTraceSound.until=performance.now()+800;
-      try{
-        const start=audio.currentTime+.025;
-        // Mi y si ascendentes. Los armónicos decaen antes que la nota base:
-        // suenan como campanillas cálidas, distintas del pitido de grabación.
-        for(const [frequency,offset] of [[659.25,0],[987.77,.24]]){
-          for(const [multiple,level,duration] of [[1,.23,.48],[2,.055,.28],[3,.02,.18]]){
-            const oscillator=audio.createOscillator(),gain=audio.createGain(),t=start+offset;
-            oscillator.type='sine';oscillator.frequency.value=frequency*multiple;
-            gain.gain.setValueAtTime(.0001,t);
-            gain.gain.exponentialRampToValueAtTime(level,t+.012);
-            gain.gain.exponentialRampToValueAtTime(.0001,t+duration);
-            oscillator.connect(gain);gain.connect(audio.destination);
-            oscillator.onended=()=>{oscillator.disconnect();gain.disconnect();};
-            oscillator.start(t);oscillator.stop(t+duration+.02);
-          }
-        }
-      }catch{}
-    };
-    if(audio.state==='running') play();
-    else audio.resume().then(play).catch(()=>{pending.notifying=false;});
+    const tr=videoReplayTrace, pending=videoReplayTraceSound.pending, check=videoReplay.recordingCheck;
+    if(!pending || tr.job!==pending.job || tr.url!==pending.url || videoReplay.blobUrl!==pending.url
+      || !tr.enabled || tr.busy || tr.status!=='ready' || tr.points.length<2
+      || videoReplay.mode!=='replay' || !check) return;
+    videoReplayTraceSound.pending=null;
+    const notice=videoReplayDownloadReady;
+    // Si D también espera este análisis, ambos hitos producen una sola frase.
+    // Un análisis nuevo tras T vuelve a confirmar que ya se puede descargar.
+    if(!notice.pending) notice.pending={check,url:pending.url,apertura:videoReplay.apertura};
+    notice.pending.traceJob=tr.job;
+    videoReplayDownloadReadyCheck();
   }
 
 
@@ -15868,6 +15847,7 @@ function drawStartMarks(){
   }
 
   function videoReplayTraceCancel(notify=false){
+    if(videoReplayDownloadReady.pending?.traceJob != null) videoReplayDownloadReadyCancel();
     const tr = videoReplayTrace;
     tr.job++;
     videoReplayTraceSound.pending=null;
@@ -16968,7 +16948,7 @@ function drawStartMarks(){
 
   function videoReplayDownloadReadyCheck(){
     const notice=videoReplayDownloadReady, pending=notice.pending;
-    if(!pending || notice.timer) return;
+    if(!pending || notice.timer || notice.audio) return;
     const valid=()=>{
       const modal=ids('videoReplayModal'), tr=videoReplayTrace;
       return notice.pending===pending && videoReplay.recordingCheck===pending.check
@@ -16979,26 +16959,26 @@ function drawStartMarks(){
         && !ytVoz.volviendo && !ytVoz.volverPendiente && !tecladoDobleD.pendiente
         && videoReplay.calib && videoReplay.calib.corners && videoReplay.calib.corners.length>=4
         && (!tr.enabled || (!tr.busy && tr.status==='ready' && tr.url===pending.url))
+        && (pending.traceJob == null || (tr.enabled && tr.job===pending.traceJob))
         && ['videoReplayDownloadBtn','videoReplayExportBtn'].every(id=>ids(id) && !ids(id).disabled);
     };
     if(!valid()) return;
     // Ceder el turno permite terminar D/DD y actualizar los botones antes del aviso.
-    // Si acaba de sonar la campanilla de T, esperar solo a que termine ese sonido.
+    // La misma cola atiende D y T, sin superponer ni duplicar sus avisos.
     notice.timer=setTimeout(()=>{
       notice.timer=0;
       if(!valid()) return;
-      if(performance.now()<videoReplayTraceSound.until){videoReplayDownloadReadyCheck();return;}
-      notice.pending=null; // Una sola confirmación por grabación, aunque se exporte varias veces.
+      notice.pending=null; // Una confirmación por preparación terminada; exportar no la repite.
       try{
         const audio=notice.audio=new Audio(VIDEO_REPLAY_DOWNLOAD_VOICE);
         audio.volume=VOZ_CUENTA_VOLUMEN;
-        const clear=()=>{if(notice.audio===audio) notice.audio=null;};
+        const clear=()=>{if(notice.audio===audio){notice.audio=null;videoReplayDownloadReadyCheck();}};
         audio.addEventListener('ended',clear,{once:true});
         audio.addEventListener('error',clear,{once:true});
         const playing=audio.play();
         if(playing && playing.catch) playing.catch(clear);
       }catch{}
-    },Math.max(0,videoReplayTraceSound.until-performance.now()));
+    },0);
   }
 
 
