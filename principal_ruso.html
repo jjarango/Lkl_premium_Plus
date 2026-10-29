@@ -1766,6 +1766,15 @@
       line-height:1.45;
       color:#cfd6df;
     }
+    #videoReplayRecovery{position:absolute;z-index:6;left:16px;right:16px;bottom:16px;max-height:75%;overflow:auto;padding:18px 22px;border:2px solid #ffcb75;border-radius:14px;background:rgba(12,19,29,.97);color:#fff;box-shadow:0 4px 24px #0008;font-size:clamp(16px,1.4vw,22px);line-height:1.4}
+    #videoReplayRecovery[hidden]{display:none}
+    #videoReplayRecovery.good{border-color:#7de3a0}
+    #videoReplayRecoveryTitle{display:block;font-size:1.2em;color:#ffcb75}
+    #videoReplayRecovery.good #videoReplayRecoveryTitle{color:#7de3a0}
+    #videoReplayRecoveryMessage{margin:8px 0 12px}
+    #videoReplayRescueBtn{font-size:1em;font-weight:800;padding:12px 20px;background:#285d40;border:1px solid #7de3a0;color:#fff}
+    #videoReplayRescueBtn[hidden]{display:none}
+    @media(max-width:980px){#videoReplayRecovery{position:fixed;left:12px;right:12px;bottom:12px;max-height:60svh;z-index:20}}
     .videoReplayStatus.good{color:#9ff0a7}
     .videoReplayStatus.bad{color:#ff9d9d}
     #videoReplayScrub{width:100%}
@@ -2124,7 +2133,7 @@
 <button class="videoReplayClose" id="videoReplayClose" type="button">Закрыть</button>
 </div>
 <div class="videoReplayBody">
-<div class="videoReplayPane"><div id="videoReplayMuteRow" style="display:none; position:absolute; top:14px; left:14px; z-index:5;"><button id="videoReplayMuteBtn" title="Выключить звук видео" type="button" style="width:64px; height:64px; border-radius:50%; font-size:30px; line-height:1; background:rgba(10,14,22,.85); border:2px solid #3a4a63; color:#fff; cursor:pointer; box-shadow:0 4px 16px rgba(0,0,0,.5);">🔊</button></div><canvas id="videoReplayCanvas"></canvas></div>
+<div class="videoReplayPane"><div id="videoReplayMuteRow" style="display:none; position:absolute; top:14px; left:14px; z-index:5;"><button id="videoReplayMuteBtn" title="Выключить звук видео" type="button" style="width:64px; height:64px; border-radius:50%; font-size:30px; line-height:1; background:rgba(10,14,22,.85); border:2px solid #3a4a63; color:#fff; cursor:pointer; box-shadow:0 4px 16px rgba(0,0,0,.5);">🔊</button></div><canvas id="videoReplayCanvas"></canvas><div id="videoReplayRecovery" hidden role="status" aria-live="polite"><strong id="videoReplayRecoveryTitle"></strong><p id="videoReplayRecoveryMessage"></p><button id="videoReplayRescueBtn" type="button" hidden>Сохранить оригинал записи</button></div></div>
 <div class="videoReplaySide">
 <div class="videoReplayGroup" id="videoReplayCalibPanel" style="display:none">
 <h3>Калибровка четырёх углов</h3>
@@ -17053,6 +17062,7 @@ function drawStartMarks(){
 
 
   function setVideoReplayMode(mode){
+    if(mode !== 'replay') videoReplayRescueReset();
     if(mode !== 'replay') videoReplayDownloadReadyCancel();
     videoReplayReadyCancel();
     if(mode === 'record' && videoReplay.mode !== 'record') videoReplayTraceNewRecording();
@@ -17151,6 +17161,7 @@ function drawStartMarks(){
   }
 
   function closeVideoReplayModal(){
+    videoReplayRescueReset();
     videoReplayDownloadReadyCancel();
     tecladoDobleDLimpiar();
     videoReplayViewStop();
@@ -17364,6 +17375,7 @@ function drawStartMarks(){
   }
 
   function beginVideoReplayRecordingNow(){
+    videoReplayRescueReset();
     videoReplayDownloadReadyCancel();
     videoReplayReadyCancel();
     if(videoReplay.recorder && videoReplay.recorder.state !== 'inactive') return;
@@ -17741,6 +17753,98 @@ function drawStartMarks(){
 
   // El archivo original queda intacto. La exportación sigue a cada imagen
   // decodificada, captura el cuadro ya compuesto y verifica el resultado.
+  // Copia de rescate: conserva los bytes de cámara; no vuelve a codificarlos.
+  let videoReplayRescue = null;
+  function videoReplayRecoveryNotice(title, message, action='', good=false){
+    const box=ids('videoReplayRecovery');
+    if(!box) return;
+    const previousNotice=ids('ytVozAviso');if(previousNotice) previousNotice.style.display='none';
+    if(ytVoz.avisoTimer){clearTimeout(ytVoz.avisoTimer);ytVoz.avisoTimer=0;}
+    box.hidden=false;box.classList.toggle('good',good);
+    ids('videoReplayRecoveryTitle').textContent=title;
+    ids('videoReplayRecoveryMessage').textContent=message;
+    const button=ids('videoReplayRescueBtn');
+    button.hidden=!action;button.disabled=false;button.textContent=action;
+  }
+  function videoReplayRescueReset(){
+    const rescue=videoReplayRescue;videoReplayRescue=null;
+    if(rescue && rescue.job && videoReplay.exportJob===rescue.job) rescue.job.cancel('');
+    const box=ids('videoReplayRecovery');if(box) box.hidden=true;
+  }
+  function videoReplayRecoveryOffer(reason,url,folder){
+    if(!url || videoReplay.blobUrl!==url || videoReplay.mode!=='replay') return;
+    videoReplayRescueReset();
+    videoReplayRescue={url,folder,blob:null,native:false,job:null};
+    videoReplayRecoveryNotice("Ваша запись по-прежнему доступна",
+      reason+" Вы можете сохранить оригинал без наложенных данных и коррекции изображения. Не закрывайте и не перезагружайте страницу, пока не сохраните запись.",
+      "Сохранить оригинал записи");
+  }
+  async function videoReplaySaveRescue(){
+    const rescue=videoReplayRescue;
+    if(!rescue || videoReplay.exporting || tecladoExportacion.ocupado || videoReplay.blobUrl!==rescue.url || videoReplay.mode!=='replay') return;
+    // La alternativa del navegador parte de otro clic explícito del usuario.
+    if(rescue.native && rescue.blob){
+      const output=URL.createObjectURL(rescue.blob),a=document.createElement('a');
+      a.href=output;a.download=rescue.name;document.body.appendChild(a);a.click();a.remove();
+      setTimeout(()=>URL.revokeObjectURL(output),60000);
+      videoReplayRecoveryNotice("Загрузка резервной копии запрошена",
+        "Проверьте загрузку файла "+rescue.name+" в браузере перед закрытием приложения. Эта копия содержит видео с камеры без наложенных данных и коррекции изображения.",
+        "Скачать ещё одну резервную копию",true);
+      return;
+    }
+    const controller=new AbortController(),signal=controller.signal;
+    const job=rescue.job={cancel:null};
+    const valid=()=>videoReplayRescue===rescue && videoReplay.blobUrl===rescue.url && !signal.aborted;
+    const finish=()=>{
+      if(videoReplay.exportJob!==job) return;
+      videoReplay.exportJob=null;videoReplay.exporting=false;rescue.job=null;setVideoReplayExportUi(false);
+    };
+    job.cancel=message=>{controller.abort();finish();if(message) setVideoReplayStatus(message);};
+    videoReplay.exportJob=job;videoReplay.exporting=true;setVideoReplayExportUi(true,false);
+    videoReplayRecoveryNotice("Сохранение резервной копии…","Исходный файл сохраняется без повторной обработки изображения.");
+    try{
+      if(!rescue.blob){
+        const response=await fetch(rescue.url,{signal});
+        if(!response.ok) throw new Error("Не удалось прочитать оригинал записи.");
+        rescue.blob=await response.blob();
+      }
+      if(!valid()) return;
+      if(!rescue.blob.size) throw new Error("Исходная запись пуста.");
+      const type=rescue.blob.type||videoReplay.blobType||'video/webm';
+      const stamp=new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
+      rescue.name='jugada-rescate-original-'+stamp+(/mp4/i.test(type)?'.mp4':'.webm');
+      if(!rescue.folder || await rescue.folder.queryPermission({mode:'readwrite'})!=='granted') throw new Error("Папка экспорта недоступна.");
+      const name=await tecladoGuardarExportacion(rescue.folder,rescue.blob,rescue.name,signal);
+      if(!valid()) return;
+      videoReplayRecoveryNotice("Оригинал записи сохранён",
+        "Сохранено в "+rescue.folder.name+" в формате "+name+". Эта копия содержит видео с камеры без наложенных данных и коррекции изображения.",'',true);
+      setVideoReplayStatus("Резервная копия сохранена в "+rescue.folder.name+': '+name,'good');
+      ytgTimbreListo();
+    }catch(error){
+      if(!valid()) return;
+      if(rescue.blob && rescue.blob.size){
+        rescue.native=true;
+        videoReplayRecoveryNotice("Используйте загрузку через браузер",
+          "Не удалось сохранить файл в выбранную папку. Нажмите кнопку, чтобы скачать резервную копию в папку загрузок браузера. Пока не закрывайте и не перезагружайте страницу.",
+          "Скачать резервную копию");
+      }else{
+        videoReplayRecoveryNotice("Не удалось сохранить оригинал записи",
+          error.message+" Оставьте приложение открытым и повторите попытку.","Сохранить оригинал записи");
+      }
+    }finally{finish();}
+  }
+  function videoReplayExportResumeAudio(context,signal){
+    return new Promise((resolve,reject)=>{
+      let timer;
+      const finish=error=>{clearTimeout(timer);signal.removeEventListener('abort',abort);error?reject(error):resolve();};
+      const abort=()=>finish(new DOMException("Экспорт отменён.",'AbortError'));
+      if(signal.aborted){abort();return;}
+      signal.addEventListener('abort',abort,{once:true});
+      timer=setTimeout(()=>finish(new Error("Аудиосистема не ответила при подготовке экспорта.")),5000);
+      context.resume().then(()=>finish(),finish);
+    });
+  }
+
   async function exportVideoReplayWithOverlay(opciones){
     const carpeta=opciones && opciones.carpeta;
     const withData=!(opciones && opciones.sinDatos === true);
@@ -17762,9 +17866,14 @@ function drawStartMarks(){
     if(document.hidden){setVideoReplayStatus("Держите эту вкладку видимой, чтобы экспортировать видео целиком.",'bad');return;}
     const playback=ids('videoReplayPlayback');if(playback) playback.pause();
     const traceForExport=withData?{...videoReplayTrace}:{enabled:false,points:[]},url=videoReplay.blobUrl;
+    videoReplayRescueReset();
+    const job={cancel:null};let retryTimer=0,previousMime='';
+    videoReplay.exportJob=job;videoReplay.exporting=true;videoReplay.lastExportCheck=null;
+    setVideoReplayExportUi(true,withData);setVideoReplayStatus("Готовим экспорт…");
+    const attempt=async attemptNumber=>{
     const controller=new AbortController(),signal=controller.signal;
     const srcVideo=document.createElement('video');srcVideo.muted=false;srcVideo.volume=1;
-    let recorder=null,canvasStream=null,combined=null,sourceNode=null,destNode=null;
+    let recorder=null,canvasStream=null,combined=null,sourceNode=null,destNode=null,audioContext=null,rectifier=null,warper=null;
     let frameHandle=0,rafHandle=0,watchdog=0,disposed=false,phase='preparing',chunks=[];
     let lastTime=0,lastFrameAt=0,frameCount=0,maxGap=0,paintMs=0,lastUi=0;
     const nativeFrames=typeof srcVideo.requestVideoFrameCallback==='function';
@@ -17773,25 +17882,47 @@ function drawStartMarks(){
       if(rafHandle) cancelAnimationFrame(rafHandle);rafHandle=0;
       clearInterval(watchdog);watchdog=0;
     };
-    const job={cancel:null};
-    const cleanup=()=>{
-      if(disposed) return;disposed=true;clearFrames();controller.abort();
+    const cleanup=(keepJob=false)=>{
+      if(!disposed){
+      disposed=true;clearFrames();controller.abort();
       document.removeEventListener('visibilitychange',visibility);
       if(recorder){recorder.ondataavailable=null;recorder.onstop=null;recorder.onerror=null;if(recorder.state!=='inactive'){try{recorder.stop();}catch{}}}
       if(combined) combined.getTracks().forEach(t=>t.stop());
       if(canvasStream) canvasStream.getTracks().forEach(t=>t.stop());
       if(sourceNode) sourceNode.disconnect();if(destNode){destNode.disconnect();destNode.stream.getTracks().forEach(t=>t.stop());}
+      if(audioContext && audioContext.state!=='closed') audioContext.close().catch(()=>{});
+      for(const renderer of [rectifier,warper]){
+        try{const gl=renderer && renderer.canvas && (renderer.canvas.getContext('webgl')||renderer.canvas.getContext('experimental-webgl'));if(gl) gl.getExtension('WEBGL_lose_context')?.loseContext();}catch{}
+      }
       srcVideo.onerror=null;srcVideo.onended=null;videoReplayReleaseVideo(srcVideo);chunks=[];
-      if(videoReplay.exportJob===job){
+      }
+      if(!keepJob && videoReplay.exportJob===job){
         videoReplay.exportJob=null;videoReplay.exporting=false;videoReplay.exportRecorder=null;
         videoReplay.exportVideoEl=null;videoReplay.exportChunks=[];setVideoReplayExportUi(false);
       }
     };
-    const fail=message=>{if(disposed) return;cleanup();if(message) setVideoReplayStatus(message+" Исходная запись сохранена.",'bad');};
-    job.cancel=message=>{cleanup();if(message) setVideoReplayStatus(message);};
-    const visibility=()=>{if(document.hidden) fail("Экспорт прерван, поскольку вкладка была скрыта. Снова нажмите «"+actionLabel+"» и не скрывайте эту вкладку.");};
-    videoReplay.exportJob=job;videoReplay.exportVideoEl=srcVideo;videoReplay.exporting=true;
-    setVideoReplayExportUi(true,withData);setVideoReplayStatus("Готовим экспорт…");
+    const fail=(message,retryable=true)=>{
+      if(disposed) return;
+      if(attemptNumber===0 && retryable && phase!=='saving' && !document.hidden && videoReplay.blobUrl===url){
+        cleanup(true);
+        videoReplayRecoveryNotice("Повторная попытка экспорта…",
+          "Первая попытка была прервана. Ваша запись сохранена в приложении; подождите, пока будет подготовлен другой способ экспорта. Оставьте эту вкладку видимой.");
+        setVideoReplayStatus("Первая попытка прервана: "+message+" Выполняется одна повторная попытка…");
+        retryTimer=setTimeout(()=>{
+          retryTimer=0;
+          if(videoReplay.exportJob!==job) return;
+          if(videoReplay.blobUrl!==url || videoReplay.mode!=='replay'){cleanup();return;}
+          if(document.hidden){cleanup();videoReplayRecoveryOffer("Экспорт остановился, когда вкладка была скрыта.",url,carpeta);return;}
+          attempt(1);
+        },600);
+        return;
+      }
+      cleanup();setVideoReplayStatus(message+" Исходная запись сохранена.",'bad');
+      videoReplayRecoveryOffer(message,url,carpeta);
+    };
+    job.cancel=message=>{clearTimeout(retryTimer);retryTimer=0;cleanup();const box=ids('videoReplayRecovery');if(box) box.hidden=true;if(message) setVideoReplayStatus(message);};
+    const visibility=()=>{if(document.hidden) fail("Экспорт прерван, поскольку вкладка была скрыта. Снова нажмите «"+actionLabel+"» и не скрывайте эту вкладку.",false);};
+    videoReplay.exportVideoEl=srcVideo;
     document.addEventListener('visibilitychange',visibility);
     try{
       const total=await videoReplayPrepareFile(srcVideo,url,signal);
@@ -17799,21 +17930,24 @@ function drawStartMarks(){
       const vw=srcVideo.videoWidth,vh=srcVideo.videoHeight;
       const exportCanvas=document.createElement('canvas');exportCanvas.width=vw;exportCanvas.height=vh;
       const g=exportCanvas.getContext('2d',{alpha:false});
+      if(!g) throw new Error("Не удалось подготовить изображение для экспорта.");
       // Los datos planeados son estáticos. Se calculan una vez y se reutilizan.
       const guide=withData?document.createElement('canvas'):null;
       if(guide){guide.width=vw;guide.height=vh;drawVideoReplayOverlay(guide.getContext('2d'),vw,vh,{route:true,handles:false});}
       const rectify=videoReplayRectifyActive(),dewarp=videoReplayDewarpActive();
       const Hh=rectify?rectifiedOutputHomography(vw,vh):null,k1=Number.isFinite(videoReplay.calib.k1)?videoReplay.calib.k1:0;
-      const rectifier=rectify?getVideoRectifier('exportacion'):null,warper=dewarp?getVideoDewarper('exportacion'):null;
+      // Cada intento tiene sus propios recursos, que se liberan al terminar.
+      rectifier=rectify?createVideoRectifier():null;warper=!rectify&&dewarp?createVideoDewarper():null;
+      if((rectify && (!rectifier.ok || !Hh)) || (!rectify && dewarp && !warper.ok)) throw new Error("Не удалось подготовить коррекцию изображения.");
       let audioTracks=[];
       if(videoReplay.blobHasAudio){
         const Ctx=window.AudioContext||window.webkitAudioContext;
         if(!Ctx) throw new Error("Не удалось сохранить звук записи.");
-        if(!videoReplay.audioCtx) videoReplay.audioCtx=new Ctx();
-        if(videoReplay.audioCtx.state==='suspended') await videoReplay.audioCtx.resume();
+        audioContext=new Ctx();
+        if(audioContext.state!=='running') await videoReplayExportResumeAudio(audioContext,signal);
         if(disposed) return;
-        if(videoReplay.audioCtx.state!=='running') throw new Error("Не удалось включить звук для экспорта.");
-        sourceNode=videoReplay.audioCtx.createMediaElementSource(srcVideo);destNode=videoReplay.audioCtx.createMediaStreamDestination();sourceNode.connect(destNode);
+        if(audioContext.state!=='running') throw new Error("Не удалось включить звук для экспорта.");
+        sourceNode=audioContext.createMediaElementSource(srcVideo);destNode=audioContext.createMediaStreamDestination();sourceNode.connect(destNode);
         audioTracks=destNode.stream.getAudioTracks();
       } else srcVideo.muted=true;
       // Pedir una captura justo después de componer la imagen evita un segundo
@@ -17826,13 +17960,16 @@ function drawStartMarks(){
       const requestFrame=()=>{if(capture && typeof capture.requestFrame==='function') capture.requestFrame();};
       const draw=time=>{
         const began=performance.now();g.fillStyle='#05070a';g.fillRect(0,0,vw,vh);
+        for(const renderer of [rectifier,warper]){
+          if(renderer && renderer.ok){const gl=renderer.canvas.getContext('webgl')||renderer.canvas.getContext('experimental-webgl');if(!gl || gl.isContextLost()) throw new Error("Коррекция изображения была прервана.");}
+        }
         let painted=false,traceView='raw';
         if(rectify && rectifier.ok && Hh){
           rectifier.render(srcVideo,vw,vh,k1,vw/vh,Hh);g.drawImage(rectifier.canvas,0,0,vw,vh);painted=true;traceView='rectified';
         }
         if(!painted){
           let picture=srcVideo;
-          if(dewarp && warper.ok){warper.render(srcVideo,vw,vh,k1,vw/vh);picture=warper.canvas;traceView='dewarped';}
+          if(dewarp && warper && warper.ok){warper.render(srcVideo,vw,vh,k1,vw/vh);picture=warper.canvas;traceView='dewarped';}
           g.save();g.translate(vw,vh);g.rotate(Math.PI);g.drawImage(picture,0,0,vw,vh);g.restore();
         }
         if(withData){g.drawImage(guide,0,0);drawVideoReplayTrace(g,vw,vh,time,traceView,traceForExport);}
@@ -17843,11 +17980,14 @@ function drawStartMarks(){
       const mimeCandidates=audioTracks.length
         ? ['video/mp4;codecs=avc1.640028,mp4a.40.2','video/mp4;codecs=avc1.4D401F,mp4a.40.2','video/mp4;codecs=avc1.42E01E,mp4a.40.2','video/webm;codecs=vp8,opus','video/webm;codecs=vp9,opus','video/webm']
         : ['video/mp4;codecs=avc1.640028','video/mp4;codecs=avc1.4D401F','video/mp4;codecs=avc1.42E01E','video/webm;codecs=vp8','video/webm;codecs=vp9','video/webm'];
-      const mime=mimeCandidates.find(c=>{try{return MediaRecorder.isTypeSupported(c);}catch{return false;}})||'';
+      const candidates=attemptNumber===0?mimeCandidates:
+        mimeCandidates.filter(c=>/vp8/.test(c)).concat(mimeCandidates.filter(c=>!/vp8/.test(c))).filter(c=>c!==previousMime);
+      const mime=candidates.find(c=>{try{return MediaRecorder.isTypeSupported(c);}catch{return false;}})||'';
+      previousMime=mime;
       recorder=new MediaRecorder(combined,mime?{mimeType:mime,videoBitsPerSecond:8000000}:undefined);
       videoReplay.exportRecorder=recorder;
       recorder.ondataavailable=e=>{if(!disposed && e.data && e.data.size) chunks.push(e.data);};
-      recorder.onerror=()=>fail("Браузер сообщил об ошибке экспорта. Частичный файл не был скачан.");
+      recorder.onerror=event=>fail("Браузер сообщил об ошибке экспорта."+(event.error && event.error.message?' '+event.error.message:'')+" Неполный файл не был скачан.");
       recorder.onstop=async()=>{
         if(disposed) return;
         if(phase!=='finishing'){fail("Кодирование завершилось до окончания удара.");return;}
@@ -17873,8 +18013,10 @@ function drawStartMarks(){
             setTimeout(()=>URL.revokeObjectURL(output),60000);
           }
           cleanup();ytgTimbreListo();
+          if(attemptNumber) videoReplayRecoveryNotice("Видео сохранено",
+            "Повторная попытка завершилась успешно."+(mp4?'':" Видео сохранено в формате WebM.")+" Видео сохраняет исправленное изображение"+(withData?" и наложенные данные.":", без наложенных данных."),'',true);
           setVideoReplayStatus((carpeta?"Видео сохранено в "+carpeta.name+" в формате ":"Видео скачано в формате ")+(mp4?'MP4':'WebM')+(!withData?" с исправленным изображением, без наложенных данных.":traceForExport.enabled&&traceForExport.points.length>1?" с постепенным отображением реальной траектории отслеживаемого шара и наложенными данными.":" с наложенными данными.")+" Начало, конец и длительность проверены.",'good');
-        }catch(error){if(error.name!=='AbortError') fail(error.message);}
+        }catch(error){if(!disposed) fail(error.message);}
       };
       const onFrame=(now,meta)=>{
         if(disposed||phase!=='running') return;
@@ -17908,7 +18050,7 @@ function drawStartMarks(){
       watchdog=setInterval(()=>{
         if(disposed||phase!=='running') return;
         if(document.hidden){visibility();return;}
-        if(audioTracks.length && videoReplay.audioCtx.state!=='running'){fail("Звук прервался во время экспорта.");return;}
+        if(audioTracks.length && audioContext.state!=='running'){fail("Звук прервался во время экспорта.");return;}
         if(combined.getTracks().some(t=>t.readyState!=='live')){fail("Одна из дорожек экспорта прервалась до завершения.");return;}
         // El evento ended puede demorarse hasta el siguiente timeupdate.
         // Cuando el reloj ya llegó al final, cerrar sin añadir ese tiempo muerto.
@@ -17916,7 +18058,9 @@ function drawStartMarks(){
         if(performance.now()-lastFrameAt>2000) fail("Во время экспорта видео перестало передавать кадры. Копия с застывшим изображением не была скачана.");
       },40);
       srcVideo.playbackRate=1;await Promise.all([recordingStarted,srcVideo.play()]);
-    }catch(error){if(error.name!=='AbortError') fail("Не удалось завершить экспорт: "+error.message);}
+    }catch(error){if(!disposed) fail("Не удалось завершить экспорт: "+error.message);}
+    };
+    await attempt(0);
   }
 
   function setupVideoReplay(){
@@ -18156,6 +18300,8 @@ function drawStartMarks(){
 
     const downloadBtn = ids('videoReplayDownloadBtn');
     if(downloadBtn) downloadBtn.addEventListener('click', () => tecladoExportar(true));
+    const rescueBtn=ids('videoReplayRescueBtn');
+    if(rescueBtn) rescueBtn.addEventListener('click',videoReplaySaveRescue);
   }
 
 
@@ -21506,7 +21652,10 @@ function drawStartMarks(){
       if(!tecladoRevision() || videoReplay.blobUrl!==url || videoReplay.exporting || boton.disabled) return;
       await exportVideoReplayWithOverlay({carpeta,sinDatos});
       return !!videoReplay.exporting;
-    }catch(error){if(error.name!=='AbortError') tecladoAvisar(tecla,error.message,'warn');}
+    }catch(error){if(error.name!=='AbortError'){
+      tecladoAvisar(tecla,error.message,'warn');
+      videoReplayRecoveryOffer("Не удалось начать сохранение: "+error.message,url,tecladoExportacion.carpeta);
+    }}
     finally{tecladoExportacion.ocupado=false;tecladoCarpetaUi();}
   }
   // DD solo enlaza la detención hecha por D con esa misma grabación.
