@@ -18966,6 +18966,28 @@ function drawStartMarks(){
 
   const ytSugerenciasBolas = {frame:null, clave:'', puntos:{}, terceraAzul:false, pano:null};
 
+  // Solo para propuestas del video fuente en paños convencionales. Los colores
+  // cálidos forman primero una silueta; su color se decide con todo el cuerpo.
+  // Así, las zonas anaranjadas de la amarilla no crean una segunda bola roja.
+  function ytTonoCalidoFuente(r,g,b){
+    const max=Math.max(r,g,b),min=Math.min(r,g,b),chroma=max-min;
+    if(chroma<32 || max<105) return 0;
+    let hue=max===r ? (g-b)/chroma : max===g ? (b-r)/chroma+2 : (r-g)/chroma+4;
+    hue=(hue*60+360)%360;
+    if(hue>=24 && hue<=85) return 2;
+    if(hue<=16 || hue>=340) return 3;
+    return 0;
+  }
+  function ytColorConjuntoCalidoFuente(votes){
+    // La mayoría cromática debe ser clara. Brillos casi blancos no votan;
+    // un tono dudoso conserva la confirmación manual en vez de forzar un color.
+    const total=votes[0]+votes[2]+votes[3];
+    if(!total) return null;
+    if(votes[2]/total>=.60 && votes[2]>votes[3]*1.8) return 'yellow';
+    if(votes[3]/total>=.60 && votes[3]>votes[2]*1.8) return 'red';
+    return null;
+  }
+
   function ytDetectarSugerenciasBolas(){
     const fc = ytTrain.frameCanvas, esquinas = ytTrain.esquinas;
     if(!fc || esquinas.length !== 4) return {};
@@ -18994,17 +19016,23 @@ function drawStartMarks(){
       const p=y*w+x, i=p*4, r=data[i], v=data[i+1], b=data[i+2];
       if(ytPixelDelPano(r,v,b,pano)) continue;
       colores[p] = pano && pano.magenta ? ytColorBolaPanoMagenta(r,v,b) :
-        isRedBallPixel(r,v,b) ? 3 : isYellowBallPixel(r,v,b) ? 2 : isWhiteBallPixel(r,v,b) ? 1 : 0;
+        (isRedBallPixel(r,v,b)||isYellowBallPixel(r,v,b)) ? 5 : isWhiteBallPixel(r,v,b) ? 1 : 0;
     }
     // Todos los colores se recorren juntos, sin releer la imagen.
     for(let inicio=0;inicio<colores.length;inicio++){
       const color = colores[inicio];
       if(!color) continue;
       let cabeza=0, fin=1, area=0, minX=w, minY=h, maxX=0, maxY=0;
+      const warmVotes=color===5 ? [0,0,0,0] : null;
       cola[0]=inicio; colores[inicio]=0;
       while(cabeza<fin){
         const p=cola[cabeza++], x=p%w, y=(p/w)|0;
         area++; minX=Math.min(minX,x); maxX=Math.max(maxX,x); minY=Math.min(minY,y); maxY=Math.max(maxY,y);
+        if(warmVotes){
+          const i=p*4,r=data[i],g=data[i+1],b=data[i+2];
+          const chroma=Math.max(r,g,b)-Math.min(r,g,b);
+          warmVotes[ytTonoCalidoFuente(r,g,b)]+=chroma;
+        }
         for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++){
           if(!dx && !dy) continue;
           const xx=x+dx, yy=y+dy;
@@ -19033,7 +19061,8 @@ function drawStartMarks(){
       const error=Math.abs(Math.log(proporcion))*.45 + Math.abs(Math.log(ax))*.35 +
         Math.abs(Math.log(ay))*.35 + Math.abs(relleno-Math.PI/4)*1.2;
       if(error>.65) continue;
-      const key=['','white','yellow','red','blue'][color];
+      const key=warmVotes ? ytColorConjuntoCalidoFuente(warmVotes) : ['','white','yellow','red','blue'][color];
+      if(!key) continue;
       listas[key].push({...punto, centro, error});
     }
     // La azul del video ocupa la clave roja solo al transferir la posición.
@@ -21386,8 +21415,8 @@ function drawStartMarks(){
   // no tapar la faena, sigue a la bola que usted esté colocando y se
   // despide sola cuando la bola queda verde.
   // La lupa responde a actividad reciente, sin alterar el juez de colocación.
-  const ytgMotion={canvas:null,points:{},started:{},active:null,layout:null};
-  function ytgMotionReset(){ytgMotion.points={};ytgMotion.started={};ytgMotion.active=null;ytgMotion.layout=null;}
+  const ytgMotion={canvas:null,points:{},near:{},active:null,focus:null,intentAt:-Infinity,layout:null};
+  function ytgMotionReset(){ytgMotion.points={};ytgMotion.near={};ytgMotion.active=null;ytgMotion.focus=null;ytgMotion.intentAt=-Infinity;ytgMotion.layout=null;}
   function ytgFindMovingBalls(source,H,objetivos){
     const cw=source.width,ch=source.height,scale=Math.min(1,800/cw);
     const cv=ytgMotion.canvas||(ytgMotion.canvas=document.createElement('canvas'));
@@ -21421,18 +21450,32 @@ function drawStartMarks(){
     return found;
   }
   function ytgTrackMotion(found,objetivos,cw,now=performance.now()){
+    let entry=null;
     for(const o of objetivos){
-      if(ytGuia.cerca[o.key]&&ytgMotion.started[o.key]===undefined)ytgMotion.started[o.key]=now;
-      let p=ytgMotion.points[o.key];const options=found[o.key]||[];
+      const key=o.key,local=ytGuia.centroides[key];
+      const near=!!ytGuia.cerca[key]&&!ytGuia.puestas[key]&&local&&Number.isFinite(local.x)&&Number.isFinite(local.y);
+      // Una pérdida breve de presencia no crea una aproximación nueva ni cambia de bola.
+      // Una aproximación nueva sí renueva la ayuda, aunque ya se usó antes ese círculo.
+      if(ytGuia.puestas[key]) delete ytgMotion.near[key];
+      else if(near){
+        let visit=ytgMotion.near[key];
+        if(!visit || now-visit.seen>=1400){
+          visit=ytgMotion.near[key]={entered:now,seen:now};
+          if(!entry || visit.entered>entry.at) entry={key,at:visit.entered};
+        }
+        visit.seen=now;
+      }
+      let p=ytgMotion.points[key];const options=found[key]||[];
       options.sort((a,b)=>{
         const score=c=>c.quality+(p&&now-p.seen<1600?Math.hypot(c.x-p.x,c.y-p.y)/Math.max(o.r*3,1):0);
         return score(a)-score(b);
       });
-      const c=options[0];if(!c) continue;
-      // El centro local conserva sensibilidad para el microajuste, sin seguir la mano.
-      const local=ytGuia.centroides[o.key];
-      const at=local&&Math.hypot(local.x-c.x,local.y-c.y)<o.r ? local : c;
-      if(!p){p=ytgMotion.points[o.key]={x:at.x,y:at.y,ax:at.x,ay:at.y,seen:now,moved:0,hits:0,amount:0};continue;}
+      const c=options[0];
+      // La presencia local ya fue validada por el juez de colocación. Puede sostener
+      // el microajuste aunque la mano o un reflejo interrumpan la detección global.
+      const at=near&&(!c||Math.hypot(local.x-c.x,local.y-c.y)<o.r)?local:c;
+      if(!at) continue;
+      if(!p){p=ytgMotion.points[key]={x:at.x,y:at.y,ax:at.x,ay:at.y,seen:now,moved:0,hits:0,amount:0};continue;}
       const gap=now-p.seen;p.seen=now;
       p.x=(p.x+at.x)/2;p.y=(p.y+at.y)/2;
       const distance=Math.hypot(p.x-p.ax,p.y-p.ay),threshold=Math.max(cw/800*.8,o.r*.10);
@@ -21448,23 +21491,21 @@ function drawStartMarks(){
       return pb.moved-pa.moved || (a.key===ytgMotion.active?-1:b.key===ytgMotion.active?1:pb.amount-pa.amount);
     });
     ytgMotion.active=recent.length?recent[0].key:null;
+    if(entry && entry.at>ytgMotion.intentAt){ytgMotion.focus=entry.key;ytgMotion.intentAt=entry.at;}
+    const active=ytgMotion.active,p=active&&ytgMotion.points[active];
+    if(p && p.moved>=ytgMotion.intentAt){ytgMotion.focus=active;ytgMotion.intentAt=p.moved;}
   }
   function ytgUpdateMotion(source,H,objetivos){
-    try{ytgTrackMotion(ytgFindMovingBalls(source,H,objetivos),objetivos,source.width);}catch{ytgMotion.active=null;}
+    let found={};
+    try{found=ytgFindMovingBalls(source,H,objetivos);}catch{}
+    ytgTrackMotion(found,objetivos,source.width);
   }
   function ytgElegirLupa(objetivos){
-    const now=performance.now(),active=ytgMotion.active,p=active&&ytgMotion.points[active];
-    // Si la bola activa está lejos, liberar la vista general en lugar de ampliar otra quieta.
-    if(p&&now-p.moved<3500&&now-p.seen<1400){
-      return objetivos.find(o=>o.key===active&&ytGuia.cerca[o.key]&&!ytGuia.puestas[o.key])||null;
-    }
-    // Una primera aproximación también merece ayuda, pero nunca una lupa indefinida.
-    let candidate=null;
-    for(const o of objetivos){
-      const since=ytGuia.cercaDesde[o.key]||0;
-      if(ytGuia.cerca[o.key]&&!ytGuia.puestas[o.key]&&now-(ytgMotion.started[o.key]??-Infinity)<2500&&Date.now()-since<2500&&(!candidate||since>candidate.since)) candidate={o,since};
-    }
-    return candidate?candidate.o:null;
+    const key=ytgMotion.focus,visit=key&&ytgMotion.near[key];
+    // Se sostiene la bola elegida mientras se afina su colocación. Al empezar a
+    // mover otra, incluso lejos de su destino, no se recupera la lupa vieja.
+    if(!visit || ytGuia.puestas[key] || performance.now()-visit.seen>=1400) return null;
+    return objetivos.find(o=>o.key===key)||null;
   }
   function ytgLoupeLayout(objetivos,cw,ch){
     const o=ytgElegirLupa(objetivos);if(!o){ytgMotion.layout=null;return null;}
