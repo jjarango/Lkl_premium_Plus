@@ -2200,9 +2200,9 @@
 </div>
 <div class="videoReplayGroup" id="videoReplayTracePanel" style="display:none">
 <h3>实际轨迹</h3>
-<label style="display:flex; gap:8px; align-items:flex-start; cursor:pointer;"><input id="videoReplayTraceChk" style="width:auto; margin-top:4px" type="checkbox" aria-describedby="videoReplayTraceStatus"/> <span class="small">追踪最先移动的球（仅本次录像）</span></label>
-<p class="small" id="videoReplayTraceStatus" role="status" aria-live="polite" style="margin:8px 0 0;">勾选此项以分析本次录像。应用将自动选择最先移动的球。分析期间请保持此标签页可见。</p>
-<div id="videoReplayTraceChoice" style="display:none; margin-top:8px;"><label class="small" for="videoReplayTraceBall">无法可靠地自动选择。请选择要追踪的球：</label><select id="videoReplayTraceBall" style="margin-top:6px; width:100%;"><option value="">选择球…</option><option value="white">白球</option><option value="yellow">黄球</option><option value="red">红球</option></select></div>
+<label style="display:flex; gap:8px; align-items:flex-start; cursor:pointer;"><input id="videoReplayTraceChk" style="width:auto; margin-top:4px" type="checkbox" aria-describedby="videoReplayTraceStatus"/> <span class="small">追踪主球（仅本次录像）</span></label>
+<p class="small" id="videoReplayTraceStatus" role="status" aria-live="polite" style="margin:8px 0 0;">勾选此项以分析本次录像。您可以保留自动选择，也可以指定要追踪的球。分析期间请保持此标签页可见。</p>
+<div id="videoReplayTraceChoice" style="display:none; margin-top:8px;"><label class="small" for="videoReplayTraceBall">要追踪的球</label><select id="videoReplayTraceBall" aria-describedby="videoReplayTraceStatus" style="margin-top:6px; width:100%;"><option value="">自动：最先移动的球</option><option value="white">白球</option><option value="yellow">黄球</option></select></div>
 <div class="videoReplayRow" style="margin-top:8px;"><button id="videoReplayTraceCancel" type="button" style="display:none">取消分析</button><button id="videoReplayTraceRetry" type="button" style="display:none">重新分析</button></div>
 </div>
 <div class="videoReplayGroup" id="videoReplayDewarpPanel">
@@ -15815,7 +15815,7 @@ function drawStartMarks(){
   const videoReplayTrace = {
     enabled:false, busy:false, status:'idle', points:[], url:null, meta:null,
     controller:null, job:0, progress:0, message:'', missing:0, samples:0,
-    tracks:null, metrics:null, paused:false
+    tracks:null, metrics:null, paused:false, manualBall:''
   };
 
   // Trayectoria lista: la misma voz local que confirma la grabación.
@@ -15851,7 +15851,7 @@ function drawStartMarks(){
     if(chk){ chk.checked = tr.enabled; chk.disabled = !!videoReplay.exporting; }
     const note = ids('videoReplayTraceStatus');
     if(note){
-      note.textContent = !tr.enabled ? "仅为本次录像启用追踪。应用将选择最先移动的球，不会更改系统计算中所选的主球。"
+      note.textContent = !tr.enabled ? "仅为本次录像启用追踪。您可以在下方选择要追踪的球，不会改变计算系统所用的主球。"
         : tr.paused ? "分析已暂停。返回此标签页即可继续。"
         : (tr.busy ? "正在分析起动和轨迹… " + tr.progress + "%。请保持此标签页可见。您可以取消分析。"
           : (tr.message || "停止录像后，将追踪最先移动的球。开始录像时，请确保三颗球均静止。"));
@@ -15864,7 +15864,9 @@ function drawStartMarks(){
       retry.disabled = !!videoReplay.exporting;
     }
     const choice = ids('videoReplayTraceChoice');
-    if(choice) choice.style.display = tr.enabled && tr.status === 'choice' ? '' : 'none';
+    if(choice) choice.style.display = videoReplay.mode === 'replay' && videoReplay.blobUrl ? '' : 'none';
+    const ball = ids('videoReplayTraceBall');
+    if(ball){ ball.value = tr.manualBall; ball.disabled = tr.busy || !!videoReplay.exporting; }
     const exportBtn = ids('videoReplayExportBtn');
     if(exportBtn) exportBtn.disabled = !!videoReplay.exporting || (tr.enabled && (tr.busy || tr.status==='choice'));
     videoReplayDownloadReadyCheck();
@@ -15886,7 +15888,7 @@ function drawStartMarks(){
 
   function videoReplayTraceReset(){
     videoReplayTraceCancel();
-    Object.assign(videoReplayTrace, {status:'idle', points:[], url:null, meta:null, message:'', progress:0, missing:0, samples:0,tracks:null,metrics:null,paused:false});
+    Object.assign(videoReplayTrace, {status:'idle', points:[], url:null, meta:null, message:'', progress:0, missing:0, samples:0,tracks:null,metrics:null,paused:false,manualBall:''});
     const choice = ids('videoReplayTraceBall'); if(choice) choice.value = '';
     videoReplayTraceUi();
   }
@@ -16082,7 +16084,7 @@ function drawStartMarks(){
 
   function videoReplayTraceUseBall(key,manual=false){
     const tr=videoReplayTrace,track=tr.tracks && tr.tracks[key];
-    if(!track || tr.url!==videoReplay.blobUrl) return false;
+    if(!['white','yellow'].includes(key) || !track || tr.url!==videoReplay.blobUrl) return false;
     let points=track.points;
     if(manual && !points.length && track.rows.length>1){
       const first=track.rows[0];
@@ -16093,12 +16095,34 @@ function drawStartMarks(){
     tr.meta.cue=key;tr.points=points;tr.missing=track.missing;
     tr.status='ready';
     tr.message=points.length>1
-      ? (manual ? "所选球：" : "最先移动的球：")+ballDisplayName(key, true)+"。轨迹已生成，可播放或使用“含数据下载”。下次录像将自动关闭追踪。"
+      ? (manual ? "手动追踪：" : "最先移动的球：")+ballDisplayName(key, true)+"。轨迹已生成，可播放或使用“含数据下载”。下次录像将自动关闭追踪。"
       : "未检测到明显位移。球："+ballDisplayName(key, true)+'.';
     if(points.length>1 && points.some((p,i)=>i>0&&p.break)) tr.message+=" 部分片段无法可靠追踪，轨迹在这些位置保持断开。";
     videoReplayTraceUi();
     if(manual) videoReplayTraceSoundReady();
     return true;
+  }
+
+  // La elección manual pertenece a esta grabación y se conserva al volver a
+  // analizar (incluido T). Ambas vías de lectura usan la misma selección.
+  function videoReplayTraceSelectResult(){
+    const tr=videoReplayTrace,tracks=tr.tracks||{},keys=['white','yellow'];
+    if(keys.includes(tr.manualBall)){
+      if(!videoReplayTraceUseBall(tr.manualBall,true)){
+        tr.status='error';tr.message="无法追踪所选球："+ballDisplayName(tr.manualBall)+"。请重新分析。";
+      }
+      return;
+    }
+    // Se siguen observando las tres bolas; solo blanca y amarilla pueden tacar.
+    const moved=keys.map(key=>tracks[key]).filter(t=>t&&t.onset!==null).sort((a,b)=>a.onset-b.onset),winner=moved[0];
+    const clear=winner&&(!moved[1]||moved[1].onset-winner.onset>.05)
+      &&['white','yellow','red'].every(key=>tracks[key]&&tracks[key].rows.some(p=>p.t<winner.onset&&winner.onset-p.t<.12));
+    if(clear) videoReplayTraceUseBall(winner.key);
+    else{
+      tr.status='choice';tr.message=winner
+        ? "两颗球几乎同时开始移动，或有球被遮挡，无法可靠地自动选择。请在下方选择白球或黄球，然后点击“重新分析”。"
+        : "未能在三球初始静止的情况下识别出明确的起动。请在下方选择白球或黄球，然后点击“重新分析”。";
+    }
   }
 
   // Índice de inserción temporal: reutilizar el orden ya conocido, sin volver
@@ -16158,24 +16182,16 @@ function drawStartMarks(){
     videoReplayTraceSound.pending={job,url,notifying:false};
     videoReplayTracePrimeSound();
     Object.assign(tr,{controller,busy:true,status:'working',progress:0,points:[],url:null,message:'',missing:0,samples:0,tracks:null,paused:false});
-    const manual=ids('videoReplayTraceBall');if(manual)manual.value='';videoReplayTraceUi();
+    videoReplayTraceUi();
     let fallback=null;
     try{
       const response=await fetch(url,{signal}),blob=await response.blob();
       if(signal.aborted||tr.job!==job||videoReplay.blobUrl!==url)throw new DOMException("分析已取消",'AbortError');
       const result=await videoReplayTraceWorker(blob,meta,signal);
       if(signal.aborted||tr.job!==job||videoReplay.blobUrl!==url)throw new DOMException("分析已取消",'AbortError');
-      const tracks=result.tracks,keys=['white','yellow','red'];
+      const tracks=result.tracks;
       Object.assign(tr,{url,tracks,samples:result.samples,progress:100,metrics:{...result.metrics,elapsedMs:performance.now()-started}});
-      const moved=Object.values(tracks).filter(t=>t.onset!==null).sort((a,b)=>a.onset-b.onset),winner=moved[0];
-      const clear=winner&&(!moved[1]||moved[1].onset-winner.onset>.05)
-        &&keys.every(key=>tracks[key].rows.some(p=>p.t<winner.onset&&winner.onset-p.t<.12));
-      if(clear)videoReplayTraceUseBall(winner.key);
-      else{
-        tr.status='choice';tr.message=winner
-          ?"两颗球几乎同时起动，或有球被遮挡，无法可靠地自动选择。请在下方选择球，无需重新分析。"
-          :"未能明确识别球从静止状态起动的时刻。您可以在下方选择要追踪的球。";
-      }
+      videoReplayTraceSelectResult();
       return tr.status==='ready';
     }catch(error){
       if(error.name!=='AbortError'&&tr.job===job&&videoReplay.blobUrl===url)fallback=error.message;
@@ -16202,7 +16218,6 @@ function drawStartMarks(){
     videoReplayTraceSound.pending={job,url,notifying:false};
     videoReplayTracePrimeSound();
     Object.assign(tr,{controller,busy:true,status:'working',progress:0,points:[],url:null,message:'',missing:0,samples:0,tracks:null,paused:false});
-    const manual=ids('videoReplayTraceBall');if(manual) manual.value='';
     videoReplayTraceUi();
     const video=document.createElement('video');video.muted=true;video.volume=0;video.playsInline=true;video.preload='auto';
     const canvas=document.createElement('canvas');
@@ -16320,16 +16335,7 @@ function drawStartMarks(){
       valid();
       const tracks=Object.fromEntries(keys.map(key=>[key,videoReplayTraceBuildTrack(frames,key,geom)]));
       Object.assign(tr,{url,tracks,samples:frames.length,progress:100,metrics:{elapsedMs:performance.now()-started,cpuMs,duration,method,repaired,repairSegments,repairSeeks,repairContinuousFrames,repairElapsedMs,fullSearches,localSearches,width:w,height:h,radius:geom.radius}});
-      const moved=Object.values(tracks).filter(t=>t.onset!==null).sort((a,b)=>a.onset-b.onset),winner=moved[0];
-      // Se comparan las salidas, no quién se desplazó más ni el selector de sistemas.
-      const clear=winner && (!moved[1]||moved[1].onset-winner.onset>.05)
-        && keys.every(key=>tracks[key].rows.some(p=>p.t<winner.onset && winner.onset-p.t<.12));
-      if(clear) videoReplayTraceUseBall(winner.key);
-      else {
-        tr.status='choice';tr.message=winner
-          ? "两颗球几乎同时起动，或有球被遮挡，无法可靠地自动选择。请在下方选择球，无需重新分析。"
-          : "未能明确识别球从静止状态起动的时刻。您可以在下方选择要追踪的球。";
-      }
+      videoReplayTraceSelectResult();
       return tr.status==='ready';
     }catch(error){
       if(tr.job===job && error.name!=='AbortError'){tr.status='error';tr.message="未能完成追踪。"+error.message;}
@@ -16394,7 +16400,15 @@ function drawStartMarks(){
     ids('videoReplayTraceCancel').addEventListener('click',()=>videoReplayTraceCancel(true));
     ids('videoReplayTraceRetry').addEventListener('click',()=>videoReplayTraceAnalyze());
     ids('videoReplayTraceBall').addEventListener('change',event=>{
-      if(!tr.busy && !videoReplay.exporting) videoReplayTraceUseBall(event.target.value,true);
+      if(tr.busy || videoReplay.exporting){videoReplayTraceUi();return;}
+      const key=event.target.value;
+      if(!['','white','yellow'].includes(key) || key===tr.manualBall){videoReplayTraceUi();return;}
+      videoReplayTraceCancel();
+      Object.assign(tr,{manualBall:key,enabled:true,status:'pending',points:[],url:null,tracks:null,metrics:null,progress:0,
+        message:key ? "已选球："+ballDisplayName(key)+"。请点击“重新分析”以重新计算其轨迹。"
+          : "自动选择。请点击“重新分析”以识别最先移动的球。"});
+      videoReplayRender.last=null;
+      videoReplayTraceUi();
     });
     videoReplayTraceUi();
   }

@@ -2200,9 +2200,9 @@
 </div>
 <div class="videoReplayGroup" id="videoReplayTracePanel" style="display:none">
 <h3>Реальная траектория</h3>
-<label style="display:flex; gap:8px; align-items:flex-start; cursor:pointer;"><input id="videoReplayTraceChk" style="width:auto; margin-top:4px" type="checkbox" aria-describedby="videoReplayTraceStatus"/> <span class="small">Следить за первым начавшим движение шаром (только эта запись)</span></label>
-<p class="small" id="videoReplayTraceStatus" role="status" aria-live="polite" style="margin:8px 0 0;">Включите эту опцию для анализа текущей записи. Приложение выберет шар, который начал двигаться первым. Не скрывайте эту вкладку во время анализа.</p>
-<div id="videoReplayTraceChoice" style="display:none; margin-top:8px;"><label class="small" for="videoReplayTraceBall">Уверенно выбрать шар автоматически не удалось. Укажите шар для отслеживания:</label><select id="videoReplayTraceBall" style="margin-top:6px; width:100%;"><option value="">Выберите шар…</option><option value="white">Белый</option><option value="yellow">Жёлтый</option><option value="red">Красный</option></select></div>
+<label style="display:flex; gap:8px; align-items:flex-start; cursor:pointer;"><input id="videoReplayTraceChk" style="width:auto; margin-top:4px" type="checkbox" aria-describedby="videoReplayTraceStatus"/> <span class="small">Следить за битком (только эта запись)</span></label>
+<p class="small" id="videoReplayTraceStatus" role="status" aria-live="polite" style="margin:8px 0 0;">Включите эту опцию для анализа текущей записи. Можно оставить автоматический выбор или указать шар для отслеживания. Не скрывайте эту вкладку во время анализа.</p>
+<div id="videoReplayTraceChoice" style="display:none; margin-top:8px;"><label class="small" for="videoReplayTraceBall">Шар для отслеживания</label><select id="videoReplayTraceBall" aria-describedby="videoReplayTraceStatus" style="margin-top:6px; width:100%;"><option value="">Автоматически: первый начавший движение</option><option value="white">Белый</option><option value="yellow">Жёлтый</option></select></div>
 <div class="videoReplayRow" style="margin-top:8px;"><button id="videoReplayTraceCancel" type="button" style="display:none">Отменить анализ</button><button id="videoReplayTraceRetry" type="button" style="display:none">Повторить анализ</button></div>
 </div>
 <div class="videoReplayGroup" id="videoReplayDewarpPanel">
@@ -15814,7 +15814,7 @@ function drawStartMarks(){
   const videoReplayTrace = {
     enabled:false, busy:false, status:'idle', points:[], url:null, meta:null,
     controller:null, job:0, progress:0, message:'', missing:0, samples:0,
-    tracks:null, metrics:null, paused:false
+    tracks:null, metrics:null, paused:false, manualBall:''
   };
 
   // Trayectoria lista: la misma voz local que confirma la grabación.
@@ -15850,7 +15850,7 @@ function drawStartMarks(){
     if(chk){ chk.checked = tr.enabled; chk.disabled = !!videoReplay.exporting; }
     const note = ids('videoReplayTraceStatus');
     if(note){
-      note.textContent = !tr.enabled ? "Отслеживание включается только для этой записи. Приложение выберет первый начавший движение шар, не меняя биток, выбранный для расчётов по системам."
+      note.textContent = !tr.enabled ? "Включите отслеживание только для этой записи. Ниже можно выбрать шар для отслеживания, не меняя биток в системах расчёта."
         : tr.paused ? "Анализ приостановлен. Вернитесь на эту вкладку, чтобы продолжить."
         : (tr.busy ? "Анализ начала движения и траектории… " + tr.progress + " %. Не скрывайте эту вкладку. Анализ можно отменить."
           : (tr.message || "После остановки записи будет отслеживаться первый начавший движение шар. Начинайте запись, когда все три шара неподвижны."));
@@ -15863,7 +15863,9 @@ function drawStartMarks(){
       retry.disabled = !!videoReplay.exporting;
     }
     const choice = ids('videoReplayTraceChoice');
-    if(choice) choice.style.display = tr.enabled && tr.status === 'choice' ? '' : 'none';
+    if(choice) choice.style.display = videoReplay.mode === 'replay' && videoReplay.blobUrl ? '' : 'none';
+    const ball = ids('videoReplayTraceBall');
+    if(ball){ ball.value = tr.manualBall; ball.disabled = tr.busy || !!videoReplay.exporting; }
     const exportBtn = ids('videoReplayExportBtn');
     if(exportBtn) exportBtn.disabled = !!videoReplay.exporting || (tr.enabled && (tr.busy || tr.status==='choice'));
     videoReplayDownloadReadyCheck();
@@ -15885,7 +15887,7 @@ function drawStartMarks(){
 
   function videoReplayTraceReset(){
     videoReplayTraceCancel();
-    Object.assign(videoReplayTrace, {status:'idle', points:[], url:null, meta:null, message:'', progress:0, missing:0, samples:0,tracks:null,metrics:null,paused:false});
+    Object.assign(videoReplayTrace, {status:'idle', points:[], url:null, meta:null, message:'', progress:0, missing:0, samples:0,tracks:null,metrics:null,paused:false,manualBall:''});
     const choice = ids('videoReplayTraceBall'); if(choice) choice.value = '';
     videoReplayTraceUi();
   }
@@ -16081,7 +16083,7 @@ function drawStartMarks(){
 
   function videoReplayTraceUseBall(key,manual=false){
     const tr=videoReplayTrace,track=tr.tracks && tr.tracks[key];
-    if(!track || tr.url!==videoReplay.blobUrl) return false;
+    if(!['white','yellow'].includes(key) || !track || tr.url!==videoReplay.blobUrl) return false;
     let points=track.points;
     if(manual && !points.length && track.rows.length>1){
       const first=track.rows[0];
@@ -16092,12 +16094,34 @@ function drawStartMarks(){
     tr.meta.cue=key;tr.points=points;tr.missing=track.missing;
     tr.status='ready';
     tr.message=points.length>1
-      ? (manual ? "Выбранный шар: " : "Первым начал движение: ")+ballDisplayName(key, true)+". Траектория готова для просмотра и команды «Скачать с данными». Для следующей записи отслеживание будет отключено."
+      ? (manual ? "Ручной выбор шара: " : "Первым начал движение: ")+ballDisplayName(key, true)+". Траектория готова для просмотра и команды «Скачать с данными». Для следующей записи отслеживание будет отключено."
       : "Достаточного перемещения не обнаружено. Шар: "+ballDisplayName(key, true)+'.';
     if(points.length>1 && points.some((p,i)=>i>0&&p.break)) tr.message+=" Некоторые участки не удалось надёжно отследить; они оставлены несоединёнными.";
     videoReplayTraceUi();
     if(manual) videoReplayTraceSoundReady();
     return true;
+  }
+
+  // La elección manual pertenece a esta grabación y se conserva al volver a
+  // analizar (incluido T). Ambas vías de lectura usan la misma selección.
+  function videoReplayTraceSelectResult(){
+    const tr=videoReplayTrace,tracks=tr.tracks||{},keys=['white','yellow'];
+    if(keys.includes(tr.manualBall)){
+      if(!videoReplayTraceUseBall(tr.manualBall,true)){
+        tr.status='error';tr.message="Не удалось отследить шар: "+ballDisplayName(tr.manualBall)+". Попробуйте повторить анализ.";
+      }
+      return;
+    }
+    // Se siguen observando las tres bolas; solo blanca y amarilla pueden tacar.
+    const moved=keys.map(key=>tracks[key]).filter(t=>t&&t.onset!==null).sort((a,b)=>a.onset-b.onset),winner=moved[0];
+    const clear=winner&&(!moved[1]||moved[1].onset-winner.onset>.05)
+      &&['white','yellow','red'].every(key=>tracks[key]&&tracks[key].rows.some(p=>p.t<winner.onset&&winner.onset-p.t<.12));
+    if(clear) videoReplayTraceUseBall(winner.key);
+    else{
+      tr.status='choice';tr.message=winner
+        ? "Два шара начали движение почти одновременно, либо один шар был скрыт, поэтому уверенный выбор невозможен. Выберите ниже «Белый» или «Жёлтый» и нажмите «Повторить анализ»."
+        : "Не удалось определить однозначное начало движения при изначально неподвижных шарах. Выберите ниже «Белый» или «Жёлтый» и нажмите «Повторить анализ».";
+    }
   }
 
   // Índice de inserción temporal: reutilizar el orden ya conocido, sin volver
@@ -16157,24 +16181,16 @@ function drawStartMarks(){
     videoReplayTraceSound.pending={job,url,notifying:false};
     videoReplayTracePrimeSound();
     Object.assign(tr,{controller,busy:true,status:'working',progress:0,points:[],url:null,message:'',missing:0,samples:0,tracks:null,paused:false});
-    const manual=ids('videoReplayTraceBall');if(manual)manual.value='';videoReplayTraceUi();
+    videoReplayTraceUi();
     let fallback=null;
     try{
       const response=await fetch(url,{signal}),blob=await response.blob();
       if(signal.aborted||tr.job!==job||videoReplay.blobUrl!==url)throw new DOMException("Анализ отменён",'AbortError');
       const result=await videoReplayTraceWorker(blob,meta,signal);
       if(signal.aborted||tr.job!==job||videoReplay.blobUrl!==url)throw new DOMException("Анализ отменён",'AbortError');
-      const tracks=result.tracks,keys=['white','yellow','red'];
+      const tracks=result.tracks;
       Object.assign(tr,{url,tracks,samples:result.samples,progress:100,metrics:{...result.metrics,elapsedMs:performance.now()-started}});
-      const moved=Object.values(tracks).filter(t=>t.onset!==null).sort((a,b)=>a.onset-b.onset),winner=moved[0];
-      const clear=winner&&(!moved[1]||moved[1].onset-winner.onset>.05)
-        &&keys.every(key=>tracks[key].rows.some(p=>p.t<winner.onset&&winner.onset-p.t<.12));
-      if(clear)videoReplayTraceUseBall(winner.key);
-      else{
-        tr.status='choice';tr.message=winner
-          ?"Два шара начали двигаться почти одновременно или один из шаров был скрыт, поэтому уверенный выбор невозможен. Выберите шар ниже; повторять анализ не нужно."
-          :"Не удалось однозначно определить начало движения из неподвижного положения. Ниже можно выбрать шар для отслеживания.";
-      }
+      videoReplayTraceSelectResult();
       return tr.status==='ready';
     }catch(error){
       if(error.name!=='AbortError'&&tr.job===job&&videoReplay.blobUrl===url)fallback=error.message;
@@ -16201,7 +16217,6 @@ function drawStartMarks(){
     videoReplayTraceSound.pending={job,url,notifying:false};
     videoReplayTracePrimeSound();
     Object.assign(tr,{controller,busy:true,status:'working',progress:0,points:[],url:null,message:'',missing:0,samples:0,tracks:null,paused:false});
-    const manual=ids('videoReplayTraceBall');if(manual) manual.value='';
     videoReplayTraceUi();
     const video=document.createElement('video');video.muted=true;video.volume=0;video.playsInline=true;video.preload='auto';
     const canvas=document.createElement('canvas');
@@ -16319,16 +16334,7 @@ function drawStartMarks(){
       valid();
       const tracks=Object.fromEntries(keys.map(key=>[key,videoReplayTraceBuildTrack(frames,key,geom)]));
       Object.assign(tr,{url,tracks,samples:frames.length,progress:100,metrics:{elapsedMs:performance.now()-started,cpuMs,duration,method,repaired,repairSegments,repairSeeks,repairContinuousFrames,repairElapsedMs,fullSearches,localSearches,width:w,height:h,radius:geom.radius}});
-      const moved=Object.values(tracks).filter(t=>t.onset!==null).sort((a,b)=>a.onset-b.onset),winner=moved[0];
-      // Se comparan las salidas, no quién se desplazó más ni el selector de sistemas.
-      const clear=winner && (!moved[1]||moved[1].onset-winner.onset>.05)
-        && keys.every(key=>tracks[key].rows.some(p=>p.t<winner.onset && winner.onset-p.t<.12));
-      if(clear) videoReplayTraceUseBall(winner.key);
-      else {
-        tr.status='choice';tr.message=winner
-          ? "Два шара начали двигаться почти одновременно или один из шаров был скрыт, поэтому уверенный выбор невозможен. Выберите шар ниже; повторять анализ не нужно."
-          : "Не удалось однозначно определить начало движения из неподвижного положения. Ниже можно выбрать шар для отслеживания.";
-      }
+      videoReplayTraceSelectResult();
       return tr.status==='ready';
     }catch(error){
       if(tr.job===job && error.name!=='AbortError'){tr.status='error';tr.message="Не удалось завершить отслеживание. "+error.message;}
@@ -16393,7 +16399,15 @@ function drawStartMarks(){
     ids('videoReplayTraceCancel').addEventListener('click',()=>videoReplayTraceCancel(true));
     ids('videoReplayTraceRetry').addEventListener('click',()=>videoReplayTraceAnalyze());
     ids('videoReplayTraceBall').addEventListener('change',event=>{
-      if(!tr.busy && !videoReplay.exporting) videoReplayTraceUseBall(event.target.value,true);
+      if(tr.busy || videoReplay.exporting){videoReplayTraceUi();return;}
+      const key=event.target.value;
+      if(!['','white','yellow'].includes(key) || key===tr.manualBall){videoReplayTraceUi();return;}
+      videoReplayTraceCancel();
+      Object.assign(tr,{manualBall:key,enabled:true,status:'pending',points:[],url:null,tracks:null,metrics:null,progress:0,
+        message:key ? "Выбранный шар: "+ballDisplayName(key)+". Нажмите «Повторить анализ», чтобы пересчитать его траекторию."
+          : "Автоматический выбор. Нажмите «Повторить анализ», чтобы определить шар, начавший движение первым."});
+      videoReplayRender.last=null;
+      videoReplayTraceUi();
     });
     videoReplayTraceUi();
   }
