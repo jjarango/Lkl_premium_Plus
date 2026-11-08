@@ -19031,59 +19031,113 @@ function drawStartMarks(){
     const listas = {white:[], yellow:[], red:[], blue:[]};
     const pano=ytPerfilPano(data,w,h,poligono);
     ytSugerenciasBolas.pano=pano;
-    for(let y=0;y<h;y++) for(let x=0;x<w;x++){
-      if(!pointInPolygon(x+.5,y+.5,poligono)) continue;
-      const p=y*w+x, i=p*4, r=data[i], v=data[i+1], b=data[i+2];
-      if(ytPixelDelPano(r,v,b,pano)) continue;
-      colores[p] = pano && pano.magenta ? ytColorBolaPanoMagenta(r,v,b) :
-        (isRedBallPixel(r,v,b)||isYellowBallPixel(r,v,b)) ? 5 : isWhiteBallPixel(r,v,b) ? 1 : 0;
-    }
-    // Todos los colores se recorren juntos, sin releer la imagen.
-    for(let inicio=0;inicio<colores.length;inicio++){
-      const color = colores[inicio];
-      if(!color) continue;
-      let cabeza=0, fin=1, area=0, minX=w, minY=h, maxX=0, maxY=0;
-      const warmVotes=color===5 ? [0,0,0,0] : null;
-      cola[0]=inicio; colores[inicio]=0;
-      while(cabeza<fin){
-        const p=cola[cabeza++], x=p%w, y=(p/w)|0;
-        area++; minX=Math.min(minX,x); maxX=Math.max(maxX,x); minY=Math.min(minY,y); maxY=Math.max(maxY,y);
-        if(warmVotes){
-          const i=p*4,r=data[i],g=data[i+1],b=data[i+2];
-          const chroma=Math.max(r,g,b)-Math.min(r,g,b);
-          warmVotes[ytTonoCalidoFuente(r,g,b)]+=chroma;
-        }
-        for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++){
-          if(!dx && !dy) continue;
-          const xx=x+dx, yy=y+dy;
-          if(xx<0 || xx>=w || yy<0 || yy>=h) continue;
-          const q=yy*w+xx;
-          if(colores[q]===color){ colores[q]=0; cola[fin++]=q; }
+    const marfiles=[];
+    // Se muestrea el cuerpo circular y se toma la mediana: un brillo, un punto
+    // pintado o el borde azul no representan por sí solos el color de una bola.
+    function perfil(c){
+      const {x,y,rx,ry}=c.muestra,sat=[],calor=[],luz=[];
+      for(let j=Math.max(0,Math.ceil(y-ry));j<=Math.min(h-1,Math.floor(y+ry));j++){
+        for(let k=Math.max(0,Math.ceil(x-rx));k<=Math.min(w-1,Math.floor(x+rx));k++){
+          if(((k-x)/rx)**2+((j-y)/ry)**2>1) continue;
+          const i=(j*w+k)*4,r=data[i],g=data[i+1],b=data[i+2],max=Math.max(1,r,g,b);
+          sat.push((max-Math.min(r,g,b))/max);
+          calor.push(((r+g)/2-b)/max);
+          luz.push(.2126*r+.7152*g+.0722*b);
         }
       }
-      if(area<6) continue;
-      const ancho=maxX-minX+1, alto=maxY-minY+1, relleno=area/(ancho*alto);
-      if(relleno<.50 || relleno>.94) continue;
-      const punto={x:vista.x+(minX+maxX+1)/2/sx, y:vista.y+(minY+maxY+1)/2/sy};
-      const centro=applyHomography(aMesa,punto);
-      if(!centro || !Number.isFinite(centro.x) || !Number.isFinite(centro.y) ||
-         centro.x<0 || centro.x>TABLE.W || centro.y<0 || centro.y>TABLE.H) continue;
-      const px=applyHomography(aImagen,{x:centro.x+radioMesa,y:centro.y});
-      const py=applyHomography(aImagen,{x:centro.x,y:centro.y+radioMesa});
-      if(!px || !py) continue;
-      const ux=(px.x-punto.x)*sx, uy=(px.y-punto.y)*sy;
-      const vx=(py.x-punto.x)*sx, vy=(py.y-punto.y)*sy;
-      const esperado=Math.PI*Math.abs(ux*vy-uy*vx);
-      const anchoEsperado=2*Math.hypot(ux,vx), altoEsperado=2*Math.hypot(uy,vy);
-      if(!Number.isFinite(esperado) || esperado<6 || !anchoEsperado || !altoEsperado) continue;
-      const proporcion=area/esperado, ax=ancho/anchoEsperado, ay=alto/altoEsperado;
-      if(proporcion<.45 || proporcion>1.9 || ax<.55 || ax>1.7 || ay<.55 || ay>1.7) continue;
-      const error=Math.abs(Math.log(proporcion))*.45 + Math.abs(Math.log(ax))*.35 +
-        Math.abs(Math.log(ay))*.35 + Math.abs(relleno-Math.PI/4)*1.2;
-      if(error>.65) continue;
-      const key=warmVotes ? ytColorConjuntoCalidoFuente(warmVotes) : ['','white','yellow','red','blue'][color];
-      if(!key) continue;
-      listas[key].push({...punto, centro, error});
+      if(sat.length<4) return null;
+      const mediaCentral=a=>a.sort((u,v)=>u-v)[a.length>>1];
+      return {sat:mediaCentral(sat),calor:mediaCentral(calor),luz:mediaCentral(luz)};
+    }
+    const esMarfil=p=>p && p.luz>=145 && p.sat<=.47 && p.calor>=.075 && p.calor<=.44;
+    const fiable=lista=>{
+      const mejor=lista.slice().sort((a,b)=>a.error-b.error);
+      return mejor.length && (!mejor[1] || mejor[1].error-mejor[0].error>.30) ? mejor[0] : null;
+    };
+    const distintas=(a,b)=>Math.hypot(a.centro.x-b.centro.x,a.centro.y-b.centro.y)>=radioMesa*1.25;
+    function recoger(buscarMarfil){
+      for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+        if(!pointInPolygon(x+.5,y+.5,poligono)) continue;
+        const p=y*w+x, i=p*4, r=data[i], v=data[i+1], b=data[i+2];
+        if(ytPixelDelPano(r,v,b,pano)) continue;
+        if(buscarMarfil){
+          const max=Math.max(r,v,b),min=Math.min(r,v,b);
+          colores[p]=(isWhiteBallPixel(r,v,b) || (max>145 && min>95 && max-min<max*.48 &&
+            Math.abs(r-v)<max*.20 && b<=Math.min(r,v)+12)) ? 1 : 0;
+          continue;
+        }
+        colores[p] = pano && pano.magenta ? ytColorBolaPanoMagenta(r,v,b) :
+          (isRedBallPixel(r,v,b)||isYellowBallPixel(r,v,b)) ? 5 : isWhiteBallPixel(r,v,b) ? 1 : 0;
+      }
+      // Todos los colores se recorren juntos, sin releer la imagen.
+      for(let inicio=0;inicio<colores.length;inicio++){
+        const color = colores[inicio];
+        if(!color) continue;
+        let cabeza=0, fin=1, area=0, minX=w, minY=h, maxX=0, maxY=0;
+        const warmVotes=color===5 ? [0,0,0,0] : null;
+        cola[0]=inicio; colores[inicio]=0;
+        while(cabeza<fin){
+          const p=cola[cabeza++], x=p%w, y=(p/w)|0;
+          area++; minX=Math.min(minX,x); maxX=Math.max(maxX,x); minY=Math.min(minY,y); maxY=Math.max(maxY,y);
+          if(warmVotes){
+            const i=p*4,r=data[i],g=data[i+1],b=data[i+2];
+            const chroma=Math.max(r,g,b)-Math.min(r,g,b);
+            warmVotes[ytTonoCalidoFuente(r,g,b)]+=chroma;
+          }
+          for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++){
+            if(!dx && !dy) continue;
+            const xx=x+dx, yy=y+dy;
+            if(xx<0 || xx>=w || yy<0 || yy>=h) continue;
+            const q=yy*w+xx;
+            if(colores[q]===color){ colores[q]=0; cola[fin++]=q; }
+          }
+        }
+        if(area<6) continue;
+        const ancho=maxX-minX+1, alto=maxY-minY+1, relleno=area/(ancho*alto);
+        if(relleno<.50 || relleno>.94) continue;
+        const punto={x:vista.x+(minX+maxX+1)/2/sx, y:vista.y+(minY+maxY+1)/2/sy};
+        const centro=applyHomography(aMesa,punto);
+        if(!centro || !Number.isFinite(centro.x) || !Number.isFinite(centro.y) ||
+           centro.x<0 || centro.x>TABLE.W || centro.y<0 || centro.y>TABLE.H) continue;
+        const px=applyHomography(aImagen,{x:centro.x+radioMesa,y:centro.y});
+        const py=applyHomography(aImagen,{x:centro.x,y:centro.y+radioMesa});
+        if(!px || !py) continue;
+        const ux=(px.x-punto.x)*sx, uy=(px.y-punto.y)*sy;
+        const vx=(py.x-punto.x)*sx, vy=(py.y-punto.y)*sy;
+        const esperado=Math.PI*Math.abs(ux*vy-uy*vx);
+        const anchoEsperado=2*Math.hypot(ux,vx), altoEsperado=2*Math.hypot(uy,vy);
+        if(!Number.isFinite(esperado) || esperado<6 || !anchoEsperado || !altoEsperado) continue;
+        const proporcion=area/esperado, ax=ancho/anchoEsperado, ay=alto/altoEsperado;
+        if(proporcion<.45 || proporcion>1.9 || ax<.55 || ax>1.7 || ay<.55 || ay>1.7) continue;
+        const error=Math.abs(Math.log(proporcion))*.45 + Math.abs(Math.log(ax))*.35 +
+          Math.abs(Math.log(ay))*.35 + Math.abs(relleno-Math.PI/4)*1.2;
+        if(error>.65) continue;
+        const key=warmVotes ? ytColorConjuntoCalidoFuente(warmVotes) : ['','white','yellow','red','blue'][color];
+        if(!key) continue;
+        const c={...punto,centro,error,muestra:{x:(minX+maxX)/2,y:(minY+maxY)/2,rx:ancho*.37,ry:alto*.37}};
+        if(buscarMarfil) marfiles.push(c);else listas[key].push(c);
+      }
+    }
+    recoger(false);
+    // Solo se investiga el posible marfil si la primera lectura convencional
+    // no ha podido separar blanca y amarilla. La rama magenta queda intacta.
+    if(!pano?.magenta && listas.yellow.length){
+      const blanca=fiable(listas.white),amarilla=fiable(listas.yellow);
+      if(!blanca || !amarilla || !distintas(blanca,amarilla)){
+        recoger(true); // Misma calibración y exactamente los mismos filtros de tamaño y forma.
+        const claras=marfiles.map(c=>({c,p:perfil(c)})).filter(t=>esMarfil(t.p));
+        const calidas=listas.yellow.map(c=>({c,p:perfil(c)}));
+        const intensas=calidas.filter(t=>t.p && t.p.sat>=.48 && t.p.calor>=.32);
+        // Una silueta color crema por sí sola no justifica sugerir una amarilla.
+        listas.yellow=calidas.filter(t=>!esMarfil(t.p)).map(t=>t.c);
+        if(claras.length===1 && intensas.length===1){
+          const a=claras[0],b=intensas[0];
+          if((!blanca || !distintas(a.c,blanca)) && distintas(a.c,b.c) &&
+             b.p.sat-a.p.sat>=.20 && b.p.calor-a.p.calor>=.18 && a.p.luz>=b.p.luz+8){
+            listas.white=[a.c];listas.yellow=[b.c];
+          }
+        }
+      }
     }
     // La azul del video ocupa la clave roja solo al transferir la posición.
     // Si aparecen dos alternativas de tercer color, se conserva la elección manual.
