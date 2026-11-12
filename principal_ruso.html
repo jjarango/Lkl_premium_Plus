@@ -1815,6 +1815,12 @@
 .clcSetupActions button{width:100%;padding:9px;font-size:15px}.clcSetupActions label{display:flex;gap:6px;align-items:center;font-size:12px;margin-top:5px;color:#eee}.clcSetupActions input{width:auto;margin:0}
 @media(min-width:1600px){.clcSetupBar{grid-template-columns:repeat(5,minmax(0,1fr)) minmax(170px,1.2fr)}}
 @media(max-width:700px){.clcSetupBar{grid-template-columns:repeat(2,minmax(0,1fr));padding:10px;gap:10px}.clcSetupBar label,.clcSetupLabel{font-size:12px}.clcSetupBar select,.clcSetupBar output{font-size:14px}}
+    #ytPlaceFabBar.primeraColocacion {width:max-content; max-width:calc(100% - 36px)}
+    #ytPlaceFabBar.primeraColocacion #ytPlaceFab {width:min(486px, calc(100vw - 36px)); max-width:100%; min-width:0}
+    #ytPlaceFabBar.primeraColocacion #ytChangePlay {width:auto}
+    @media (max-width:720px){
+      #ytPlaceFabBar.primeraColocacion {flex-direction:column}
+    }
 </style>
 </head>
 <body>
@@ -19676,12 +19682,13 @@ function drawStartMarks(){
       }
       balls[YT_PASOS_BOLAS[i].key] = clampBallToTable(p);
     }
+    const zonaConfirmada = ids('ytMarkOk').getBoundingClientRect();
     updatePositionInputs();
     recalculateAll('youtube-position');
     ytGuardarJugada(ids('ytCueOnCapture').value);
     ids('ytMarkOverlay').style.display = 'none';
     ytStatus('Позиция перенесена на стол. Тренируйте удар; для следующей оставьте её на виду во вкладке или окне и снова нажмите кнопку.');
-    ytActualizarFab('primera');
+    ytActualizarFab('primera', zonaConfirmada);
   }
 
   async function ytCapturarPosicion(){
@@ -20574,7 +20581,10 @@ function drawStartMarks(){
     let abajo = 18;
     if(barra && barra.style.display !== 'none'){
       const r = barra.getBoundingClientRect();
-      if(r.width && r.left < control.getBoundingClientRect().right + 10) abajo += r.height + 10;
+      const voz = control.getBoundingClientRect(), alto = document.documentElement.clientHeight;
+      if(r.width && r.left < voz.right + 10 && r.bottom > alto - abajo - voz.height - 10){
+        abajo = Math.max(abajo, alto - r.top + 10);
+      }
     }
     control.style.bottom = abajo + 'px';
   }
@@ -21067,10 +21077,33 @@ function drawStartMarks(){
     if(ytVoz.escuchando) ytVozMedidorArrancar();
     ytVozSincronizar();
   }
-  function ytActualizarFab(modo){
+  function ytAlinearPrimeraColocacion(barra, fab, zona){
+    // Mantener toda la zona de confirmación dentro del botón, incluso junto a sus esquinas redondeadas.
+    const margen = 8, interior = 16;
+    const ancho = document.documentElement.clientWidth, alto = document.documentElement.clientHeight;
+    const grupo = barra.getBoundingClientRect();
+    const boton = fab.getBoundingClientRect();
+    // Cuando falta espacio junto al botón rojo, situar «Cambiar de jugada» en el otro lado.
+    if(getComputedStyle(barra).flexDirection === 'column'){
+      if(zona.bottom + interior + grupo.height - boton.height > alto - margen) barra.style.flexDirection = 'column-reverse';
+    } else if(zona.right + interior + grupo.width - boton.width > ancho - margen){
+      barra.style.flexDirection = 'row-reverse';
+    }
+    const rojo = fab.getBoundingClientRect();
+    const x = clamp(0, zona.right + interior - rojo.right, zona.left - interior - rojo.left);
+    const y = clamp(0, zona.bottom + interior - rojo.bottom, zona.top - interior - rojo.top);
+    const dx = clamp(x, margen - grupo.left, ancho - margen - grupo.right);
+    const dy = clamp(y, margen - grupo.top, alto - margen - grupo.bottom);
+    barra.style.translate = dx + 'px ' + dy + 'px';
+  }
+
+  function ytActualizarFab(modo, zonaConfirmada){
     const fab = ids('ytPlaceFab');
     if(!fab) return;
     const barra = ids('ytPlaceFabBar');
+    barra.classList.toggle('primeraColocacion', modo === 'primera');
+    barra.style.translate = '';
+    barra.style.flexDirection = '';
     if(!modo){
       fab.style.display = 'none';
       if(barra) barra.style.display = 'none';
@@ -21093,14 +21126,17 @@ function drawStartMarks(){
       // Vestido de alarma para la primera colocación: es el paso
       // siguiente obligatorio y no puede vestirse de susurro; doble de
       // letra y rojo, imposible de pasar por alto camino a la mesa.
-      fab.style.fontSize = '32px';
-      fab.style.padding = '22px 30px';
+      fab.style.fontSize = 'clamp(24px, 5vw, 40px)';
+      fab.style.padding = 'clamp(16px, 4vw, 28px) clamp(20px, 5vw, 38px)';
       fab.style.background = '#4d1d1d';
       fab.style.borderColor = '#ff5d5d';
       fab.style.color = '#ffd8d8';
     }
     fab.style.display = '';
-    if(barra) barra.style.display = 'flex';
+    barra.style.display = 'flex';
+    if(zonaConfirmada && zonaConfirmada.width && zonaConfirmada.height){
+      ytAlinearPrimeraColocacion(barra, fab, zonaConfirmada);
+    }
     ytVozSincronizar();
   }
 
@@ -22172,6 +22208,12 @@ function drawStartMarks(){
     window.addEventListener('resize', () => {
       const marcado = ids('ytMarkOverlay');
       if(marcado && marcado.style.display !== 'none') ytPintarMarcado();
+      const barra = ids('ytPlaceFabBar');
+      if(barra.classList.contains('primeraColocacion')){
+        barra.style.translate = '';
+        barra.style.flexDirection = '';
+        ytVozUbicarControl();
+      }
     });
     const cueSelector = ids('ytCueOnCapture');
     cueSelector.addEventListener('change', () => {
