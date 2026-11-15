@@ -18595,12 +18595,18 @@ function drawStartMarks(){
           const verified=await videoReplayVerifyExport(blob,total,vw,vh,signal);
           if(disposed) return;
           videoReplay.lastExportCheck={sourceDuration:total,outputDuration:verified.duration,samples:verified.samples,frames:frameCount,maxGap,paintMs};
-          const nombre=nombreArchivoVideo(withData?'con-datos':'sin-datos');
+          const tipo = withData ? 'con-datos' : 'sin-datos';
+          const nombre = nombreArchivoVideo(tipo);
+          const prefijoSerie = nombreVideoAjustes.prefijo || nombresVideoExportado[tipo][0];
           if(carpeta){
             phase='saving';document.removeEventListener('visibilitychange',visibility);
             setVideoReplayStatus("正在将完整视频保存到 "+carpeta.name+'…');
-            const guardado=await tecladoGuardarExportacion(carpeta,blob,nombre,signal);
+            const guardado=await tecladoGuardarExportacion(carpeta,blob,nombre,signal,prefijoSerie);
             if(disposed) return;
+            if(guardado===null){
+              job.cancel("已取消导出。您仍可保存这段录像。");
+              return;
+            }
             tecladoAvisar(withData?'E':'O',"视频已保存到 "+carpeta.name+': '+guardado,'good');
           }else{
             const output=URL.createObjectURL(blob),a=document.createElement('a');
@@ -22496,24 +22502,27 @@ function drawStartMarks(){
       ? "导出文件夹（按钮、E 和 O）："+tecladoExportacion.carpeta.name+'. '+(tecladoExportacion.memoria?"此浏览器会记住该文件夹；Chrome 可能要求重新授权。":"在本次会话中可用。")
       : "尚未选择文件夹。请在此处选择，或在首次导出时选择。");
   }
-  function tecladoCarpetaMemoria(carpeta){
+  function preferenciaExportacion(clave, nuevoValor){
     return new Promise((resolve,reject)=>{
       const request=indexedDB.open('billarTecladoV1',1);
       request.onupgradeneeded=()=>request.result.createObjectStore('preferencias');
       request.onerror=()=>reject(request.error);
       request.onblocked=()=>reject(new Error("浏览器无法读取偏好设置。"));
       request.onsuccess=()=>{
-        const db=request.result, escritura=!!carpeta;
+        const db=request.result, escritura=nuevoValor!==undefined;
         let valor=null;
         try{
           const tx=db.transaction('preferencias',escritura?'readwrite':'readonly'), store=tx.objectStore('preferencias');
-          const operation=escritura?store.put(carpeta,'carpetaExportacion'):store.get('carpetaExportacion');
+          const operation=escritura?store.put(nuevoValor,clave):store.get(clave);
           operation.onsuccess=()=>{valor=operation.result;};
           tx.oncomplete=()=>{db.close();resolve(valor);};
           tx.onabort=tx.onerror=()=>{db.close();reject(tx.error || new Error("无法记住此文件夹。"));};
         }catch(error){db.close();reject(error);}
       };
     });
+  }
+  function tecladoCarpetaMemoria(carpeta){
+    return preferenciaExportacion('carpetaExportacion',carpeta || undefined);
   }
   async function tecladoCarpetaObtener(cambiar=false){
     if(typeof window.showDirectoryPicker!=='function') throw new Error("要选择并记住导出文件夹，请在 Chrome 或 Edge 中打开应用。");
@@ -22536,13 +22545,81 @@ function drawStartMarks(){
     catch(error){if(error.name!=='AbortError') tecladoAvisar('E',error.message,'warn');}
     finally{tecladoExportacion.ocupado=false;tecladoCarpetaUi();}
   }
-  async function tecladoGuardarExportacion(carpeta,blob,nombre,signal){
+  const etiquetasSinDatosEnSerie = ["sin datos", "without data", "sans données", "데이터 없음", "无数据", "без данных", "verisiz", "không có dữ liệu"];
+  function numeroDeVideoEnSerie(nombre, prefijo){
+    const coincidencia = /^(\d{1,3})\s+(.+)\.(mp4|webm|m4v|mov|mkv|avi|wmv|mpg|mpeg|mts|m2ts|3gp|ogv)$/u.exec(nombre);
+    if(!coincidencia) return 0;
+    const base = coincidencia[2].replace(/ \(\d+\)$/, '');
+    const partes = base.split(' - ');
+    const hora = /^\d{2}-\d{2}-\d{2}(?: [ap]m)?$/;
+    const marcaISO = /\d{4}-\d{2}-\d{2}t\d{2}-\d{2}-\d{2}(?: [ap]m)?$/;
+    if(partes.length>=3 && hora.test(partes.at(-1))){
+      partes.splice(-2); // Fecha y hora en dos campos.
+    }else if(partes.length>=2 && marcaISO.test(partes.at(-1))){
+      partes.pop();
+    }else if(partes.length===1 && marcaISO.test(base)){
+      partes[0]=base.replace(/-\d{4}-\d{2}-\d{2}t\d{2}-\d{2}-\d{2}(?: [ap]m)?$/, '');
+    }else if(base.startsWith(prefijo+' - ')){
+      return Number(coincidencia[1]); // Video numerado a mano, con una descripción.
+    }
+    const titulo = partes.join(' - ');
+    if(titulo===prefijo || etiquetasSinDatosEnSerie.some(etiqueta=>titulo===prefijo+' - '+etiqueta)) return Number(coincidencia[1]);
+    return 0;
+  }
+
+  const ciclosDeSesion = new Map();
+  async function siguienteEnSerie(carpeta, prefijo, signal){
+    prefijo=prefijo.normalize('NFC').toLowerCase();
+    const candidatos=new Map();
+    for await(const [nombre, entrada] of carpeta.entries()){
+      signal?.throwIfAborted();
+      if(entrada.kind!=='file') continue;
+      const clave=nombre.normalize('NFC').toLowerCase();
+      const numero=numeroDeVideoEnSerie(clave,prefijo);
+      if(numero) candidatos.set(clave,numero);
+    }
+    // Recordar qué archivos pertenecían a ciclos anteriores, incluso si el 999 sigue allí.
+    const claveCiclo=JSON.stringify(['ciclosVideo',carpeta.name,prefijo]);
+    let ciclos=ciclosDeSesion.get(claveCiclo);
+    if(!ciclos){
+      try{ ciclos=await preferenciaExportacion(claveCiclo); }catch{}
+      ciclos=ciclos || [];
+    }
+    let indice=0;
+    while(indice<ciclos.length && !await carpeta.isSameEntry(ciclos[indice].carpeta)) indice++;
+    const anteriores=new Set(ciclos[indice]?.anteriores);
+    let mayor=0;
+    for(const [clave,numero] of candidatos){
+      if(!anteriores.has(clave)) mayor=Math.max(mayor,numero);
+    }
+    signal?.throwIfAborted();
+    if(mayor===999){
+      if(!window.confirm("本系列的编号已达到 999。要从 01 重新开始吗？")) return null;
+      anteriores.clear();
+      for(const clave of candidatos.keys()) anteriores.add(clave);
+      ciclos[indice]={carpeta,anteriores:Array.from(anteriores)};
+      try{
+        await preferenciaExportacion(claveCiclo,ciclos);
+        ciclosDeSesion.delete(claveCiclo);
+      }catch{
+        ciclosDeSesion.set(claveCiclo,ciclos);
+      }
+      mayor=0;
+    }
+    return {numero:String(mayor+1).padStart(2,'0'), anteriores};
+  }
+
+  async function tecladoGuardarExportacion(carpeta,blob,nombre,signal,prefijoSerie=''){
     const guardar=async()=>{
       let archivo=null,escritor=null,creado=false,completo=false,elegido=nombre;
       const comprobar=()=>{if(signal && signal.aborted) throw new DOMException("已取消保存。",'AbortError');};
       try{
+        const serie=prefijoSerie ? await siguienteEnSerie(carpeta,prefijoSerie,signal) : null;
+        if(prefijoSerie && !serie) return null;
+        const base=serie ? serie.numero+' '+nombre : nombre;
         for(let n=1;;n++){
-          comprobar();elegido=n===1?nombre:nombre.replace(/(\.[^.]+)$/,' ('+n+')$1');
+          comprobar();elegido=n===1?base:base.replace(/(\.[^.]+)$/,' ('+n+')$1');
+          if(serie?.anteriores.has(elegido.normalize('NFC').toLowerCase())) continue;
           try{await carpeta.getFileHandle(elegido);}
           catch(error){if(error.name==='NotFoundError') break;if(error.name!=='TypeMismatchError') throw error;}
         }
@@ -22712,6 +22789,12 @@ function drawStartMarks(){
     }).format(fecha);
   }
 
+  const nombresVideoExportado = {
+    'con-datos': ["击球-含数据", ''],
+    'sin-datos': ["击球-无数据", "无数据"],
+    'rescate-original': ["击球-恢复的原始录像", "恢复的原始录像"]
+  };
+
   function nombreArchivoVideo(tipo, extension='mp4', fecha=new Date(), ajustes=nombreVideoAjustes){
     const campos = new Intl.DateTimeFormat('en-US',{
       timeZone:ajustes.zona, year:'numeric', month:'2-digit', day:'2-digit',
@@ -22720,12 +22803,7 @@ function drawStartMarks(){
     const p = Object.fromEntries(campos.map(c=>[c.type,c.value]));
     const dia = fechaVideo(fecha,ajustes.formato,ajustes.zona,p);
     const hora = [p.hour,p.minute,p.second].join('-')+' '+p.dayPeriod;
-    const nombres = {
-      'con-datos': ["击球-含数据", ''],
-      'sin-datos': ["击球-无数据", "无数据"],
-      'rescate-original': ["击球-恢复的原始录像", "恢复的原始录像"]
-    };
-    const [nombreBase, etiqueta] = nombres[tipo];
+    const [nombreBase, etiqueta] = nombresVideoExportado[tipo];
     const titulo = ajustes.prefijo ? ajustes.prefijo + (etiqueta ? ' - '+etiqueta : '') : nombreBase;
     const marca = ajustes.formato==='iso' ? dia+'T'+hora : dia+' - '+hora;
     return titulo + (ajustes.formato==='iso' && !ajustes.prefijo ? '-' : ' - ') + marca + '.' + extension;
@@ -22769,7 +22847,7 @@ function drawStartMarks(){
     function mostrar(){
       formato.value = nombreVideoAjustes.formato;
       zona.value = nombreVideoAjustes.zona;
-      ejemplo.textContent = "含数据的文件名示例："+nombreArchivoVideo('con-datos');
+      ejemplo.textContent = "新系列首个含数据的文件名示例：01 "+nombreArchivoVideo('con-datos');
     }
     function guardar(campo,valor){
       nombreVideoAjustes[campo] = valor;
