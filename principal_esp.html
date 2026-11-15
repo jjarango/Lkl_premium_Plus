@@ -1833,6 +1833,19 @@
     .cameraColorRow input::-webkit-slider-thumb{appearance:none;width:16px;height:16px;margin-top:-5px;border:2px solid #263244;border-radius:50%;background:#fff}
     .cameraColorRow input::-moz-range-thumb{width:13px;height:13px;border:2px solid #263244;border-radius:50%;background:#fff}
     .cameraColorRow input:focus-visible{outline:2px solid #ffcf77;outline-offset:1px}
+
+    #tecladoCarpetaBtn, #exportPrefijoBtn, #exportFormatoFecha, #exportZonaHoraria{
+      width:100%; min-height:44px; box-sizing:border-box; font-weight:700;
+    }
+    #tecladoCarpetaBtn{background:#1970c3;color:#fff;border:2px solid #8dd7ff}
+    #exportPrefijoBtn{background:#694094;color:#fff;border:1px solid #bc95e5}
+    #exportFormatoFecha{background-color:#ebc670;color:#281d09;border-color:#ffdb8c}
+    #exportZonaHoraria{background-color:#225e47;color:#fff;border-color:#7acba2}
+    #tecladoAyuda .exportChoice{display:block;margin:10px 0 4px}
+    #tecladoAyuda select{appearance:auto}
+    #tecladoAyuda option,#tecladoAyuda optgroup{background-color:#26303e;color:#fff}
+    #tecladoAyuda :is(button,select):focus-visible{outline:2px solid white;outline-offset:2px}
+    #exportEjemploNombre{display:block;margin:10px 0;overflow-wrap:anywhere;color:#edf2fa}
 </style>
 </head>
 <body>
@@ -2057,8 +2070,14 @@
 <summary style="cursor:pointer;">Teclado y carpeta de exportación</summary>
 <p class="small">Los atajos funcionan con la pestaña de la app seleccionada, también con la voz silenciada. No actúan mientras escribe en un campo o utiliza un selector.</p>
 <p class="small">G: grabar otra jugada o abrir la cámara. 1 / 2 / 3: cuenta de 5 / 10 / 15 segundos. D: detener. DD: detener y volver a colocar (dos pulsaciones dentro de un segundo). R: reproducir. E: exportar con datos a la carpeta elegida. O: guardar sin datos (Original) en la misma carpeta. V: volver a colocar. C: capturar mesa. W: guardar el color actual de la cámara antes de la cuenta regresiva. M: silenciar o activar voz. T: seguimiento de la trayectoria. Espacio: pausar o continuar. L: velocidad normal, media o un cuarto. X: cerrar la ventana de video o la pantalla de colocación, una por pulsación. Esc también cierra la ventana de video.</p>
-<button id="tecladoCarpetaBtn" type="button" style="width:100%;">Elegir o cambiar carpeta de exportación</button>
+<button id="tecladoCarpetaBtn" type="button">Elegir o cambiar carpeta de exportación</button>
 <p id="tecladoCarpetaEstado" class="small" role="status" aria-live="polite" style="margin:8px 0; overflow-wrap:anywhere;">Sin carpeta elegida.</p>
+<button id="exportPrefijoBtn" type="button">Definir prefijo del video</button>
+<label class="exportChoice" for="exportFormatoFecha">Formato de fecha</label>
+<select id="exportFormatoFecha"></select>
+<label class="exportChoice" for="exportZonaHoraria">Zona horaria de exportación</label>
+<select id="exportZonaHoraria"></select>
+<output id="exportEjemploNombre" class="small" aria-live="polite"></output>
 <p class="small">Autorice la carpeta una vez. Los botones «Descargar con datos» y «Descargar sin datos», y los atajos E y O, comparten esta carpeta. Mientras el permiso siga vigente, todas las exportaciones se guardarán allí sin volver a elegirla y sin sobrescribir los videos anteriores. Mantenga la pestaña visible durante la exportación.</p>
 </details>
 <details id="ytVozHistorialPanel" style="margin-top:10px;">
@@ -18377,8 +18396,7 @@ function drawStartMarks(){
       if(!valid()) return;
       if(!rescue.blob.size) throw new Error('La grabación original está vacía.');
       const type=rescue.blob.type||videoReplay.blobType||'video/webm';
-      const stamp=new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
-      rescue.name='jugada-rescate-original-'+stamp+(/mp4/i.test(type)?'.mp4':'.webm');
+      rescue.name=nombreArchivoVideo('rescate-original',/mp4/i.test(type)?'mp4':'webm');
       if(!rescue.folder || await rescue.folder.queryPermission({mode:'readwrite'})!=='granted') throw new Error('La carpeta de exportación no está disponible.');
       const name=await tecladoGuardarExportacion(rescue.folder,rescue.blob,rescue.name,signal);
       if(!valid()) return;
@@ -18582,8 +18600,7 @@ function drawStartMarks(){
           const verified=await videoReplayVerifyExport(blob,total,vw,vh,signal);
           if(disposed) return;
           videoReplay.lastExportCheck={sourceDuration:total,outputDuration:verified.duration,samples:verified.samples,frames:frameCount,maxGap,paintMs};
-          const stamp=new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
-          const nombre=(withData?'jugada-con-datos-':'jugada-sin-datos-')+stamp+'.mp4';
+          const nombre=nombreArchivoVideo(withData?'con-datos':'sin-datos');
           if(carpeta){
             phase='saving';document.removeEventListener('visibilitychange',visibility);
             setVideoReplayStatus('Guardando el video completo en '+carpeta.name+'…');
@@ -22643,7 +22660,120 @@ function drawStartMarks(){
     else if(lista && /^[123]$/.test(tecla)) orden={accion:'grabarEn',seg:{'1':5,'2':10,'3':15}[tecla]};
     if(orden) await ytVozEjecutar(orden,tecla.toUpperCase(),true);
   }
+
+  const formatosFechaVideo = [
+    ['iso','Año-mes-día'], ['es','Español'], ['dma','Día-mes-año'],
+    ['en-US','Inglés'], ['ko-KR','Coreano'], ['zh-CN','Chino'],
+    ['ru-RU','Ruso'], ['tr-TR','Turco'], ['vi-VN','Vietnamita'], ['fr-FR','Francés']
+  ];
+  const zonasVideoDestacadas = {
+    'UTC':'UTC', 'America/Bogota':'Bogotá', 'America/Mexico_City':'Ciudad de México',
+    'America/New_York':'Nueva York', 'America/Los_Angeles':'Los Ángeles',
+    'Europe/Madrid':'Madrid', 'Europe/Paris':'París', 'Europe/London':'Londres',
+    'Europe/Moscow':'Moscú', 'Europe/Istanbul':'Estambul', 'Asia/Seoul':'Seúl',
+    'Asia/Shanghai':'Shanghái', 'Asia/Ho_Chi_Minh':'Ciudad Ho Chi Minh'
+  };
+  const claveNombreVideo = 'billar.exportacion.nombre.v1.';
+  const nombreVideoAjustes = {prefijo:'', formato:'iso', zona:'UTC'};
+
+  function prefijoVideoSeguro(texto){
+    // Mantener acentos y espacios al formar un único nombre válido en Windows.
+    let limpio = texto.normalize('NFC').replace(/[<>:"/\\|?*\u0000-\u001f\u007f]/g,' ')
+      .replace(/[\u202a-\u202e\u2066-\u2069]/g,'').replace(/\s+/g,' ').trim();
+    limpio = Array.from(limpio).slice(0,60).join('').replace(/^[. ]+|[. ]+$/g,'');
+    if(/^(con|prn|aux|nul|com[1-9¹²³]|lpt[1-9¹²³])\./i.test(limpio)) limpio = '_' + limpio;
+    // Dejar espacio para fecha, hora, extensión y número de copia en otros sistemas de archivos.
+    const encoder = new TextEncoder();
+    while(encoder.encode(limpio).length > 150) limpio = Array.from(limpio).slice(0,-1).join('');
+    return limpio.trimEnd();
+  }
+
+  function fechaVideo(fecha, formato, zona, partes){
+    if(formato === 'iso') return [partes.year,partes.month,partes.day].join('-');
+    if(formato === 'dma') return [partes.day,partes.month,partes.year].join('-');
+    if(formato === 'es'){
+      const mes = new Intl.DateTimeFormat('es',{month:'long',timeZone:zona}).format(fecha);
+      return mes[0].toUpperCase()+mes.slice(1)+' '+Number(partes.day)+' de '+partes.year;
+    }
+    return new Intl.DateTimeFormat(formato,{
+      timeZone:zona,calendar:'gregory',year:'numeric',month:'long',day:'numeric'
+    }).format(fecha);
+  }
+
+  function nombreArchivoVideo(tipo, extension='mp4', fecha=new Date(), ajustes=nombreVideoAjustes){
+    const campos = new Intl.DateTimeFormat('en-GB',{
+      timeZone:ajustes.zona, year:'numeric', month:'2-digit', day:'2-digit',
+      hour:'2-digit', minute:'2-digit', second:'2-digit', hourCycle:'h23'
+    }).formatToParts(fecha);
+    const p = Object.fromEntries(campos.map(c=>[c.type,c.value]));
+    const dia = fechaVideo(fecha,ajustes.formato,ajustes.zona,p);
+    const hora = [p.hour,p.minute,p.second].join('-');
+    const titulo = ajustes.prefijo ? ajustes.prefijo + (tipo==='con-datos'?'':' - '+tipo.replace(/-/g,' ')) : 'jugada-'+tipo;
+    const marca = ajustes.formato==='iso' ? dia+'T'+hora : dia+' - '+hora;
+    return titulo + (ajustes.formato==='iso' && !ajustes.prefijo ? '-' : ' - ') + marca + '.' + extension;
+  }
+
+  function enlazarNombreVideo(){
+    const prefijo = ids('exportPrefijoBtn'), formato = ids('exportFormatoFecha'), zona = ids('exportZonaHoraria');
+    const ejemplo = ids('exportEjemploNombre');
+    const referencia = new Date(Date.UTC(2026,10,14,12));
+    const partesEjemplo = {year:'2026',month:'11',day:'14'};
+    for(const [valor,etiqueta] of formatosFechaVideo){
+      formato.add(new Option(etiqueta+' · '+fechaVideo(referencia,valor,'UTC',partesEjemplo),valor));
+    }
+
+    const zonas = new Set([...Object.keys(zonasVideoDestacadas),...(Intl.supportedValuesOf?.('timeZone') || [])]);
+    const local = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if(local) zonas.add(local);
+    const otras = document.createElement('optgroup');
+    otras.label = 'Otras zonas horarias';
+    for(const id of zonas){
+      const ciudad = zonasVideoDestacadas[id];
+      if(ciudad){
+        const offset = new Intl.DateTimeFormat('en',{timeZone:id,timeZoneName:'shortOffset'}).formatToParts(new Date())
+          .find(p=>p.type==='timeZoneName').value.replace('GMT','UTC').replace('-','−');
+        zona.add(new Option(id==='UTC'?'UTC':ciudad+' ('+offset+')',id));
+      }else{
+        otras.append(new Option(id.replace(/_/g,' '),id));
+      }
+    }
+    if(otras.childElementCount) zona.append(otras);
+
+    function leer(){
+      try{
+        const guardado = k=>localStorage.getItem(claveNombreVideo+k);
+        nombreVideoAjustes.prefijo = prefijoVideoSeguro(guardado('prefijo') || '');
+        const formatoGuardado = guardado('formato'), zonaGuardada = guardado('zona');
+        nombreVideoAjustes.formato = formatosFechaVideo.some(([v])=>v===formatoGuardado) ? formatoGuardado : 'iso';
+        nombreVideoAjustes.zona = zonas.has(zonaGuardada) ? zonaGuardada : 'UTC';
+      }catch{}
+    }
+    function mostrar(){
+      formato.value = nombreVideoAjustes.formato;
+      zona.value = nombreVideoAjustes.zona;
+      ejemplo.textContent = 'Ejemplo con datos: '+nombreArchivoVideo('con-datos');
+    }
+    function guardar(campo,valor){
+      nombreVideoAjustes[campo] = valor;
+      mostrar();
+      try{ localStorage.setItem(claveNombreVideo+campo,valor); }
+      catch{ ejemplo.append(' · Este cambio solo se conservará durante la sesión.'); }
+    }
+    prefijo.addEventListener('click',()=>{
+      const texto = window.prompt('Prefijo del video. Déjelo vacío para usar el nombre habitual.',nombreVideoAjustes.prefijo);
+      if(texto!==null) guardar('prefijo',prefijoVideoSeguro(texto));
+    });
+    formato.addEventListener('change',()=>guardar('formato',formato.value));
+    zona.addEventListener('change',()=>guardar('zona',zona.value));
+    window.addEventListener('storage',e=>{
+      if(e.key===null || e.key.startsWith(claveNombreVideo)){ leer(); mostrar(); }
+    });
+    leer();
+    mostrar();
+  }
+
   function tecladoEnlazar(){
+    enlazarNombreVideo();
     tecladoExportacion.cargando=tecladoCarpetaMemoria().then(carpeta=>{
       if(carpeta && carpeta.kind==='directory'){tecladoExportacion.carpeta=carpeta;tecladoExportacion.memoria=true;}
     }).catch(()=>{}).finally(()=>{tecladoExportacion.cargando=null;tecladoCarpetaUi();});
