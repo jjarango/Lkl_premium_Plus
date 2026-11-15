@@ -22701,13 +22701,13 @@ function drawStartMarks(){
   }
 
   function nombreArchivoVideo(tipo, extension='mp4', fecha=new Date(), ajustes=nombreVideoAjustes){
-    const campos = new Intl.DateTimeFormat('en-GB',{
+    const campos = new Intl.DateTimeFormat('en-US',{
       timeZone:ajustes.zona, year:'numeric', month:'2-digit', day:'2-digit',
-      hour:'2-digit', minute:'2-digit', second:'2-digit', hourCycle:'h23'
+      hour:'2-digit', minute:'2-digit', second:'2-digit', hourCycle:'h12'
     }).formatToParts(fecha);
     const p = Object.fromEntries(campos.map(c=>[c.type,c.value]));
     const dia = fechaVideo(fecha,ajustes.formato,ajustes.zona,p);
-    const hora = [p.hour,p.minute,p.second].join('-');
+    const hora = [p.hour,p.minute,p.second].join('-')+' '+p.dayPeriod;
     const titulo = ajustes.prefijo ? ajustes.prefijo + (tipo==='con-datos'?'':' - '+tipo.replace(/-/g,' ')) : 'jugada-'+tipo;
     const marca = ajustes.formato==='iso' ? dia+'T'+hora : dia+' - '+hora;
     return titulo + (ajustes.formato==='iso' && !ajustes.prefijo ? '-' : ' - ') + marca + '.' + extension;
