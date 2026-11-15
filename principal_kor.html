@@ -1833,6 +1833,19 @@
     .cameraColorRow input::-webkit-slider-thumb{appearance:none;width:16px;height:16px;margin-top:-5px;border:2px solid #263244;border-radius:50%;background:#fff}
     .cameraColorRow input::-moz-range-thumb{width:13px;height:13px;border:2px solid #263244;border-radius:50%;background:#fff}
     .cameraColorRow input:focus-visible{outline:2px solid #ffcf77;outline-offset:1px}
+
+    #tecladoCarpetaBtn, #exportPrefijoBtn, #exportFormatoFecha, #exportZonaHoraria{
+      width:100%; min-height:44px; box-sizing:border-box; font-weight:700;
+    }
+    #tecladoCarpetaBtn{background:#1970c3;color:#fff;border:2px solid #8dd7ff}
+    #exportPrefijoBtn{background:#694094;color:#fff;border:1px solid #bc95e5}
+    #exportFormatoFecha{background-color:#ebc670;color:#281d09;border-color:#ffdb8c}
+    #exportZonaHoraria{background-color:#225e47;color:#fff;border-color:#7acba2}
+    #tecladoAyuda .exportChoice{display:block;margin:10px 0 4px}
+    #tecladoAyuda select{appearance:auto}
+    #tecladoAyuda option,#tecladoAyuda optgroup{background-color:#26303e;color:#fff}
+    #tecladoAyuda :is(button,select):focus-visible{outline:2px solid white;outline-offset:2px}
+    #exportEjemploNombre{display:block;margin:10px 0;overflow-wrap:anywhere;color:#edf2fa}
 </style>
 </head>
 <body>
@@ -2053,14 +2066,6 @@
 <div class="small" id="ytVozEstado" style="margin-top:4px; color:#9aa3b2;">음성 기능을 켜면 어느 화면에서든 “녹화”라고 말해 녹화 모듈을 열 수 있습니다. 하단 버튼은 앱이 듣고 있는지 표시하며 음성 기능을 끌 수도 있습니다. 모듈 안에서는 상황에 맞게 “오 초 후 녹화”, “십 초 후 녹화”, “십오 초 후 녹화”, “정지 그리고 검토”, “재생”, “데이터와 함께 다운로드”라고 말하세요. 다음 녹화를 준비하려면 “녹화”라고 말하세요. 어느 화면에서든 “테이블 촬영”이라고 말하면 사진을 찍고 공 위치를 확인할 수 있습니다. 조건이 맞으면 이번 세션에서 저장한 모서리를 재사용합니다. 공 위치를 확인한 뒤 “공 위치 적용”을 눌러 주세요. “다시 배치”는 보라색 버튼이 숨겨져 있어도 어느 화면에서든 마지막으로 확정한 공 위치를 불러옵니다. 연습을 종료해도 이 위치는 유지되며 새 위치를 적용할 때 바뀝니다. 촬영, 녹화 또는 내보내기가 진행 중이면 해당 작업이 끝날 때까지 명령 실행을 기다립니다. 모듈을 열어도 녹화가 자동으로 시작되지는 않습니다. 음성 기능은 Chrome 음성 서비스(인터넷 연결 필요)와 Windows 기본 마이크를 사용합니다. Windows에서 Logitech Brio를 기본 마이크로 선택하세요. 녹화 모듈이 준비되면 “오”, “십” 또는 “십오”라고만 말해도 됩니다.</div>
 <label for="ytVozCicloSegundos" style="display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-top:10px;">마이크 자동 재시작 간격: <input id="ytVozCicloSegundos" type="number" min="5" max="120" step="1" value="15" aria-describedby="ytVozCicloAyuda" style="width:85px;"/>초</label>
 <p id="ytVozCicloAyuda" class="small" style="margin:6px 0 10px;">5~120초로 설정할 수 있으며, 매번 자동으로 0.5초간 쉽니다. 듣기가 재개되었다는 확인을 받은 후 다음 듣기 구간이 시작됩니다. 방금 시작한 명령은 끝까지 말할 수 있도록 잠시 기다립니다. 수동으로 음소거하면 반복이 중단됩니다. 설정한 간격은 이 브라우저에 저장됩니다.</p>
-<details id="tecladoAyuda" style="margin-top:10px;">
-<summary style="cursor:pointer;">키보드 및 내보내기 폴더</summary>
-<p class="small">앱 탭이 선택되어 있으면 음성 명령을 꺼도 단축키를 사용할 수 있습니다. 입력란에 글을 쓰거나 드롭다운 목록을 사용하는 동안에는 작동하지 않습니다.</p>
-<p class="small">G: 다음 샷 녹화 또는 카메라 열기. 1 / 2 / 3: 5 / 10 / 15초 카운트다운. D: 녹화 중지. DD: 녹화를 중지하고 공 다시 배치 (1초 이내에 두 번 누르기). R: 재생. E: 선택한 폴더로 데이터를 포함해 내보내기. O: 같은 폴더에 데이터 없이 저장 (Original). V: 공 다시 배치. C: 당구대 촬영. W: 카운트다운 전에 현재 카메라 색상 설정 저장. M: 음성 명령 끄기 또는 켜기. T: 궤적 추적. 스페이스: 일시 정지 또는 계속 재생. L: 정상, 절반 또는 4분의 1 속도. X: 영상 창 또는 공 배치 화면을 한 번에 하나씩 닫기. Esc로도 영상 창을 닫을 수 있습니다.</p>
-<button id="tecladoCarpetaBtn" type="button" style="width:100%;">내보내기 폴더 선택 또는 변경</button>
-<p id="tecladoCarpetaEstado" class="small" role="status" aria-live="polite" style="margin:8px 0; overflow-wrap:anywhere;">선택한 폴더가 없습니다.</p>
-<p class="small">폴더 접근 권한은 한 번만 허용하면 됩니다. “데이터 포함 다운로드”, “데이터 없이 다운로드” 버튼과 E, O 단축키는 같은 폴더를 사용합니다. 권한이 유효한 동안에는 폴더를 다시 선택할 필요 없이 모든 영상이 해당 폴더에 저장되며, 이전 영상을 덮어쓰지 않습니다. 내보내는 동안 이 탭을 화면에 표시해 두세요.</p>
-</details>
 <details id="ytVozHistorialPanel" style="margin-top:10px;">
 <summary style="cursor:pointer;">음성 명령 기록</summary>
 <p class="small">이 페이지가 열려 있는 동안에만 음성, 인식 텍스트 및 동작 기록을 최대 1000개, 최근 연결 상태 기록을 200개까지 보관합니다. 오디오는 저장하지 않습니다. 임시 인식 텍스트와 음성 감지 기록을 밀리초 단위 시각과 함께 표시합니다. 세션 및 결과 번호로 동일한 명령을 추적할 수 있습니다. 최신 기록을 보려면 “새로 고침”을 누르세요.</p>
@@ -2129,7 +2134,22 @@
 <option value="bottom">아래쪽 장쿠션</option>
 <option value="left">왼쪽 단쿠션</option>
 </select>
-</div><div id="clcSideHelp" style="display:none"><p class="small">이 시스템의 조작부는 테이블 위에 있습니다: 수구, 2번 공, 자동 판단된 첫 단축, 두 번째와 세 번째 쿠션. 공략 눈금은 항상 위 0에서 아래 40으로 진행합니다.</p></div><div id="mirrorControls" style="display:none"><div id="mirrorRouteBlock" style="display:none"><label for="mirrorRoute">샷 진행 경로</label><select id="mirrorRoute"><option selected="" value="classic">3쿠션 → 공 → 공</option><option value="after2">2쿠션 → 공 → 1쿠션 → 공</option><option value="after1">1쿠션 → 공 → 2쿠션 → 공</option></select></div><div id="mirrorStrikeBlock" style="display:none"><label for="mirrorStrike">Golpe al contacto</label><select id="mirrorStrike"><option selected="" value="rolling">굴리기(약 34° 원뿔)</option><option value="stun">Picada / tangente (90°)</option></select></div><label style="display:flex; gap:8px; align-items:center; cursor:pointer; margin:0 0 6px;"><input id="mirrorShowHalves" style="width:auto" type="checkbox"/> <span class="small">절반 작도 표시</span></label><p class="small" id="mirrorContract" style="margin:2px 0 10px;">기하학적 미러 시스템. 기본: 굴리는 샷(중심 또는 반 팁 위), 사이드 회전 0, 자연스러운 속도. 사이드 회전은 계산에 관여하지 않습니다.</p></div><div id="pasonesControls" style="display:none"><label for="pasonesBase">파소네스 기준값: <span id="pasonesBaseVal">2.0</span> espacios</label><input id="pasonesBase" max="2.5" min="1.5" step="0.1" type="range" value="2.0"/><p class="small" style="margin:4px 0 10px;">기준값은 ¼ 두께 각이 당신의 테이블에서 중립이 되는 간격(다이아몬드 단위)입니다. 3번 공이 2번 공의 선 위에 있고 수구가 그 거리에 있을 때 회전 0으로 득점됩니다. 저자는 2.0으로 둡니다. 보정 의식: 회전 0 배치를 만들어 시스템 계약대로 여러 번 쳐 보십시오. 계속 짧으면 기준값을 올리고, 길면 내리십시오. 값은 저장되며 미러 계수와는 독립적입니다.</p><label style="display:flex; gap:8px; align-items:center; cursor:pointer; margin:0 0 6px;"><input checked="" id="pasonesShowChart" style="width:auto" type="checkbox"/> <span class="small">회전 그래픽 표시</span></label><p class="small" id="pasonesContract" style="margin:2px 0 10px;">Pasones 시스템: 장쿠션 사이를 오가는 3쿠션 샷. 고정 계약: ¼ 두께, 큐를 놓아 주는 팔로우 스트로크, 중상 속도. 시스템의 유일한 출력은 회전입니다.</p></div><div id="renverseControls" style="display:none"><label for="renverseVariant">Renversé 변형</label><select id="renverseVariant"><option selected="" value="long">장쿠션 Renversé</option><option value="short">단쿠션 Renversé</option></select><label for="renverseAttack">공략 방식</label><select id="renverseAttack"><option selected="" value="cushion">쿠션 먼저</option><option value="ball">목적구 먼저</option></select><div id="renverseImpactBlock" style="display:none"><label for="renverseImpactBall">먼저 맞힐 공(리시버)</label><select id="renverseImpactBall"><option value="white">흰 공</option><option selected="" value="yellow">노란 공</option><option value="red">빨간 공</option></select><p class="small" style="margin:4px 0 10px;">도착은 남은 공에서 읽으며, 진단에 그 공의 이름이 표시됩니다.</p></div><div id="renverseArrivalBlock"><label for="renverseArrival">도착 공</label><select id="renverseArrival"><option value="white">흰 공</option><option selected="" value="yellow">노란 공</option><option value="red">빨간 공</option><option value="midpoint">노란 공과 빨간 공의 정확한 중간</option></select></div><label for="renverseAjuste">테이블 미세 조정: <span id="renverseAjusteVal">+0.0</span></label><input id="renverseAjuste" max="1" min="-1" step="0.1" type="range" value="0"/><p class="small" style="margin:4px 0 10px;">이 조정값은 계산된 회전에 더해져 시스템을 당신의 테이블과 스타일에 맞춥니다. 렝베르세가 계속 짧으면 올리고, 길면 내리십시오. 기본값은 0이며 값은 저장됩니다.</p><label style="display:flex; gap:8px; align-items:center; cursor:pointer; margin:0 0 6px;"><input checked="" id="renverseShowChart" style="width:auto" type="checkbox"/> <span class="small">회전 그래픽 표시</span></label><p class="small" id="renverseContract" style="margin:2px 0 10px;">Renversé 시스템: 수구는 항상 코너를 투영으로 공략합니다(구석점이 아니라 코너 쪽 장쿠션의 첫 다이아몬드). 역회전, 팔로우 스트로크, 과한 힘 금지. 회전 = 출발 + 도착이며 앱은 항상 정수로 알립니다.</p></div><p class="small" id="sequenceHelp">목적구 먼저 또는 쿠션 먼저를 선택한 뒤 쿠션 순서를 지정하십시오.</p></div></details><details class="menuModule" id="moduleVideoReplay"><summary><span class="moduleTitle" style="color:#ff5a5a">데이터를 겹친 샷 영상</span><span class="moduleState" id="moduleVideoReplayState">천장 카메라 · 미보정</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><p class="small" style="margin:0 0 10px;">천장 카메라로 실제 실행을 녹화하고, 샷 데이터(조준점과 조준선, 도착점)를 영상 위에 겹쳐 슬로모션과 프레임 단위로 검토하십시오. 녹화에는 카메라 마이크의 오디오가 포함됩니다. 카메라가 움직이지 않는 한 네 모서리 보정은 한 번이면 됩니다. <b>자동 인식기의 천장 촬영으로 공 위치를 적용하면 그 보정이 자동으로 재사용됩니다.</b></p><button class="cameraCaptureBtn" id="videoReplayRecordBtn" type="button">샷 녹화</button><button id="videoReplayCalibBtn" type="button">오버레이 보정</button><div aria-live="polite" class="cameraCaptureStatus" id="videoReplayModuleStatus" role="status">겹쳐지는 데이터(조준점과 도착점)는 그 순간 계산된 값입니다(예: 선택한 수구와 쿠션 시퀀스의 LKL / Base 50).</div></div></details><details class="menuModule" id="moduleEffect"><summary><span class="moduleTitle">당점과 스트로크</span><span class="moduleState" id="moduleEffectState">플러스 · 회전 3 · 긴 팔로스루</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><div aria-controls="contiTooltip" aria-expanded="false" class="contiHelpAnchor" id="contiHelpAnchor" tabindex="0"><label for="english">회전 방향</label><span aria-hidden="true" class="contiHelpIcon">i</span></div><select id="english">
+</div><div id="clcSideHelp" style="display:none"><p class="small">이 시스템의 조작부는 테이블 위에 있습니다: 수구, 2번 공, 자동 판단된 첫 단축, 두 번째와 세 번째 쿠션. 공략 눈금은 항상 위 0에서 아래 40으로 진행합니다.</p></div><div id="mirrorControls" style="display:none"><div id="mirrorRouteBlock" style="display:none"><label for="mirrorRoute">샷 진행 경로</label><select id="mirrorRoute"><option selected="" value="classic">3쿠션 → 공 → 공</option><option value="after2">2쿠션 → 공 → 1쿠션 → 공</option><option value="after1">1쿠션 → 공 → 2쿠션 → 공</option></select></div><div id="mirrorStrikeBlock" style="display:none"><label for="mirrorStrike">Golpe al contacto</label><select id="mirrorStrike"><option selected="" value="rolling">굴리기(약 34° 원뿔)</option><option value="stun">Picada / tangente (90°)</option></select></div><label style="display:flex; gap:8px; align-items:center; cursor:pointer; margin:0 0 6px;"><input id="mirrorShowHalves" style="width:auto" type="checkbox"/> <span class="small">절반 작도 표시</span></label><p class="small" id="mirrorContract" style="margin:2px 0 10px;">기하학적 미러 시스템. 기본: 굴리는 샷(중심 또는 반 팁 위), 사이드 회전 0, 자연스러운 속도. 사이드 회전은 계산에 관여하지 않습니다.</p></div><div id="pasonesControls" style="display:none"><label for="pasonesBase">파소네스 기준값: <span id="pasonesBaseVal">2.0</span> espacios</label><input id="pasonesBase" max="2.5" min="1.5" step="0.1" type="range" value="2.0"/><p class="small" style="margin:4px 0 10px;">기준값은 ¼ 두께 각이 당신의 테이블에서 중립이 되는 간격(다이아몬드 단위)입니다. 3번 공이 2번 공의 선 위에 있고 수구가 그 거리에 있을 때 회전 0으로 득점됩니다. 저자는 2.0으로 둡니다. 보정 의식: 회전 0 배치를 만들어 시스템 계약대로 여러 번 쳐 보십시오. 계속 짧으면 기준값을 올리고, 길면 내리십시오. 값은 저장되며 미러 계수와는 독립적입니다.</p><label style="display:flex; gap:8px; align-items:center; cursor:pointer; margin:0 0 6px;"><input checked="" id="pasonesShowChart" style="width:auto" type="checkbox"/> <span class="small">회전 그래픽 표시</span></label><p class="small" id="pasonesContract" style="margin:2px 0 10px;">Pasones 시스템: 장쿠션 사이를 오가는 3쿠션 샷. 고정 계약: ¼ 두께, 큐를 놓아 주는 팔로우 스트로크, 중상 속도. 시스템의 유일한 출력은 회전입니다.</p></div><div id="renverseControls" style="display:none"><label for="renverseVariant">Renversé 변형</label><select id="renverseVariant"><option selected="" value="long">장쿠션 Renversé</option><option value="short">단쿠션 Renversé</option></select><label for="renverseAttack">공략 방식</label><select id="renverseAttack"><option selected="" value="cushion">쿠션 먼저</option><option value="ball">목적구 먼저</option></select><div id="renverseImpactBlock" style="display:none"><label for="renverseImpactBall">먼저 맞힐 공(리시버)</label><select id="renverseImpactBall"><option value="white">흰 공</option><option selected="" value="yellow">노란 공</option><option value="red">빨간 공</option></select><p class="small" style="margin:4px 0 10px;">도착은 남은 공에서 읽으며, 진단에 그 공의 이름이 표시됩니다.</p></div><div id="renverseArrivalBlock"><label for="renverseArrival">도착 공</label><select id="renverseArrival"><option value="white">흰 공</option><option selected="" value="yellow">노란 공</option><option value="red">빨간 공</option><option value="midpoint">노란 공과 빨간 공의 정확한 중간</option></select></div><label for="renverseAjuste">테이블 미세 조정: <span id="renverseAjusteVal">+0.0</span></label><input id="renverseAjuste" max="1" min="-1" step="0.1" type="range" value="0"/><p class="small" style="margin:4px 0 10px;">이 조정값은 계산된 회전에 더해져 시스템을 당신의 테이블과 스타일에 맞춥니다. 렝베르세가 계속 짧으면 올리고, 길면 내리십시오. 기본값은 0이며 값은 저장됩니다.</p><label style="display:flex; gap:8px; align-items:center; cursor:pointer; margin:0 0 6px;"><input checked="" id="renverseShowChart" style="width:auto" type="checkbox"/> <span class="small">회전 그래픽 표시</span></label><p class="small" id="renverseContract" style="margin:2px 0 10px;">Renversé 시스템: 수구는 항상 코너를 투영으로 공략합니다(구석점이 아니라 코너 쪽 장쿠션의 첫 다이아몬드). 역회전, 팔로우 스트로크, 과한 힘 금지. 회전 = 출발 + 도착이며 앱은 항상 정수로 알립니다.</p></div><p class="small" id="sequenceHelp">목적구 먼저 또는 쿠션 먼저를 선택한 뒤 쿠션 순서를 지정하십시오.</p></div></details><details class="menuModule" id="moduleVideoReplay"><summary><span class="moduleTitle" style="color:#ff5a5a">데이터를 겹친 샷 영상</span><span class="moduleState" id="moduleVideoReplayState">천장 카메라 · 미보정</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><p class="small" style="margin:0 0 10px;">천장 카메라로 실제 실행을 녹화하고, 샷 데이터(조준점과 조준선, 도착점)를 영상 위에 겹쳐 슬로모션과 프레임 단위로 검토하십시오. 녹화에는 카메라 마이크의 오디오가 포함됩니다. 카메라가 움직이지 않는 한 네 모서리 보정은 한 번이면 됩니다. <b>자동 인식기의 천장 촬영으로 공 위치를 적용하면 그 보정이 자동으로 재사용됩니다.</b></p><button class="cameraCaptureBtn" id="videoReplayRecordBtn" type="button">샷 녹화</button><button id="videoReplayCalibBtn" type="button">오버레이 보정</button>
+<details id="tecladoAyuda" style="margin-top:10px;">
+<summary style="cursor:pointer;">키보드 및 내보내기 옵션</summary>
+<p class="small">앱 탭이 선택되어 있으면 음성 명령을 꺼도 단축키를 사용할 수 있습니다. 입력란에 글을 쓰거나 드롭다운 목록을 사용하는 동안에는 작동하지 않습니다.</p>
+<p class="small">G: 다음 샷 녹화 또는 카메라 열기. 1 / 2 / 3: 5 / 10 / 15초 카운트다운. D: 녹화 중지. DD: 녹화를 중지하고 공 다시 배치 (1초 이내에 두 번 누르기). R: 재생. E: 선택한 폴더로 데이터를 포함해 내보내기. O: 같은 폴더에 데이터 없이 저장 (Original). V: 공 다시 배치. C: 당구대 촬영. W: 카운트다운 전에 현재 카메라 색상 설정 저장. M: 음성 명령 끄기 또는 켜기. T: 궤적 추적. 스페이스: 일시 정지 또는 계속 재생. L: 정상, 절반 또는 4분의 1 속도. X: 영상 창 또는 공 배치 화면을 한 번에 하나씩 닫기. Esc로도 영상 창을 닫을 수 있습니다.</p>
+<button id="tecladoCarpetaBtn" type="button">내보내기 폴더 선택 또는 변경</button>
+<p id="tecladoCarpetaEstado" class="small" role="status" aria-live="polite" style="margin:8px 0; overflow-wrap:anywhere;">선택한 폴더가 없습니다.</p>
+<button id="exportPrefijoBtn" type="button">동영상 파일 이름 접두어 설정</button>
+<label class="exportChoice" for="exportFormatoFecha">날짜 형식</label>
+<select id="exportFormatoFecha"></select>
+<label class="exportChoice" for="exportZonaHoraria">내보내기에 사용할 시간대</label>
+<select id="exportZonaHoraria"></select>
+<output id="exportEjemploNombre" class="small" aria-live="polite"></output>
+<p class="small">폴더 접근 권한은 한 번만 허용하면 됩니다. “데이터 포함 다운로드”, “데이터 없이 다운로드” 버튼과 E, O 단축키는 같은 폴더를 사용합니다. 권한이 유효한 동안에는 폴더를 다시 선택할 필요 없이 모든 영상이 해당 폴더에 저장되며, 이전 영상을 덮어쓰지 않습니다. 내보내는 동안 이 탭을 화면에 표시해 두세요.</p>
+</details>
+<div aria-live="polite" class="cameraCaptureStatus" id="videoReplayModuleStatus" role="status">겹쳐지는 데이터(조준점과 도착점)는 그 순간 계산된 값입니다(예: 선택한 수구와 쿠션 시퀀스의 LKL / Base 50).</div></div></details><details class="menuModule" id="moduleEffect"><summary><span class="moduleTitle">당점과 스트로크</span><span class="moduleState" id="moduleEffectState">플러스 · 회전 3 · 긴 팔로스루</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><div aria-controls="contiTooltip" aria-expanded="false" class="contiHelpAnchor" id="contiHelpAnchor" tabindex="0"><label for="english">회전 방향</label><span aria-hidden="true" class="contiHelpIcon">i</span></div><select id="english">
 <option value="positive">플러스: 길어짐</option>
 <option value="neutral">무회전</option>
 <option value="negative">마이너스: 짧아짐</option>
@@ -18371,8 +18391,7 @@ function drawStartMarks(){
       if(!valid()) return;
       if(!rescue.blob.size) throw new Error("원본 녹화 파일이 비어 있습니다.");
       const type=rescue.blob.type||videoReplay.blobType||'video/webm';
-      const stamp=new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
-      rescue.name='jugada-rescate-original-'+stamp+(/mp4/i.test(type)?'.mp4':'.webm');
+      rescue.name=nombreArchivoVideo('rescate-original',/mp4/i.test(type)?'mp4':'webm');
       if(!rescue.folder || await rescue.folder.queryPermission({mode:'readwrite'})!=='granted') throw new Error("내보내기 폴더를 사용할 수 없습니다.");
       const name=await tecladoGuardarExportacion(rescue.folder,rescue.blob,rescue.name,signal);
       if(!valid()) return;
@@ -18576,8 +18595,7 @@ function drawStartMarks(){
           const verified=await videoReplayVerifyExport(blob,total,vw,vh,signal);
           if(disposed) return;
           videoReplay.lastExportCheck={sourceDuration:total,outputDuration:verified.duration,samples:verified.samples,frames:frameCount,maxGap,paintMs};
-          const stamp=new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
-          const nombre=(withData?"shot-with-data-":"shot-without-data-")+stamp+'.mp4';
+          const nombre=nombreArchivoVideo(withData?'con-datos':'sin-datos');
           if(carpeta){
             phase='saving';document.removeEventListener('visibilitychange',visibility);
             setVideoReplayStatus("전체 영상 저장 중: "+carpeta.name+'…');
@@ -22654,7 +22672,125 @@ function drawStartMarks(){
     else if(lista && /^[123]$/.test(tecla)) orden={accion:'grabarEn',seg:{'1':5,'2':10,'3':15}[tecla]};
     if(orden) await ytVozEjecutar(orden,tecla.toUpperCase(),true);
   }
+  const formatosFechaVideo = [
+    ['iso',"년-월-일"], ['es',"스페인어"], ['dma',"일-월-년"],
+    ['en-US',"영어"], ['ko-KR',"한국어"], ['zh-CN',"중국어"],
+    ['ru-RU',"러시아어"], ['tr-TR',"튀르키예어"], ['vi-VN',"베트남어"], ['fr-FR',"프랑스어"]
+  ];
+  const zonasVideoDestacadas = {
+    'UTC':'UTC', 'America/Bogota':"보고타", 'America/Mexico_City':"멕시코시티",
+    'America/New_York':"뉴욕", 'America/Los_Angeles':"로스앤젤레스",
+    'Europe/Madrid':"마드리드", 'Europe/Paris':"파리", 'Europe/London':"런던",
+    'Europe/Moscow':"모스크바", 'Europe/Istanbul':"이스탄불", 'Asia/Seoul':"서울",
+    'Asia/Shanghai':"상하이", 'Asia/Ho_Chi_Minh':"호찌민시"
+  };
+  const claveNombreVideo = 'billar.exportacion.nombre.v1.';
+  const nombreVideoAjustes = {prefijo:'', formato:'iso', zona:'UTC'};
+
+  function prefijoVideoSeguro(texto){
+    // Mantener acentos y espacios al formar un único nombre válido en Windows.
+    let limpio = texto.normalize('NFC').replace(/[<>:"/\\|?*\u0000-\u001f\u007f]/g,' ')
+      .replace(/[\u202a-\u202e\u2066-\u2069]/g,'').replace(/\s+/g,' ').trim();
+    limpio = Array.from(limpio).slice(0,60).join('').replace(/^[. ]+|[. ]+$/g,'');
+    if(/^(con|prn|aux|nul|com[1-9¹²³]|lpt[1-9¹²³])\./i.test(limpio)) limpio = '_' + limpio;
+    // Dejar espacio para fecha, hora, extensión y número de copia en otros sistemas de archivos.
+    const encoder = new TextEncoder();
+    while(encoder.encode(limpio).length > 150) limpio = Array.from(limpio).slice(0,-1).join('');
+    return limpio.trimEnd();
+  }
+
+  function fechaVideo(fecha, formato, zona, partes){
+    if(formato === 'iso') return [partes.year,partes.month,partes.day].join('-');
+    if(formato === 'dma') return [partes.day,partes.month,partes.year].join('-');
+    if(formato === 'es'){
+      const mes = new Intl.DateTimeFormat('es',{month:'long',timeZone:zona}).format(fecha);
+      return mes[0].toUpperCase()+mes.slice(1)+' '+Number(partes.day)+' de '+partes.year;
+    }
+    return new Intl.DateTimeFormat(formato,{
+      timeZone:zona,calendar:'gregory',year:'numeric',month:'long',day:'numeric'
+    }).format(fecha);
+  }
+
+  function nombreArchivoVideo(tipo, extension='mp4', fecha=new Date(), ajustes=nombreVideoAjustes){
+    const campos = new Intl.DateTimeFormat('en-US',{
+      timeZone:ajustes.zona, year:'numeric', month:'2-digit', day:'2-digit',
+      hour:'2-digit', minute:'2-digit', second:'2-digit', hourCycle:'h12'
+    }).formatToParts(fecha);
+    const p = Object.fromEntries(campos.map(c=>[c.type,c.value]));
+    const dia = fechaVideo(fecha,ajustes.formato,ajustes.zona,p);
+    const hora = [p.hour,p.minute,p.second].join('-')+' '+p.dayPeriod;
+    const nombres = {
+      'con-datos': ["샷-데이터-포함", ''],
+      'sin-datos': ["샷-데이터-없음", "데이터 없음"],
+      'rescate-original': ["샷-원본-복구", "복구된 원본"]
+    };
+    const [nombreBase, etiqueta] = nombres[tipo];
+    const titulo = ajustes.prefijo ? ajustes.prefijo + (etiqueta ? ' - '+etiqueta : '') : nombreBase;
+    const marca = ajustes.formato==='iso' ? dia+'T'+hora : dia+' - '+hora;
+    return titulo + (ajustes.formato==='iso' && !ajustes.prefijo ? '-' : ' - ') + marca + '.' + extension;
+  }
+
+  function enlazarNombreVideo(){
+    const prefijo = ids('exportPrefijoBtn'), formato = ids('exportFormatoFecha'), zona = ids('exportZonaHoraria');
+    const ejemplo = ids('exportEjemploNombre');
+    const referencia = new Date(Date.UTC(2026,10,14,12));
+    const partesEjemplo = {year:'2026',month:'11',day:'14'};
+    for(const [valor,etiqueta] of formatosFechaVideo){
+      formato.add(new Option(etiqueta+' · '+fechaVideo(referencia,valor,'UTC',partesEjemplo),valor));
+    }
+
+    const zonas = new Set([...Object.keys(zonasVideoDestacadas),...(Intl.supportedValuesOf?.('timeZone') || [])]);
+    const local = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if(local) zonas.add(local);
+    const otras = document.createElement('optgroup');
+    otras.label = "기타 시간대";
+    for(const id of zonas){
+      const ciudad = zonasVideoDestacadas[id];
+      if(ciudad){
+        const offset = new Intl.DateTimeFormat('en',{timeZone:id,timeZoneName:'shortOffset'}).formatToParts(new Date())
+          .find(p=>p.type==='timeZoneName').value.replace('GMT','UTC').replace('-','−');
+        zona.add(new Option(id==='UTC'?'UTC':ciudad+' ('+offset+')',id));
+      }else{
+        otras.append(new Option(id.replace(/_/g,' '),id));
+      }
+    }
+    if(otras.childElementCount) zona.append(otras);
+
+    function leer(){
+      try{
+        const guardado = k=>localStorage.getItem(claveNombreVideo+k);
+        nombreVideoAjustes.prefijo = prefijoVideoSeguro(guardado('prefijo') || '');
+        const formatoGuardado = guardado('formato'), zonaGuardada = guardado('zona');
+        nombreVideoAjustes.formato = formatosFechaVideo.some(([v])=>v===formatoGuardado) ? formatoGuardado : 'iso';
+        nombreVideoAjustes.zona = zonas.has(zonaGuardada) ? zonaGuardada : 'UTC';
+      }catch{}
+    }
+    function mostrar(){
+      formato.value = nombreVideoAjustes.formato;
+      zona.value = nombreVideoAjustes.zona;
+      ejemplo.textContent = "데이터 포함 파일 이름 예시: "+nombreArchivoVideo('con-datos');
+    }
+    function guardar(campo,valor){
+      nombreVideoAjustes[campo] = valor;
+      mostrar();
+      try{ localStorage.setItem(claveNombreVideo+campo,valor); }
+      catch{ ejemplo.append(" · 이 변경 사항은 현재 세션에만 적용됩니다."); }
+    }
+    prefijo.addEventListener('click',()=>{
+      const texto = window.prompt("동영상 파일 이름의 접두어를 입력하세요. 비워 두면 기본 이름을 사용합니다.",nombreVideoAjustes.prefijo);
+      if(texto!==null) guardar('prefijo',prefijoVideoSeguro(texto));
+    });
+    formato.addEventListener('change',()=>guardar('formato',formato.value));
+    zona.addEventListener('change',()=>guardar('zona',zona.value));
+    window.addEventListener('storage',e=>{
+      if(e.key===null || e.key.startsWith(claveNombreVideo)){ leer(); mostrar(); }
+    });
+    leer();
+    mostrar();
+  }
+
   function tecladoEnlazar(){
+    enlazarNombreVideo();
     tecladoExportacion.cargando=tecladoCarpetaMemoria().then(carpeta=>{
       if(carpeta && carpeta.kind==='directory'){tecladoExportacion.carpeta=carpeta;tecladoExportacion.memoria=true;}
     }).catch(()=>{}).finally(()=>{tecladoExportacion.cargando=null;tecladoCarpetaUi();});

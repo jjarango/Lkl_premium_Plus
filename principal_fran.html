@@ -1833,6 +1833,19 @@
     .cameraColorRow input::-webkit-slider-thumb{appearance:none;width:16px;height:16px;margin-top:-5px;border:2px solid #263244;border-radius:50%;background:#fff}
     .cameraColorRow input::-moz-range-thumb{width:13px;height:13px;border:2px solid #263244;border-radius:50%;background:#fff}
     .cameraColorRow input:focus-visible{outline:2px solid #ffcf77;outline-offset:1px}
+
+    #tecladoCarpetaBtn, #exportPrefijoBtn, #exportFormatoFecha, #exportZonaHoraria{
+      width:100%; min-height:44px; box-sizing:border-box; font-weight:700;
+    }
+    #tecladoCarpetaBtn{background:#1970c3;color:#fff;border:2px solid #8dd7ff}
+    #exportPrefijoBtn{background:#694094;color:#fff;border:1px solid #bc95e5}
+    #exportFormatoFecha{background-color:#ebc670;color:#281d09;border-color:#ffdb8c}
+    #exportZonaHoraria{background-color:#225e47;color:#fff;border-color:#7acba2}
+    #tecladoAyuda .exportChoice{display:block;margin:10px 0 4px}
+    #tecladoAyuda select{appearance:auto}
+    #tecladoAyuda option,#tecladoAyuda optgroup{background-color:#26303e;color:#fff}
+    #tecladoAyuda :is(button,select):focus-visible{outline:2px solid white;outline-offset:2px}
+    #exportEjemploNombre{display:block;margin:10px 0;overflow-wrap:anywhere;color:#edf2fa}
 </style>
 </head>
 <body>
@@ -2053,14 +2066,6 @@
 <div class="small" id="ytVozEstado" style="margin-top:4px; color:#9aa3b2;">Lorsque la voix est activée, dites « enregistrer » depuis n’importe quelle section pour ouvrir le module d’enregistrement. Le bouton en bas indique quand l’application écoute et permet de désactiver la voix. Dans le module, dites « enregistrer dans cinq, dix ou quinze », « arrêter et revoir », « lire », « enregistrer » pour préparer un nouvel enregistrement ou « télécharger avec données », selon l’étape. Dites « capturer la table » depuis n’importe quelle section pour prendre une photo et vérifier les positions. La capture réutilise les coins de la session lorsque c’est possible ; vérifiez les billes et cliquez sur « Appliquer les positions ». « Replacer les billes » récupère la dernière position confirmée depuis n’importe quelle section, même si le bouton violet est masqué. Cette position est conservée lorsque vous quittez l’entraînement et remplacée lorsque vous en appliquez une autre. Si une capture, un enregistrement ou une exportation est en cours, la demande attend la fin de cette opération. L’ouverture du module ne lance pas automatiquement l’enregistrement. La voix utilise le service vocal de Chrome (connexion internet nécessaire) et le microphone par défaut de Windows : sélectionnez-y la Logitech Brio. Lorsque le module d’enregistrement est prêt, vous pouvez aussi dire simplement « cinq », « dix » ou « quinze ».</div>
 <label for="ytVozCicloSegundos" style="display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-top:10px;">Relancer le microphone toutes les <input id="ytVozCicloSegundos" type="number" min="5" max="120" step="1" value="15" aria-describedby="ytVozCicloAyuda" style="width:85px;"/> secondes</label>
 <p id="ytVozCicloAyuda" class="small" style="margin:6px 0 10px;">De 5 à 120 secondes, avec une pause automatique d’une demi-seconde. La période suivante commence lorsque l’écoute est confirmée. Une commande qui vient de commencer bénéficie d’un court délai pour se terminer. La désactivation manuelle arrête le cycle. L’intervalle est mémorisé dans ce navigateur.</p>
-<details id="tecladoAyuda" style="margin-top:10px;">
-<summary style="cursor:pointer;">Clavier et dossier d’exportation</summary>
-<p class="small">Les raccourcis fonctionnent lorsque l’onglet de l’application est sélectionné, même si les commandes vocales sont désactivées. Ils n’agissent pas pendant la saisie dans un champ ou l’utilisation d’une liste déroulante.</p>
-<p class="small">G : enregistrer un autre coup ou ouvrir la caméra. 1 / 2 / 3 : compte à rebours de 5 / 10 / 15 secondes. D : arrêter l’enregistrement. DD : arrêter et replacer les billes (deux appuis en une seconde). R : lire. E : exporter avec données dans le dossier choisi. O : enregistrer sans données (Original) dans le même dossier. V : replacer les billes. C : capturer la table. W : enregistrer les réglages de couleur de la caméra avant le compte à rebours. M : désactiver ou activer les commandes vocales. T : suivi de trajectoire. Espace : pause ou reprise. L : vitesse normale, moitié ou quart. X : fermer la fenêtre vidéo ou l’écran de placement, un seul par appui. Échap ferme aussi la fenêtre vidéo.</p>
-<button id="tecladoCarpetaBtn" type="button" style="width:100%;">Choisir ou changer le dossier d’exportation</button>
-<p id="tecladoCarpetaEstado" class="small" role="status" aria-live="polite" style="margin:8px 0; overflow-wrap:anywhere;">Aucun dossier choisi.</p>
-<p class="small">Autorisez l’accès au dossier une seule fois. Les boutons « Télécharger avec données » et « Télécharger sans données », ainsi que les raccourcis E et O, utilisent ce même dossier. Tant que l’autorisation reste valable, toutes les exportations y seront enregistrées sans devoir choisir à nouveau le dossier et sans écraser les vidéos précédentes. Gardez cet onglet visible pendant l’exportation.</p>
-</details>
 <details id="ytVozHistorialPanel" style="margin-top:10px;">
 <summary style="cursor:pointer;">Historique des commandes vocales</summary>
 <p class="small">Conserve jusqu’à 1000 entrées de parole, de transcriptions et d’actions, ainsi que les 200 derniers états de connexion, uniquement tant que cette page est ouverte ; aucun son n’est enregistré. Inclut les transcriptions provisoires et la détection de parole, avec l’heure à la milliseconde près. La référence de session et de résultat permet de suivre une même commande. Cliquez sur «Actualiser» pour voir les dernières entrées.</p>
@@ -2129,7 +2134,22 @@
 <option value="bottom">Grande bande inférieure</option>
 <option value="left">Petite bande gauche</option>
 </select>
-</div><div id="clcSideHelp" style="display:none"><p class="small">Les commandes sont au-dessus de la table : bille de tir, bille 2, première courte déduite, deuxième et troisième bandes. L’attaque va toujours de 0 en haut à 40 en bas.</p></div><div id="mirrorControls" style="display:none"><div id="mirrorRouteBlock" style="display:none"><label for="mirrorRoute">Parcours du carambolage</label><select id="mirrorRoute"><option selected="" value="classic">3 bandes → bille → bille</option><option value="after2">2 bandes → bille → 1 bande → bille</option><option value="after1">1 bande → bille → 2 bandes → bille</option></select></div><div id="mirrorStrikeBlock" style="display:none"><label for="mirrorStrike">État de la bille au contact</label><select id="mirrorStrike"><option selected="" value="rolling">Roulante (cône de ≈34°)</option><option value="stun">Glissée / tangente (90°)</option></select></div><label style="display:flex; gap:8px; align-items:center; cursor:pointer; margin:0 0 6px;"><input id="mirrorShowHalves" style="width:auto" type="checkbox"/> <span class="small">Afficher la construction des moitiés</span></label><p class="small" id="mirrorContract" style="margin:2px 0 10px;">Système du miroir géométrique. Base : bille roulante (attaque au centre ou une demi-bille au-dessus), sans effet latéral, vitesse naturelle d’un passage. L’effet latéral n’intervient pas dans le calcul.</p></div><div id="pasonesControls" style="display:none"><label for="pasonesBase">Base du passage : <span id="pasonesBaseVal">2.0</span> intervalles</label><input id="pasonesBase" max="2.5" min="1.5" step="0.1" type="range" value="2.0"/><p class="small" style="margin:4px 0 10px;">La base est l’écartement, en intervalles de repères, pour lequel l’angle du ¼ de bille est neutre sur votre table : avec la bille 3 sur la ligne de la bille 2 et la bille de choc à cette distance, le carambolage se joue avec effet 0. L’auteur fixe cette base à 2.0. Calibration : placez la position d’effet 0 et jouez-la plusieurs fois selon les conditions du système ; si vos passages sont systématiquement courts, augmentez la base ; s’ils sont longs, réduisez-la. La valeur est enregistrée et reste indépendante du coefficient du Miroir.</p><label style="display:flex; gap:8px; align-items:center; cursor:pointer; margin:0 0 6px;"><input checked="" id="pasonesShowChart" style="width:auto" type="checkbox"/> <span class="small">Afficher le graphique de l’effet</span></label><p class="small" id="pasonesContract" style="margin:2px 0 10px;">Système Pasones : passages entre les grandes bandes, par trois bandes. Conditions fixes : ¼ de bille, coup allongé en laissant avancer la queue, vitesse moyenne à forte. Le système donne uniquement l’effet.</p></div><div id="renverseControls" style="display:none"><label for="renverseVariant">Variante du renversé</label><select id="renverseVariant"><option selected="" value="long">Renversé par grande bande</option><option value="short">Renversé par petite bande</option></select><label for="renverseAttack">Mode de départ</label><select id="renverseAttack"><option selected="" value="cushion">Bande avant</option><option value="ball">Bille d’abord</option></select><div id="renverseImpactBlock" style="display:none"><label for="renverseImpactBall">Bille à toucher en premier</label><select id="renverseImpactBall"><option value="white">Blanche</option><option selected="" value="yellow">Jaune</option><option value="red">Rouge</option></select><p class="small" style="margin:4px 0 10px;">L’arrivée se lit sur la bille restante, nommée dans le diagnostic.</p></div><div id="renverseArrivalBlock"><label for="renverseArrival">Bille d’arrivée</label><select id="renverseArrival"><option value="white">Blanche</option><option selected="" value="yellow">Jaune</option><option value="red">Rouge</option><option value="midpoint">Juste entre la jaune et la rouge</option></select></div><label for="renverseAjuste">Réglage fin de la table : <span id="renverseAjusteVal">+0.0</span></label><input id="renverseAjuste" max="1" min="-1" step="0.1" type="range" value="0"/><p class="small" style="margin:4px 0 10px;">Le réglage s’ajoute à l’effet calculé pour adapter le système à votre table et à votre jeu : si vos renversés sont systématiquement courts, augmentez-le ; s’ils sont longs, réduisez-le. La valeur par défaut est 0 et le réglage est enregistré.</p><label style="display:flex; gap:8px; align-items:center; cursor:pointer; margin:0 0 6px;"><input checked="" id="renverseShowChart" style="width:auto" type="checkbox"/> <span class="small">Afficher le graphique de l’effet</span></label><p class="small" id="renverseContract" style="margin:2px 0 10px;">Système Renversé : la bille de choc vise toujours le coin en projection (le premier repère de la grande bande au coin, et non l’angle du drap), avec effet contraire, coup allongé et sans excès de puissance. Effet = départ + arrivée, toujours annoncé en nombres entiers.</p></div><p class="small" id="sequenceHelp">Choisissez si le coup commence par une bille ou par une bande avant, puis indiquez la séquence des bandes.</p></div></details><details class="menuModule" id="moduleVideoReplay"><summary><span class="moduleTitle" style="color:#ff5a5a">Vidéo du coup avec données superposées</span><span class="moduleState" id="moduleVideoReplayState">Caméra zénithale · non calibrée</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><p class="small" style="margin:0 0 10px;">Filmez le coup réel avec la caméra zénithale et revoyez-le avec les données du coup (point et ligne de visée, point d’arrivée) superposées à la vidéo, au ralenti ou image par image. L’enregistrement inclut le son du microphone de la caméra. Les quatre coins de la table ne doivent être calibrés qu’une fois, tant que la caméra ne bouge pas. <b>Si vous appliquez les positions d’une capture zénithale du détecteur automatique, sa calibration est réutilisée automatiquement.</b></p><button class="cameraCaptureBtn" id="videoReplayRecordBtn" type="button">Enregistrer le coup</button><button id="videoReplayCalibBtn" type="button">Calibrer la superposition</button><div aria-live="polite" class="cameraCaptureStatus" id="videoReplayModuleStatus" role="status">Les données superposées (Visée et Arrivée) seront celles calculées à cet instant (par exemple, LKL / Base 50 avec la bille de choc et la séquence de bandes choisies).</div></div></details><details class="menuModule" id="moduleEffect"><summary><span class="moduleTitle">Effet et coup</span><span class="moduleState" id="moduleEffectState">Bon effet · effet 3 · Allongé long</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><div aria-controls="contiTooltip" aria-expanded="false" class="contiHelpAnchor" id="contiHelpAnchor" tabindex="0"><label for="english">Sens de l’effet</label><span aria-hidden="true" class="contiHelpIcon">i</span></div><select id="english">
+</div><div id="clcSideHelp" style="display:none"><p class="small">Les commandes sont au-dessus de la table : bille de tir, bille 2, première courte déduite, deuxième et troisième bandes. L’attaque va toujours de 0 en haut à 40 en bas.</p></div><div id="mirrorControls" style="display:none"><div id="mirrorRouteBlock" style="display:none"><label for="mirrorRoute">Parcours du carambolage</label><select id="mirrorRoute"><option selected="" value="classic">3 bandes → bille → bille</option><option value="after2">2 bandes → bille → 1 bande → bille</option><option value="after1">1 bande → bille → 2 bandes → bille</option></select></div><div id="mirrorStrikeBlock" style="display:none"><label for="mirrorStrike">État de la bille au contact</label><select id="mirrorStrike"><option selected="" value="rolling">Roulante (cône de ≈34°)</option><option value="stun">Glissée / tangente (90°)</option></select></div><label style="display:flex; gap:8px; align-items:center; cursor:pointer; margin:0 0 6px;"><input id="mirrorShowHalves" style="width:auto" type="checkbox"/> <span class="small">Afficher la construction des moitiés</span></label><p class="small" id="mirrorContract" style="margin:2px 0 10px;">Système du miroir géométrique. Base : bille roulante (attaque au centre ou une demi-bille au-dessus), sans effet latéral, vitesse naturelle d’un passage. L’effet latéral n’intervient pas dans le calcul.</p></div><div id="pasonesControls" style="display:none"><label for="pasonesBase">Base du passage : <span id="pasonesBaseVal">2.0</span> intervalles</label><input id="pasonesBase" max="2.5" min="1.5" step="0.1" type="range" value="2.0"/><p class="small" style="margin:4px 0 10px;">La base est l’écartement, en intervalles de repères, pour lequel l’angle du ¼ de bille est neutre sur votre table : avec la bille 3 sur la ligne de la bille 2 et la bille de choc à cette distance, le carambolage se joue avec effet 0. L’auteur fixe cette base à 2.0. Calibration : placez la position d’effet 0 et jouez-la plusieurs fois selon les conditions du système ; si vos passages sont systématiquement courts, augmentez la base ; s’ils sont longs, réduisez-la. La valeur est enregistrée et reste indépendante du coefficient du Miroir.</p><label style="display:flex; gap:8px; align-items:center; cursor:pointer; margin:0 0 6px;"><input checked="" id="pasonesShowChart" style="width:auto" type="checkbox"/> <span class="small">Afficher le graphique de l’effet</span></label><p class="small" id="pasonesContract" style="margin:2px 0 10px;">Système Pasones : passages entre les grandes bandes, par trois bandes. Conditions fixes : ¼ de bille, coup allongé en laissant avancer la queue, vitesse moyenne à forte. Le système donne uniquement l’effet.</p></div><div id="renverseControls" style="display:none"><label for="renverseVariant">Variante du renversé</label><select id="renverseVariant"><option selected="" value="long">Renversé par grande bande</option><option value="short">Renversé par petite bande</option></select><label for="renverseAttack">Mode de départ</label><select id="renverseAttack"><option selected="" value="cushion">Bande avant</option><option value="ball">Bille d’abord</option></select><div id="renverseImpactBlock" style="display:none"><label for="renverseImpactBall">Bille à toucher en premier</label><select id="renverseImpactBall"><option value="white">Blanche</option><option selected="" value="yellow">Jaune</option><option value="red">Rouge</option></select><p class="small" style="margin:4px 0 10px;">L’arrivée se lit sur la bille restante, nommée dans le diagnostic.</p></div><div id="renverseArrivalBlock"><label for="renverseArrival">Bille d’arrivée</label><select id="renverseArrival"><option value="white">Blanche</option><option selected="" value="yellow">Jaune</option><option value="red">Rouge</option><option value="midpoint">Juste entre la jaune et la rouge</option></select></div><label for="renverseAjuste">Réglage fin de la table : <span id="renverseAjusteVal">+0.0</span></label><input id="renverseAjuste" max="1" min="-1" step="0.1" type="range" value="0"/><p class="small" style="margin:4px 0 10px;">Le réglage s’ajoute à l’effet calculé pour adapter le système à votre table et à votre jeu : si vos renversés sont systématiquement courts, augmentez-le ; s’ils sont longs, réduisez-le. La valeur par défaut est 0 et le réglage est enregistré.</p><label style="display:flex; gap:8px; align-items:center; cursor:pointer; margin:0 0 6px;"><input checked="" id="renverseShowChart" style="width:auto" type="checkbox"/> <span class="small">Afficher le graphique de l’effet</span></label><p class="small" id="renverseContract" style="margin:2px 0 10px;">Système Renversé : la bille de choc vise toujours le coin en projection (le premier repère de la grande bande au coin, et non l’angle du drap), avec effet contraire, coup allongé et sans excès de puissance. Effet = départ + arrivée, toujours annoncé en nombres entiers.</p></div><p class="small" id="sequenceHelp">Choisissez si le coup commence par une bille ou par une bande avant, puis indiquez la séquence des bandes.</p></div></details><details class="menuModule" id="moduleVideoReplay"><summary><span class="moduleTitle" style="color:#ff5a5a">Vidéo du coup avec données superposées</span><span class="moduleState" id="moduleVideoReplayState">Caméra zénithale · non calibrée</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><p class="small" style="margin:0 0 10px;">Filmez le coup réel avec la caméra zénithale et revoyez-le avec les données du coup (point et ligne de visée, point d’arrivée) superposées à la vidéo, au ralenti ou image par image. L’enregistrement inclut le son du microphone de la caméra. Les quatre coins de la table ne doivent être calibrés qu’une fois, tant que la caméra ne bouge pas. <b>Si vous appliquez les positions d’une capture zénithale du détecteur automatique, sa calibration est réutilisée automatiquement.</b></p><button class="cameraCaptureBtn" id="videoReplayRecordBtn" type="button">Enregistrer le coup</button><button id="videoReplayCalibBtn" type="button">Calibrer la superposition</button>
+<details id="tecladoAyuda" style="margin-top:10px;">
+<summary style="cursor:pointer;">Clavier et options d’exportation</summary>
+<p class="small">Les raccourcis fonctionnent lorsque l’onglet de l’application est sélectionné, même si les commandes vocales sont désactivées. Ils n’agissent pas pendant la saisie dans un champ ou l’utilisation d’une liste déroulante.</p>
+<p class="small">G : enregistrer un autre coup ou ouvrir la caméra. 1 / 2 / 3 : compte à rebours de 5 / 10 / 15 secondes. D : arrêter l’enregistrement. DD : arrêter et replacer les billes (deux appuis en une seconde). R : lire. E : exporter avec données dans le dossier choisi. O : enregistrer sans données (Original) dans le même dossier. V : replacer les billes. C : capturer la table. W : enregistrer les réglages de couleur de la caméra avant le compte à rebours. M : désactiver ou activer les commandes vocales. T : suivi de trajectoire. Espace : pause ou reprise. L : vitesse normale, moitié ou quart. X : fermer la fenêtre vidéo ou l’écran de placement, un seul par appui. Échap ferme aussi la fenêtre vidéo.</p>
+<button id="tecladoCarpetaBtn" type="button">Choisir ou changer le dossier d’exportation</button>
+<p id="tecladoCarpetaEstado" class="small" role="status" aria-live="polite" style="margin:8px 0; overflow-wrap:anywhere;">Aucun dossier choisi.</p>
+<button id="exportPrefijoBtn" type="button">Définir le préfixe du nom de la vidéo</button>
+<label class="exportChoice" for="exportFormatoFecha">Format de date</label>
+<select id="exportFormatoFecha"></select>
+<label class="exportChoice" for="exportZonaHoraria">Fuseau horaire d’exportation</label>
+<select id="exportZonaHoraria"></select>
+<output id="exportEjemploNombre" class="small" aria-live="polite"></output>
+<p class="small">Autorisez l’accès au dossier une seule fois. Les boutons « Télécharger avec données » et « Télécharger sans données », ainsi que les raccourcis E et O, utilisent ce même dossier. Tant que l’autorisation reste valable, toutes les exportations y seront enregistrées sans devoir choisir à nouveau le dossier et sans écraser les vidéos précédentes. Gardez cet onglet visible pendant l’exportation.</p>
+</details>
+<div aria-live="polite" class="cameraCaptureStatus" id="videoReplayModuleStatus" role="status">Les données superposées (Visée et Arrivée) seront celles calculées à cet instant (par exemple, LKL / Base 50 avec la bille de choc et la séquence de bandes choisies).</div></div></details><details class="menuModule" id="moduleEffect"><summary><span class="moduleTitle">Effet et coup</span><span class="moduleState" id="moduleEffectState">Bon effet · effet 3 · Allongé long</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><div aria-controls="contiTooltip" aria-expanded="false" class="contiHelpAnchor" id="contiHelpAnchor" tabindex="0"><label for="english">Sens de l’effet</label><span aria-hidden="true" class="contiHelpIcon">i</span></div><select id="english">
 <option value="positive">Bon effet : ouvre / allonge</option>
 <option value="neutral">Sans effet latéral</option>
 <option value="negative">Contraire : ferme / raccourcit</option>
@@ -18370,8 +18390,7 @@ function drawStartMarks(){
       if(!valid()) return;
       if(!rescue.blob.size) throw new Error("L’enregistrement original est vide.");
       const type=rescue.blob.type||videoReplay.blobType||'video/webm';
-      const stamp=new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
-      rescue.name='jugada-rescate-original-'+stamp+(/mp4/i.test(type)?'.mp4':'.webm');
+      rescue.name=nombreArchivoVideo('rescate-original',/mp4/i.test(type)?'mp4':'webm');
       if(!rescue.folder || await rescue.folder.queryPermission({mode:'readwrite'})!=='granted') throw new Error("Le dossier d’exportation n’est pas disponible.");
       const name=await tecladoGuardarExportacion(rescue.folder,rescue.blob,rescue.name,signal);
       if(!valid()) return;
@@ -18575,8 +18594,7 @@ function drawStartMarks(){
           const verified=await videoReplayVerifyExport(blob,total,vw,vh,signal);
           if(disposed) return;
           videoReplay.lastExportCheck={sourceDuration:total,outputDuration:verified.duration,samples:verified.samples,frames:frameCount,maxGap,paintMs};
-          const stamp=new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
-          const nombre=(withData?"coup-avec-donnees-":"coup-sans-donnees-")+stamp+'.mp4';
+          const nombre=nombreArchivoVideo(withData?'con-datos':'sin-datos');
           if(carpeta){
             phase='saving';document.removeEventListener('visibilitychange',visibility);
             setVideoReplayStatus("Enregistrement de la vidéo complète dans "+carpeta.name+'…');
@@ -22653,7 +22671,125 @@ function drawStartMarks(){
     else if(lista && /^[123]$/.test(tecla)) orden={accion:'grabarEn',seg:{'1':5,'2':10,'3':15}[tecla]};
     if(orden) await ytVozEjecutar(orden,tecla.toUpperCase(),true);
   }
+  const formatosFechaVideo = [
+    ['iso',"Année-mois-jour"], ['es',"Espagnol"], ['dma',"Jour-mois-année"],
+    ['en-US',"Anglais"], ['ko-KR',"Coréen"], ['zh-CN',"Chinois"],
+    ['ru-RU',"Russe"], ['tr-TR',"Turc"], ['vi-VN',"Vietnamien"], ['fr-FR',"Français"]
+  ];
+  const zonasVideoDestacadas = {
+    'UTC':'UTC', 'America/Bogota':"Bogotá", 'America/Mexico_City':"Mexico",
+    'America/New_York':"New York", 'America/Los_Angeles':"Los Angeles",
+    'Europe/Madrid':"Madrid", 'Europe/Paris':"Paris", 'Europe/London':"Londres",
+    'Europe/Moscow':"Moscou", 'Europe/Istanbul':"Istanbul", 'Asia/Seoul':"Séoul",
+    'Asia/Shanghai':"Shanghai", 'Asia/Ho_Chi_Minh':"Hô Chi Minh-Ville"
+  };
+  const claveNombreVideo = 'billar.exportacion.nombre.v1.';
+  const nombreVideoAjustes = {prefijo:'', formato:'iso', zona:'UTC'};
+
+  function prefijoVideoSeguro(texto){
+    // Mantener acentos y espacios al formar un único nombre válido en Windows.
+    let limpio = texto.normalize('NFC').replace(/[<>:"/\\|?*\u0000-\u001f\u007f]/g,' ')
+      .replace(/[\u202a-\u202e\u2066-\u2069]/g,'').replace(/\s+/g,' ').trim();
+    limpio = Array.from(limpio).slice(0,60).join('').replace(/^[. ]+|[. ]+$/g,'');
+    if(/^(con|prn|aux|nul|com[1-9¹²³]|lpt[1-9¹²³])\./i.test(limpio)) limpio = '_' + limpio;
+    // Dejar espacio para fecha, hora, extensión y número de copia en otros sistemas de archivos.
+    const encoder = new TextEncoder();
+    while(encoder.encode(limpio).length > 150) limpio = Array.from(limpio).slice(0,-1).join('');
+    return limpio.trimEnd();
+  }
+
+  function fechaVideo(fecha, formato, zona, partes){
+    if(formato === 'iso') return [partes.year,partes.month,partes.day].join('-');
+    if(formato === 'dma') return [partes.day,partes.month,partes.year].join('-');
+    if(formato === 'es'){
+      const mes = new Intl.DateTimeFormat('es',{month:'long',timeZone:zona}).format(fecha);
+      return mes[0].toUpperCase()+mes.slice(1)+' '+Number(partes.day)+' de '+partes.year;
+    }
+    return new Intl.DateTimeFormat(formato,{
+      timeZone:zona,calendar:'gregory',year:'numeric',month:'long',day:'numeric'
+    }).format(fecha);
+  }
+
+  function nombreArchivoVideo(tipo, extension='mp4', fecha=new Date(), ajustes=nombreVideoAjustes){
+    const campos = new Intl.DateTimeFormat('en-US',{
+      timeZone:ajustes.zona, year:'numeric', month:'2-digit', day:'2-digit',
+      hour:'2-digit', minute:'2-digit', second:'2-digit', hourCycle:'h12'
+    }).formatToParts(fecha);
+    const p = Object.fromEntries(campos.map(c=>[c.type,c.value]));
+    const dia = fechaVideo(fecha,ajustes.formato,ajustes.zona,p);
+    const hora = [p.hour,p.minute,p.second].join('-')+' '+p.dayPeriod;
+    const nombres = {
+      'con-datos': ["coup-avec-donnees", ''],
+      'sin-datos': ["coup-sans-donnees", "sans données"],
+      'rescate-original': ["coup-original-recupere", "original récupéré"]
+    };
+    const [nombreBase, etiqueta] = nombres[tipo];
+    const titulo = ajustes.prefijo ? ajustes.prefijo + (etiqueta ? ' - '+etiqueta : '') : nombreBase;
+    const marca = ajustes.formato==='iso' ? dia+'T'+hora : dia+' - '+hora;
+    return titulo + (ajustes.formato==='iso' && !ajustes.prefijo ? '-' : ' - ') + marca + '.' + extension;
+  }
+
+  function enlazarNombreVideo(){
+    const prefijo = ids('exportPrefijoBtn'), formato = ids('exportFormatoFecha'), zona = ids('exportZonaHoraria');
+    const ejemplo = ids('exportEjemploNombre');
+    const referencia = new Date(Date.UTC(2026,10,14,12));
+    const partesEjemplo = {year:'2026',month:'11',day:'14'};
+    for(const [valor,etiqueta] of formatosFechaVideo){
+      formato.add(new Option(etiqueta+' · '+fechaVideo(referencia,valor,'UTC',partesEjemplo),valor));
+    }
+
+    const zonas = new Set([...Object.keys(zonasVideoDestacadas),...(Intl.supportedValuesOf?.('timeZone') || [])]);
+    const local = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if(local) zonas.add(local);
+    const otras = document.createElement('optgroup');
+    otras.label = "Autres fuseaux horaires";
+    for(const id of zonas){
+      const ciudad = zonasVideoDestacadas[id];
+      if(ciudad){
+        const offset = new Intl.DateTimeFormat('en',{timeZone:id,timeZoneName:'shortOffset'}).formatToParts(new Date())
+          .find(p=>p.type==='timeZoneName').value.replace('GMT','UTC').replace('-','−');
+        zona.add(new Option(id==='UTC'?'UTC':ciudad+' ('+offset+')',id));
+      }else{
+        otras.append(new Option(id.replace(/_/g,' '),id));
+      }
+    }
+    if(otras.childElementCount) zona.append(otras);
+
+    function leer(){
+      try{
+        const guardado = k=>localStorage.getItem(claveNombreVideo+k);
+        nombreVideoAjustes.prefijo = prefijoVideoSeguro(guardado('prefijo') || '');
+        const formatoGuardado = guardado('formato'), zonaGuardada = guardado('zona');
+        nombreVideoAjustes.formato = formatosFechaVideo.some(([v])=>v===formatoGuardado) ? formatoGuardado : 'iso';
+        nombreVideoAjustes.zona = zonas.has(zonaGuardada) ? zonaGuardada : 'UTC';
+      }catch{}
+    }
+    function mostrar(){
+      formato.value = nombreVideoAjustes.formato;
+      zona.value = nombreVideoAjustes.zona;
+      ejemplo.textContent = "Exemple avec données : "+nombreArchivoVideo('con-datos');
+    }
+    function guardar(campo,valor){
+      nombreVideoAjustes[campo] = valor;
+      mostrar();
+      try{ localStorage.setItem(claveNombreVideo+campo,valor); }
+      catch{ ejemplo.append(" · Ce changement s’appliquera uniquement à la session en cours."); }
+    }
+    prefijo.addEventListener('click',()=>{
+      const texto = window.prompt("Préfixe du nom de la vidéo. Laissez le champ vide pour utiliser le nom par défaut.",nombreVideoAjustes.prefijo);
+      if(texto!==null) guardar('prefijo',prefijoVideoSeguro(texto));
+    });
+    formato.addEventListener('change',()=>guardar('formato',formato.value));
+    zona.addEventListener('change',()=>guardar('zona',zona.value));
+    window.addEventListener('storage',e=>{
+      if(e.key===null || e.key.startsWith(claveNombreVideo)){ leer(); mostrar(); }
+    });
+    leer();
+    mostrar();
+  }
+
   function tecladoEnlazar(){
+    enlazarNombreVideo();
     tecladoExportacion.cargando=tecladoCarpetaMemoria().then(carpeta=>{
       if(carpeta && carpeta.kind==='directory'){tecladoExportacion.carpeta=carpeta;tecladoExportacion.memoria=true;}
     }).catch(()=>{}).finally(()=>{tecladoExportacion.cargando=null;tecladoCarpetaUi();});

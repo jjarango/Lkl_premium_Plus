@@ -1833,6 +1833,19 @@
     .cameraColorRow input::-webkit-slider-thumb{appearance:none;width:16px;height:16px;margin-top:-5px;border:2px solid #263244;border-radius:50%;background:#fff}
     .cameraColorRow input::-moz-range-thumb{width:13px;height:13px;border:2px solid #263244;border-radius:50%;background:#fff}
     .cameraColorRow input:focus-visible{outline:2px solid #ffcf77;outline-offset:1px}
+
+    #tecladoCarpetaBtn, #exportPrefijoBtn, #exportFormatoFecha, #exportZonaHoraria{
+      width:100%; min-height:44px; box-sizing:border-box; font-weight:700;
+    }
+    #tecladoCarpetaBtn{background:#1970c3;color:#fff;border:2px solid #8dd7ff}
+    #exportPrefijoBtn{background:#694094;color:#fff;border:1px solid #bc95e5}
+    #exportFormatoFecha{background-color:#ebc670;color:#281d09;border-color:#ffdb8c}
+    #exportZonaHoraria{background-color:#225e47;color:#fff;border-color:#7acba2}
+    #tecladoAyuda .exportChoice{display:block;margin:10px 0 4px}
+    #tecladoAyuda select{appearance:auto}
+    #tecladoAyuda option,#tecladoAyuda optgroup{background-color:#26303e;color:#fff}
+    #tecladoAyuda :is(button,select):focus-visible{outline:2px solid white;outline-offset:2px}
+    #exportEjemploNombre{display:block;margin:10px 0;overflow-wrap:anywhere;color:#edf2fa}
 </style>
 </head>
 <body>
@@ -2053,14 +2066,6 @@
 <div class="small" id="ytVozEstado" style="margin-top:4px; color:#9aa3b2;">启用语音后，在任意界面说“录制”即可打开录制模块。底部控件会显示应用何时正在监听，也可用它关闭语音。在模块内，根据当前步骤说“录制五秒”“录制十秒”或“录制十五秒”以延时录制。说“停止并回看”可停止录制并回看，说“播放”可播放视频，说“录制”可准备再次录制，说“下载带数据”可导出带数据的视频。在任意界面说“拍摄球台”，即可拍照并检查球位。条件允许时会沿用本次会话的台角；请检查各球的位置，然后点击“将球位应用到程序”。在任意界面说“重新摆放”，都能恢复最后确认的球位，即使紫色按钮未显示。退出练习后仍保留这些球位，只有应用新的球位时才会替换。如果正在拍照、录制或导出，指令会等待当前操作结束后执行。打开模块不会自动开始录制。语音使用 Chrome 语音服务（需要联网）和 Windows 默认麦克风：请在系统中选择 Logitech Brio。 录制模块就绪后，也可以只说“五”“十”或“十五”。</div>
 <label for="ytVozCicloSegundos" style="display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-top:10px;">麦克风自动重启间隔：<input id="ytVozCicloSegundos" type="number" min="5" max="120" step="1" value="15" aria-describedby="ytVozCicloAyuda" style="width:85px;"/> 秒</label>
 <p id="ytVozCicloAyuda" class="small" style="margin:6px 0 10px;">可设为 5 至 120 秒，每次自动暂停半秒。确认恢复监听后，才开始计算下一轮监听时间。刚开始说出的指令会获得短暂宽限，以便说完。手动静音会停止循环。此间隔会保存在当前浏览器中。</p>
-<details id="tecladoAyuda" style="margin-top:10px;">
-<summary style="cursor:pointer;">键盘与导出文件夹</summary>
-<p class="small">选中应用标签页时即可使用快捷键，即使语音指令已关闭也可使用。在输入框中键入内容或使用下拉选择框时，快捷键不会触发。</p>
-<p class="small">G：录制下一杆或打开摄像头。1 / 2 / 3：倒计时 5 / 10 / 15 秒。D：停止录制。DD：停止录制并恢复摆球位置（一秒内按两次）。R：播放。E：将带数据的视频导出到所选文件夹。O：将不含数据的视频（Original）保存到同一文件夹。V：恢复摆球位置。C：拍摄球台。W：在倒计时前保存摄像头的当前色彩设置。M：关闭或开启语音指令。T：轨迹跟踪。空格：暂停或继续。L：正常、半速或四分之一速度。X：关闭视频窗口或摆球界面，每次只关闭一个。Esc 也可关闭视频窗口。</p>
-<button id="tecladoCarpetaBtn" type="button" style="width:100%;">选择或更改导出文件夹</button>
-<p id="tecladoCarpetaEstado" class="small" role="status" aria-live="polite" style="margin:8px 0; overflow-wrap:anywhere;">尚未选择文件夹。</p>
-<p class="small">只需授权文件夹一次。“下载含数据的视频”和“下载不含数据的视频”按钮以及 E、O 快捷键共用此文件夹。权限有效期间，所有导出的视频都会保存到该文件夹，无需再次选择，也不会覆盖之前的视频。导出时请保持此标签页可见。</p>
-</details>
 <details id="ytVozHistorialPanel" style="margin-top:10px;">
 <summary style="cursor:pointer;">语音指令历史</summary>
 <p class="small">仅在本页保持打开时，保留最多 1000 条语音、转写文本和操作记录，以及最近 200 条连接状态记录；不保存音频。包括临时转写文本和语音检测记录，时间精确到毫秒。可通过会话和结果编号追踪同一条指令。点击“刷新”查看最新记录。</p>
@@ -2129,7 +2134,22 @@
 <option value="bottom">下方长库</option>
 <option value="left">左侧短库</option>
 </select>
-</div><div id="clcSideHelp" style="display:none"><p class="small">本系统的控件位于球台上方：主球、2号球、自动判断的第一短库、第二库和第三库。瞄点刻度始终从上方0到下方40。</p></div><div id="mirrorControls" style="display:none"><div id="mirrorRouteBlock" style="display:none"><label for="mirrorRoute">走球线路</label><select id="mirrorRoute"><option selected="" value="classic">3 库 → 球 → 球</option><option value="after2">2 库 → 球 → 1 库 → 球</option><option value="after1">1 库 → 球 → 2 库 → 球</option></select></div><div id="mirrorStrikeBlock" style="display:none"><label for="mirrorStrike">Golpe al contacto</label><select id="mirrorStrike"><option selected="" value="rolling">滚球（约 34° 锥角）</option><option value="stun">Picada / tangente (90°)</option></select></div><label style="display:flex; gap:8px; align-items:center; cursor:pointer; margin:0 0 6px;"><input id="mirrorShowHalves" style="width:auto" type="checkbox"/> <span class="small">显示对半作图</span></label><p class="small" id="mirrorContract" style="margin:2px 0 10px;">几何镜像系统。基础：滚球（中心或高半颗皮头）、零侧旋、自然力度。侧旋不参与计算。</p></div><div id="pasonesControls" style="display:none"><label for="pasonesBase">往返球基准值： <span id="pasonesBaseVal">2.0</span> espacios</label><input id="pasonesBase" max="2.5" min="1.5" step="0.1" type="range" value="2.0"/><p class="small" style="margin:4px 0 10px;">基准值是 ¼ 球角在您球台上呈中性的间隔（以钻石格为单位）：3 号球位于 2 号球的直线上、母球在该距离时，用旋转 0 即可得分。作者将其定为 2.0。校准流程：摆出旋转 0 的球位，按系统约定多打几次；若总是偏短就调高基准值，偏长就调低。该值会保存，且与镜像系数相互独立。</p><label style="display:flex; gap:8px; align-items:center; cursor:pointer; margin:0 0 6px;"><input checked="" id="pasonesShowChart" style="width:auto" type="checkbox"/> <span class="small">显示旋转图示</span></label><p class="small" id="pasonesContract" style="margin:2px 0 10px;">Pasones 系统：两条长库之间的三库往返球。固定约定：¼ 球厚度、顺势送杆的前进击打、中高速度。系统唯一的输出就是旋转。</p></div><div id="renverseControls" style="display:none"><label for="renverseVariant">Renversé 变式</label><select id="renverseVariant"><option selected="" value="long">长库 Renversé</option><option value="short">短库 Renversé</option></select><label for="renverseAttack">进攻方式</label><select id="renverseAttack"><option selected="" value="cushion">先走库</option><option value="ball">先碰球</option></select><div id="renverseImpactBlock" style="display:none"><label for="renverseImpactBall">先击打的球（承接球）</label><select id="renverseImpactBall"><option value="white">白球</option><option selected="" value="yellow">黄球</option><option value="red">红球</option></select><p class="small" style="margin:4px 0 10px;">落点读取剩下的那颗球，诊断中会注明其名称。</p></div><div id="renverseArrivalBlock"><label for="renverseArrival">到达球</label><select id="renverseArrival"><option value="white">白球</option><option selected="" value="yellow">黄球</option><option value="red">红球</option><option value="midpoint">黄球与红球正中间</option></select></div><label for="renverseAjuste">球台微调： <span id="renverseAjusteVal">+0.0</span></label><input id="renverseAjuste" max="1" min="-1" step="0.1" type="range" value="0"/><p class="small" style="margin:4px 0 10px;">该调整会加到计算出的旋转上，使系统适配您的球台与风格：若您的 Renversé 总是偏短就调高，偏长就调低。默认值为 0，并会自动保存。</p><label style="display:flex; gap:8px; align-items:center; cursor:pointer; margin:0 0 6px;"><input checked="" id="renverseShowChart" style="width:auto" type="checkbox"/> <span class="small">显示旋转图示</span></label><p class="small" id="renverseContract" style="margin:2px 0 10px;">Renversé 系统：主球始终以投影方式攻击球角（角上长库的第一颗钻石点，而非角尖），使用反旋、顺势送杆、切勿发力过大。旋转 = 出发 + 落点，应用始终以整数报出。</p></div><p class="small" id="sequenceHelp">请选择先碰球还是先走库，然后设置走库顺序。</p></div></details><details class="menuModule" id="moduleVideoReplay"><summary><span class="moduleTitle" style="color:#ff5a5a">叠加数据的击球视频</span><span class="moduleState" id="moduleVideoReplayState">顶置摄像头 · 未校准</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><p class="small" style="margin:0 0 10px;">用顶置摄像头录下真实击球，并在视频上叠加击球数据（瞄准点与瞄准线、落点），用慢动作和逐帧回看检查。录像包含摄像头麦克风的声音。只需校准一次球台四角，只要摄像头不移动即可持续使用。 <b>若通过自动识别器的顶置拍摄应用球位，该校准会自动复用。</b></p><button class="cameraCaptureBtn" id="videoReplayRecordBtn" type="button">录制击球</button><button id="videoReplayCalibBtn" type="button">校准叠加层</button><div aria-live="polite" class="cameraCaptureStatus" id="videoReplayModuleStatus" role="status">叠加的数据（瞄准点与落点）为当时计算出的结果（例如所选母球和走库顺序下的 LKL / Base 50）。</div></div></details><details class="menuModule" id="moduleEffect"><summary><span class="moduleTitle">旋转与击球</span><span class="moduleState" id="moduleEffectState">正旋 · 旋转 3 · 长延伸杆</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><div aria-controls="contiTooltip" aria-expanded="false" class="contiHelpAnchor" id="contiHelpAnchor" tabindex="0"><label for="english">旋转方向</label><span aria-hidden="true" class="contiHelpIcon">i</span></div><select id="english">
+</div><div id="clcSideHelp" style="display:none"><p class="small">本系统的控件位于球台上方：主球、2号球、自动判断的第一短库、第二库和第三库。瞄点刻度始终从上方0到下方40。</p></div><div id="mirrorControls" style="display:none"><div id="mirrorRouteBlock" style="display:none"><label for="mirrorRoute">走球线路</label><select id="mirrorRoute"><option selected="" value="classic">3 库 → 球 → 球</option><option value="after2">2 库 → 球 → 1 库 → 球</option><option value="after1">1 库 → 球 → 2 库 → 球</option></select></div><div id="mirrorStrikeBlock" style="display:none"><label for="mirrorStrike">Golpe al contacto</label><select id="mirrorStrike"><option selected="" value="rolling">滚球（约 34° 锥角）</option><option value="stun">Picada / tangente (90°)</option></select></div><label style="display:flex; gap:8px; align-items:center; cursor:pointer; margin:0 0 6px;"><input id="mirrorShowHalves" style="width:auto" type="checkbox"/> <span class="small">显示对半作图</span></label><p class="small" id="mirrorContract" style="margin:2px 0 10px;">几何镜像系统。基础：滚球（中心或高半颗皮头）、零侧旋、自然力度。侧旋不参与计算。</p></div><div id="pasonesControls" style="display:none"><label for="pasonesBase">往返球基准值： <span id="pasonesBaseVal">2.0</span> espacios</label><input id="pasonesBase" max="2.5" min="1.5" step="0.1" type="range" value="2.0"/><p class="small" style="margin:4px 0 10px;">基准值是 ¼ 球角在您球台上呈中性的间隔（以钻石格为单位）：3 号球位于 2 号球的直线上、母球在该距离时，用旋转 0 即可得分。作者将其定为 2.0。校准流程：摆出旋转 0 的球位，按系统约定多打几次；若总是偏短就调高基准值，偏长就调低。该值会保存，且与镜像系数相互独立。</p><label style="display:flex; gap:8px; align-items:center; cursor:pointer; margin:0 0 6px;"><input checked="" id="pasonesShowChart" style="width:auto" type="checkbox"/> <span class="small">显示旋转图示</span></label><p class="small" id="pasonesContract" style="margin:2px 0 10px;">Pasones 系统：两条长库之间的三库往返球。固定约定：¼ 球厚度、顺势送杆的前进击打、中高速度。系统唯一的输出就是旋转。</p></div><div id="renverseControls" style="display:none"><label for="renverseVariant">Renversé 变式</label><select id="renverseVariant"><option selected="" value="long">长库 Renversé</option><option value="short">短库 Renversé</option></select><label for="renverseAttack">进攻方式</label><select id="renverseAttack"><option selected="" value="cushion">先走库</option><option value="ball">先碰球</option></select><div id="renverseImpactBlock" style="display:none"><label for="renverseImpactBall">先击打的球（承接球）</label><select id="renverseImpactBall"><option value="white">白球</option><option selected="" value="yellow">黄球</option><option value="red">红球</option></select><p class="small" style="margin:4px 0 10px;">落点读取剩下的那颗球，诊断中会注明其名称。</p></div><div id="renverseArrivalBlock"><label for="renverseArrival">到达球</label><select id="renverseArrival"><option value="white">白球</option><option selected="" value="yellow">黄球</option><option value="red">红球</option><option value="midpoint">黄球与红球正中间</option></select></div><label for="renverseAjuste">球台微调： <span id="renverseAjusteVal">+0.0</span></label><input id="renverseAjuste" max="1" min="-1" step="0.1" type="range" value="0"/><p class="small" style="margin:4px 0 10px;">该调整会加到计算出的旋转上，使系统适配您的球台与风格：若您的 Renversé 总是偏短就调高，偏长就调低。默认值为 0，并会自动保存。</p><label style="display:flex; gap:8px; align-items:center; cursor:pointer; margin:0 0 6px;"><input checked="" id="renverseShowChart" style="width:auto" type="checkbox"/> <span class="small">显示旋转图示</span></label><p class="small" id="renverseContract" style="margin:2px 0 10px;">Renversé 系统：主球始终以投影方式攻击球角（角上长库的第一颗钻石点，而非角尖），使用反旋、顺势送杆、切勿发力过大。旋转 = 出发 + 落点，应用始终以整数报出。</p></div><p class="small" id="sequenceHelp">请选择先碰球还是先走库，然后设置走库顺序。</p></div></details><details class="menuModule" id="moduleVideoReplay"><summary><span class="moduleTitle" style="color:#ff5a5a">叠加数据的击球视频</span><span class="moduleState" id="moduleVideoReplayState">顶置摄像头 · 未校准</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><p class="small" style="margin:0 0 10px;">用顶置摄像头录下真实击球，并在视频上叠加击球数据（瞄准点与瞄准线、落点），用慢动作和逐帧回看检查。录像包含摄像头麦克风的声音。只需校准一次球台四角，只要摄像头不移动即可持续使用。 <b>若通过自动识别器的顶置拍摄应用球位，该校准会自动复用。</b></p><button class="cameraCaptureBtn" id="videoReplayRecordBtn" type="button">录制击球</button><button id="videoReplayCalibBtn" type="button">校准叠加层</button>
+<details id="tecladoAyuda" style="margin-top:10px;">
+<summary style="cursor:pointer;">键盘快捷键与导出选项</summary>
+<p class="small">选中应用标签页时即可使用快捷键，即使语音指令已关闭也可使用。在输入框中键入内容或使用下拉选择框时，快捷键不会触发。</p>
+<p class="small">G：录制下一杆或打开摄像头。1 / 2 / 3：倒计时 5 / 10 / 15 秒。D：停止录制。DD：停止录制并恢复摆球位置（一秒内按两次）。R：播放。E：将带数据的视频导出到所选文件夹。O：将不含数据的视频（Original）保存到同一文件夹。V：恢复摆球位置。C：拍摄球台。W：在倒计时前保存摄像头的当前色彩设置。M：关闭或开启语音指令。T：轨迹跟踪。空格：暂停或继续。L：正常、半速或四分之一速度。X：关闭视频窗口或摆球界面，每次只关闭一个。Esc 也可关闭视频窗口。</p>
+<button id="tecladoCarpetaBtn" type="button">选择或更改导出文件夹</button>
+<p id="tecladoCarpetaEstado" class="small" role="status" aria-live="polite" style="margin:8px 0; overflow-wrap:anywhere;">尚未选择文件夹。</p>
+<button id="exportPrefijoBtn" type="button">设置视频文件名前缀</button>
+<label class="exportChoice" for="exportFormatoFecha">日期格式</label>
+<select id="exportFormatoFecha"></select>
+<label class="exportChoice" for="exportZonaHoraria">导出时区</label>
+<select id="exportZonaHoraria"></select>
+<output id="exportEjemploNombre" class="small" aria-live="polite"></output>
+<p class="small">只需授权文件夹一次。“下载含数据的视频”和“下载不含数据的视频”按钮以及 E、O 快捷键共用此文件夹。权限有效期间，所有导出的视频都会保存到该文件夹，无需再次选择，也不会覆盖之前的视频。导出时请保持此标签页可见。</p>
+</details>
+<div aria-live="polite" class="cameraCaptureStatus" id="videoReplayModuleStatus" role="status">叠加的数据（瞄准点与落点）为当时计算出的结果（例如所选母球和走库顺序下的 LKL / Base 50）。</div></div></details><details class="menuModule" id="moduleEffect"><summary><span class="moduleTitle">旋转与击球</span><span class="moduleState" id="moduleEffectState">正旋 · 旋转 3 · 长延伸杆</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><div aria-controls="contiTooltip" aria-expanded="false" class="contiHelpAnchor" id="contiHelpAnchor" tabindex="0"><label for="english">旋转方向</label><span aria-hidden="true" class="contiHelpIcon">i</span></div><select id="english">
 <option value="positive">正旋：线路变长</option>
 <option value="neutral">无侧旋</option>
 <option value="negative">负旋：线路变短</option>
@@ -18371,8 +18391,7 @@ function drawStartMarks(){
       if(!valid()) return;
       if(!rescue.blob.size) throw new Error("原始录像为空。");
       const type=rescue.blob.type||videoReplay.blobType||'video/webm';
-      const stamp=new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
-      rescue.name='jugada-rescate-original-'+stamp+(/mp4/i.test(type)?'.mp4':'.webm');
+      rescue.name=nombreArchivoVideo('rescate-original',/mp4/i.test(type)?'mp4':'webm');
       if(!rescue.folder || await rescue.folder.queryPermission({mode:'readwrite'})!=='granted') throw new Error("导出文件夹不可用。");
       const name=await tecladoGuardarExportacion(rescue.folder,rescue.blob,rescue.name,signal);
       if(!valid()) return;
@@ -18576,8 +18595,7 @@ function drawStartMarks(){
           const verified=await videoReplayVerifyExport(blob,total,vw,vh,signal);
           if(disposed) return;
           videoReplay.lastExportCheck={sourceDuration:total,outputDuration:verified.duration,samples:verified.samples,frames:frameCount,maxGap,paintMs};
-          const stamp=new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
-          const nombre=(withData?"shot-with-data-":"shot-without-data-")+stamp+'.mp4';
+          const nombre=nombreArchivoVideo(withData?'con-datos':'sin-datos');
           if(carpeta){
             phase='saving';document.removeEventListener('visibilitychange',visibility);
             setVideoReplayStatus("正在将完整视频保存到 "+carpeta.name+'…');
@@ -22655,7 +22673,125 @@ function drawStartMarks(){
     else if(lista && /^[123]$/.test(tecla)) orden={accion:'grabarEn',seg:{'1':5,'2':10,'3':15}[tecla]};
     if(orden) await ytVozEjecutar(orden,tecla.toUpperCase(),true);
   }
+  const formatosFechaVideo = [
+    ['iso',"年-月-日"], ['es',"西班牙语"], ['dma',"日-月-年"],
+    ['en-US',"英语"], ['ko-KR',"韩语"], ['zh-CN',"中文"],
+    ['ru-RU',"俄语"], ['tr-TR',"土耳其语"], ['vi-VN',"越南语"], ['fr-FR',"法语"]
+  ];
+  const zonasVideoDestacadas = {
+    'UTC':'UTC', 'America/Bogota':"波哥大", 'America/Mexico_City':"墨西哥城",
+    'America/New_York':"纽约", 'America/Los_Angeles':"洛杉矶",
+    'Europe/Madrid':"马德里", 'Europe/Paris':"巴黎", 'Europe/London':"伦敦",
+    'Europe/Moscow':"莫斯科", 'Europe/Istanbul':"伊斯坦布尔", 'Asia/Seoul':"首尔",
+    'Asia/Shanghai':"上海", 'Asia/Ho_Chi_Minh':"胡志明市"
+  };
+  const claveNombreVideo = 'billar.exportacion.nombre.v1.';
+  const nombreVideoAjustes = {prefijo:'', formato:'iso', zona:'UTC'};
+
+  function prefijoVideoSeguro(texto){
+    // Mantener acentos y espacios al formar un único nombre válido en Windows.
+    let limpio = texto.normalize('NFC').replace(/[<>:"/\\|?*\u0000-\u001f\u007f]/g,' ')
+      .replace(/[\u202a-\u202e\u2066-\u2069]/g,'').replace(/\s+/g,' ').trim();
+    limpio = Array.from(limpio).slice(0,60).join('').replace(/^[. ]+|[. ]+$/g,'');
+    if(/^(con|prn|aux|nul|com[1-9¹²³]|lpt[1-9¹²³])\./i.test(limpio)) limpio = '_' + limpio;
+    // Dejar espacio para fecha, hora, extensión y número de copia en otros sistemas de archivos.
+    const encoder = new TextEncoder();
+    while(encoder.encode(limpio).length > 150) limpio = Array.from(limpio).slice(0,-1).join('');
+    return limpio.trimEnd();
+  }
+
+  function fechaVideo(fecha, formato, zona, partes){
+    if(formato === 'iso') return [partes.year,partes.month,partes.day].join('-');
+    if(formato === 'dma') return [partes.day,partes.month,partes.year].join('-');
+    if(formato === 'es'){
+      const mes = new Intl.DateTimeFormat('es',{month:'long',timeZone:zona}).format(fecha);
+      return mes[0].toUpperCase()+mes.slice(1)+' '+Number(partes.day)+' de '+partes.year;
+    }
+    return new Intl.DateTimeFormat(formato,{
+      timeZone:zona,calendar:'gregory',year:'numeric',month:'long',day:'numeric'
+    }).format(fecha);
+  }
+
+  function nombreArchivoVideo(tipo, extension='mp4', fecha=new Date(), ajustes=nombreVideoAjustes){
+    const campos = new Intl.DateTimeFormat('en-US',{
+      timeZone:ajustes.zona, year:'numeric', month:'2-digit', day:'2-digit',
+      hour:'2-digit', minute:'2-digit', second:'2-digit', hourCycle:'h12'
+    }).formatToParts(fecha);
+    const p = Object.fromEntries(campos.map(c=>[c.type,c.value]));
+    const dia = fechaVideo(fecha,ajustes.formato,ajustes.zona,p);
+    const hora = [p.hour,p.minute,p.second].join('-')+' '+p.dayPeriod;
+    const nombres = {
+      'con-datos': ["击球-含数据", ''],
+      'sin-datos': ["击球-无数据", "无数据"],
+      'rescate-original': ["击球-恢复的原始录像", "恢复的原始录像"]
+    };
+    const [nombreBase, etiqueta] = nombres[tipo];
+    const titulo = ajustes.prefijo ? ajustes.prefijo + (etiqueta ? ' - '+etiqueta : '') : nombreBase;
+    const marca = ajustes.formato==='iso' ? dia+'T'+hora : dia+' - '+hora;
+    return titulo + (ajustes.formato==='iso' && !ajustes.prefijo ? '-' : ' - ') + marca + '.' + extension;
+  }
+
+  function enlazarNombreVideo(){
+    const prefijo = ids('exportPrefijoBtn'), formato = ids('exportFormatoFecha'), zona = ids('exportZonaHoraria');
+    const ejemplo = ids('exportEjemploNombre');
+    const referencia = new Date(Date.UTC(2026,10,14,12));
+    const partesEjemplo = {year:'2026',month:'11',day:'14'};
+    for(const [valor,etiqueta] of formatosFechaVideo){
+      formato.add(new Option(etiqueta+' · '+fechaVideo(referencia,valor,'UTC',partesEjemplo),valor));
+    }
+
+    const zonas = new Set([...Object.keys(zonasVideoDestacadas),...(Intl.supportedValuesOf?.('timeZone') || [])]);
+    const local = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if(local) zonas.add(local);
+    const otras = document.createElement('optgroup');
+    otras.label = "其他时区";
+    for(const id of zonas){
+      const ciudad = zonasVideoDestacadas[id];
+      if(ciudad){
+        const offset = new Intl.DateTimeFormat('en',{timeZone:id,timeZoneName:'shortOffset'}).formatToParts(new Date())
+          .find(p=>p.type==='timeZoneName').value.replace('GMT','UTC').replace('-','−');
+        zona.add(new Option(id==='UTC'?'UTC':ciudad+' ('+offset+')',id));
+      }else{
+        otras.append(new Option(id.replace(/_/g,' '),id));
+      }
+    }
+    if(otras.childElementCount) zona.append(otras);
+
+    function leer(){
+      try{
+        const guardado = k=>localStorage.getItem(claveNombreVideo+k);
+        nombreVideoAjustes.prefijo = prefijoVideoSeguro(guardado('prefijo') || '');
+        const formatoGuardado = guardado('formato'), zonaGuardada = guardado('zona');
+        nombreVideoAjustes.formato = formatosFechaVideo.some(([v])=>v===formatoGuardado) ? formatoGuardado : 'iso';
+        nombreVideoAjustes.zona = zonas.has(zonaGuardada) ? zonaGuardada : 'UTC';
+      }catch{}
+    }
+    function mostrar(){
+      formato.value = nombreVideoAjustes.formato;
+      zona.value = nombreVideoAjustes.zona;
+      ejemplo.textContent = "含数据的文件名示例："+nombreArchivoVideo('con-datos');
+    }
+    function guardar(campo,valor){
+      nombreVideoAjustes[campo] = valor;
+      mostrar();
+      try{ localStorage.setItem(claveNombreVideo+campo,valor); }
+      catch{ ejemplo.append(" · 此更改仅在本次会话中有效。"); }
+    }
+    prefijo.addEventListener('click',()=>{
+      const texto = window.prompt("请输入视频文件名前缀。留空即可使用默认名称。",nombreVideoAjustes.prefijo);
+      if(texto!==null) guardar('prefijo',prefijoVideoSeguro(texto));
+    });
+    formato.addEventListener('change',()=>guardar('formato',formato.value));
+    zona.addEventListener('change',()=>guardar('zona',zona.value));
+    window.addEventListener('storage',e=>{
+      if(e.key===null || e.key.startsWith(claveNombreVideo)){ leer(); mostrar(); }
+    });
+    leer();
+    mostrar();
+  }
+
   function tecladoEnlazar(){
+    enlazarNombreVideo();
     tecladoExportacion.cargando=tecladoCarpetaMemoria().then(carpeta=>{
       if(carpeta && carpeta.kind==='directory'){tecladoExportacion.carpeta=carpeta;tecladoExportacion.memoria=true;}
     }).catch(()=>{}).finally(()=>{tecladoExportacion.cargando=null;tecladoCarpetaUi();});

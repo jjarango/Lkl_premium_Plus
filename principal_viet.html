@@ -1833,6 +1833,19 @@
     .cameraColorRow input::-webkit-slider-thumb{appearance:none;width:16px;height:16px;margin-top:-5px;border:2px solid #263244;border-radius:50%;background:#fff}
     .cameraColorRow input::-moz-range-thumb{width:13px;height:13px;border:2px solid #263244;border-radius:50%;background:#fff}
     .cameraColorRow input:focus-visible{outline:2px solid #ffcf77;outline-offset:1px}
+
+    #tecladoCarpetaBtn, #exportPrefijoBtn, #exportFormatoFecha, #exportZonaHoraria{
+      width:100%; min-height:44px; box-sizing:border-box; font-weight:700;
+    }
+    #tecladoCarpetaBtn{background:#1970c3;color:#fff;border:2px solid #8dd7ff}
+    #exportPrefijoBtn{background:#694094;color:#fff;border:1px solid #bc95e5}
+    #exportFormatoFecha{background-color:#ebc670;color:#281d09;border-color:#ffdb8c}
+    #exportZonaHoraria{background-color:#225e47;color:#fff;border-color:#7acba2}
+    #tecladoAyuda .exportChoice{display:block;margin:10px 0 4px}
+    #tecladoAyuda select{appearance:auto}
+    #tecladoAyuda option,#tecladoAyuda optgroup{background-color:#26303e;color:#fff}
+    #tecladoAyuda :is(button,select):focus-visible{outline:2px solid white;outline-offset:2px}
+    #exportEjemploNombre{display:block;margin:10px 0;overflow-wrap:anywhere;color:#edf2fa}
 </style>
 </head>
 <body>
@@ -2053,14 +2066,6 @@
 <div class="small" id="ytVozEstado" style="margin-top:4px; color:#9aa3b2;">Khi bật giọng nói, hãy nói “ghi” từ bất kỳ mục nào để mở mô-đun ghi hình. Nút ở phía dưới cho biết khi nào ứng dụng đang nghe và cho phép tắt giọng nói. Trong mô-đun, tùy từng bước, hãy nói “ghi sau năm”, “ghi sau mười”, “ghi sau mười lăm”, “dừng và xem lại”, “phát lại”, “ghi” để chuẩn bị lần ghi hình khác hoặc “tải về kèm dữ liệu”. Nói “chụp bàn” ở bất kỳ màn hình nào để chụp ảnh và kiểm tra vị trí. Khi phù hợp, ứng dụng sẽ dùng lại các góc đã lưu trong phiên; kiểm tra các bi rồi bấm “Áp dụng vị trí vào ứng dụng”. “Đặt lại bi” khôi phục vị trí được xác nhận gần nhất từ bất kỳ màn hình nào, kể cả khi nút màu tím bị ẩn. Vị trí này vẫn được giữ khi thoát buổi tập và chỉ thay đổi khi bạn áp dụng vị trí khác. Nếu đang chụp ảnh, ghi hình hoặc xuất video, lệnh sẽ đợi thao tác đó hoàn tất. Mở mô-đun không tự động bắt đầu ghi hình. Giọng nói sử dụng dịch vụ nhận dạng của Chrome (cần internet) và micrô mặc định của Windows: hãy chọn Logitech Brio trong Windows. Khi mô-đun ghi hình đã sẵn sàng, bạn cũng có thể chỉ nói «năm», «mười» hoặc «mười lăm».</div>
 <label for="ytVozCicloSegundos" style="display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-top:10px;">Khởi động lại micrô sau mỗi <input id="ytVozCicloSegundos" type="number" min="5" max="120" step="1" value="15" aria-describedby="ytVozCicloAyuda" style="width:85px;"/> giây</label>
 <p id="ytVozCicloAyuda" class="small" style="margin:6px 0 10px;">Có thể đặt từ 5 đến 120 giây, với khoảng nghỉ tự động nửa giây. Khoảng nghe tiếp theo chỉ bắt đầu khi xác nhận đã khôi phục nghe. Lệnh vừa bắt đầu được dành thêm một khoảng ngắn để nói hết. Tắt micrô thủ công sẽ dừng chu kỳ. Khoảng thời gian được lưu trong trình duyệt này.</p>
-<details id="tecladoAyuda" style="margin-top:10px;">
-<summary style="cursor:pointer;">Bàn phím và thư mục xuất video</summary>
-<p class="small">Phím tắt hoạt động khi chọn thẻ ứng dụng, kể cả khi đã tắt lệnh giọng nói. Chúng không kích hoạt khi đang nhập vào ô hoặc dùng danh sách chọn.</p>
-<p class="small">G: ghi cú đánh khác hoặc mở camera. 1 / 2 / 3: đếm ngược 5 / 10 / 15 giây. D: dừng ghi. DD: dừng ghi và đặt lại bi (nhấn hai lần trong vòng một giây). R: phát. E: xuất kèm dữ liệu vào thư mục đã chọn. O: lưu không kèm dữ liệu (Original) vào cùng thư mục. V: đặt lại bi. C: chụp bàn. W: lưu thiết lập màu hiện tại của camera trước khi đếm ngược. M: tắt hoặc bật lệnh giọng nói. T: theo dõi quỹ đạo. Phím cách: tạm dừng hoặc tiếp tục. L: tốc độ bình thường, một nửa hoặc một phần tư. X: đóng cửa sổ video hoặc màn hình đặt bi, mỗi lần nhấn đóng một màn hình. Esc cũng đóng cửa sổ video.</p>
-<button id="tecladoCarpetaBtn" type="button" style="width:100%;">Chọn hoặc đổi thư mục xuất</button>
-<p id="tecladoCarpetaEstado" class="small" role="status" aria-live="polite" style="margin:8px 0; overflow-wrap:anywhere;">Chưa chọn thư mục.</p>
-<p class="small">Chỉ cần cấp quyền cho thư mục một lần. Các nút “Tải xuống kèm dữ liệu”, “Tải xuống không kèm dữ liệu” và phím tắt E, O dùng chung thư mục này. Khi quyền truy cập còn hiệu lực, mọi video xuất sẽ được lưu tại đó mà không cần chọn lại thư mục và không ghi đè các video trước. Giữ thẻ này hiển thị trong khi xuất.</p>
-</details>
 <details id="ytVozHistorialPanel" style="margin-top:10px;">
 <summary style="cursor:pointer;">Lịch sử lệnh thoại</summary>
 <p class="small">Chỉ khi trang này đang mở, lưu tối đa 1000 mục về giọng nói, văn bản nhận dạng và thao tác, cùng 200 trạng thái kết nối gần nhất; không lưu âm thanh. Bao gồm văn bản tạm thời và các lần phát hiện giọng nói, với thời gian chính xác đến mili giây. Số phiên và kết quả giúp theo dõi cùng một lệnh. Nhấn «Cập nhật» để xem các mục mới nhất.</p>
@@ -2129,7 +2134,22 @@
 <option value="bottom">Dài dưới</option>
 <option value="left">Ngắn trái</option>
 </select>
-</div><div id="clcSideHelp" style="display:none"><p class="small">Các điều khiển của hệ thống nằm phía trên bàn: bi chủ, bi 2, băng ngắn đầu tiên tự xác định, băng thứ hai và thứ ba. Thang điểm đánh luôn từ 0 ở trên đến 40 ở dưới.</p></div><div id="mirrorControls" style="display:none"><div id="mirrorRouteBlock" style="display:none"><label for="mirrorRoute">Đường đi của đường bi</label><select id="mirrorRoute"><option selected="" value="classic">3 băng → bi → bi</option><option value="after2">2 băng → bi → 1 băng → bi</option><option value="after1">1 băng → bi → 2 băng → bi</option></select></div><div id="mirrorStrikeBlock" style="display:none"><label for="mirrorStrike">Cú đánh khi chạm</label><select id="mirrorStrike"><option selected="" value="rolling">Bi lăn (nón ≈34°)</option><option value="stun">Đánh lết / tiếp tuyến (90°)</option></select></div><label style="display:flex; gap:8px; align-items:center; cursor:pointer; margin:0 0 6px;"><input id="mirrorShowHalves" style="width:auto" type="checkbox"/> <span class="small">Hiện cách dựng các nửa</span></label><p class="small" id="mirrorContract" style="margin:2px 0 10px;">Hệ gương hình học. Nền: bi lăn (tâm hoặc nửa bi trên), ép-phê ngang bằng không, tốc độ pasón tự nhiên. Ép-phê ngang không tham gia tính toán.</p></div><div id="pasonesControls" style="display:none"><label for="pasonesBase">Nền của pasón: <span id="pasonesBaseVal">2.0</span> nút</label><input id="pasonesBase" max="2.5" min="1.5" step="0.1" type="range" value="2.0"/><p class="small" style="margin:4px 0 10px;">Nền là khoảng cách, tính bằng nút, tại đó góc ¼ bi là trung tính trên bàn của bạn: với bi 3 trên đường của bi 2 và bi chủ ở khoảng cách đó, đường bi thành công với ép-phê 0. Tác giả đặt là 2.0. Nghi thức hiệu chuẩn: dựng thế bi ép-phê 0 và đánh vài lần theo hợp đồng của hệ thống; nếu các cú pasón của bạn luôn ngắn, hãy tăng nền; nếu luôn dài, hãy giảm. Giá trị được lưu và độc lập với hệ số Gương.</p><label style="display:flex; gap:8px; align-items:center; cursor:pointer; margin:0 0 6px;"><input checked="" id="pasonesShowChart" style="width:auto" type="checkbox"/> <span class="small">Hiện đồ thị ép-phê</span></label><p class="small" id="pasonesContract" style="margin:2px 0 10px;">Hệ Pasones: các đường bi pasón giữa hai băng dài, qua ba băng. Hợp đồng cố định: ¼ bi, cú đánh tiến thả cơ, tốc độ trung bình-cao. Đầu ra duy nhất của hệ thống là ép-phê.</p></div><div id="renverseControls" style="display:none"><label for="renverseVariant">Biến thể renversé</label><select id="renverseVariant"><option selected="" value="long">Renversé qua băng dài</option><option value="short">Renversé qua băng ngắn</option></select><label for="renverseAttack">Kiểu điểm đánh</label><select id="renverseAttack"><option selected="" value="cushion">Băng trước</option><option value="ball">Bi trước</option></select><div id="renverseImpactBlock" style="display:none"><label for="renverseImpactBall">Bi bị đánh hoặc bi nhận</label><select id="renverseImpactBall"><option value="white">Trắng</option><option selected="" value="yellow">Vàng</option><option value="red">Đỏ</option></select><p class="small" style="margin:4px 0 10px;">Điểm đến đọc trên bi còn lại, và chẩn đoán sẽ gọi tên nó.</p></div><div id="renverseArrivalBlock"><label for="renverseArrival">Bi đến</label><select id="renverseArrival"><option value="white">Trắng</option><option selected="" value="yellow">Vàng</option><option value="red">Đỏ</option><option value="midpoint">Đúng giữa bi vàng và bi đỏ</option></select></div><label for="renverseAjuste">Tinh chỉnh bàn: <span id="renverseAjusteVal">+0.0</span></label><input id="renverseAjuste" max="1" min="-1" step="0.1" type="range" value="0"/><p class="small" style="margin:4px 0 10px;">Mức chỉnh được cộng vào ép-phê tính được, để hệ thống phù hợp với bàn và lối chơi của bạn: nếu các cú renversé của bạn luôn ngắn, hãy tăng lên; nếu luôn dài, hãy giảm xuống. Mặc định là 0 và giá trị được lưu.</p><label style="display:flex; gap:8px; align-items:center; cursor:pointer; margin:0 0 6px;"><input checked="" id="renverseShowChart" style="width:auto" type="checkbox"/> <span class="small">Hiện đồ thị ép-phê</span></label><p class="small" id="renverseContract" style="margin:2px 0 10px;">Hệ Renversé: bi chủ luôn đánh vào góc chiếu (nút đầu tiên của băng dài ở góc, không phải chính góc), với ép-phê ngược, cú đánh tiến và không quá mạnh. Ép-phê = xuất phát + điểm đến, và ứng dụng luôn đọc bằng số nguyên.</p></div><p class="small" id="sequenceHelp">Chọn đường cơ bắt đầu bằng bi trước hay băng trước, rồi chỉ định trình tự băng.</p></div></details><details class="menuModule" id="moduleVideoReplay"><summary><span class="moduleTitle" style="color:#ff5a5a">Video thế bi kèm dữ liệu chồng lên</span><span class="moduleState" id="moduleVideoReplayState">Camera trên trần · chưa hiệu chuẩn</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><p class="small" style="margin:0 0 10px;">Ghi lại cú đánh thật bằng camera trên trần và xem lại với dữ liệu thế bi (điểm và đường Đánh, điểm Đến) chồng lên video, có quay chậm và đi từng khung hình. Bản ghi có âm thanh từ micro camera. Cần hiệu chuẩn bốn góc bàn một lần, chừng nào camera không dịch chuyển. <b>Nếu áp dụng vị trí từ ảnh chụp trần của bộ phát hiện tự động, hiệu chuẩn đó được tự dùng lại.</b></p><button class="cameraCaptureBtn" id="videoReplayRecordBtn" type="button">Ghi thế bi</button><button id="videoReplayCalibBtn" type="button">Hiệu chuẩn lớp phủ</button><div aria-live="polite" class="cameraCaptureStatus" id="videoReplayModuleStatus" role="status">Dữ liệu chồng lên (Đánh và Đến) là dữ liệu đang được tính tại thời điểm đó (ví dụ LKL / Base 50 với bi chủ và trình tự băng đã chọn).</div></div></details><details class="menuModule" id="moduleEffect"><summary><span class="moduleTitle">Ép-phê và cú đánh</span><span class="moduleState" id="moduleEffectState">Dương · ép-phê 3 · Đâm sâu dài</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><div aria-controls="contiTooltip" aria-expanded="false" class="contiHelpAnchor" id="contiHelpAnchor" tabindex="0"><label for="english">Hướng ép-phê</label><span aria-hidden="true" class="contiHelpIcon">i</span></div><select id="english">
+</div><div id="clcSideHelp" style="display:none"><p class="small">Các điều khiển của hệ thống nằm phía trên bàn: bi chủ, bi 2, băng ngắn đầu tiên tự xác định, băng thứ hai và thứ ba. Thang điểm đánh luôn từ 0 ở trên đến 40 ở dưới.</p></div><div id="mirrorControls" style="display:none"><div id="mirrorRouteBlock" style="display:none"><label for="mirrorRoute">Đường đi của đường bi</label><select id="mirrorRoute"><option selected="" value="classic">3 băng → bi → bi</option><option value="after2">2 băng → bi → 1 băng → bi</option><option value="after1">1 băng → bi → 2 băng → bi</option></select></div><div id="mirrorStrikeBlock" style="display:none"><label for="mirrorStrike">Cú đánh khi chạm</label><select id="mirrorStrike"><option selected="" value="rolling">Bi lăn (nón ≈34°)</option><option value="stun">Đánh lết / tiếp tuyến (90°)</option></select></div><label style="display:flex; gap:8px; align-items:center; cursor:pointer; margin:0 0 6px;"><input id="mirrorShowHalves" style="width:auto" type="checkbox"/> <span class="small">Hiện cách dựng các nửa</span></label><p class="small" id="mirrorContract" style="margin:2px 0 10px;">Hệ gương hình học. Nền: bi lăn (tâm hoặc nửa bi trên), ép-phê ngang bằng không, tốc độ pasón tự nhiên. Ép-phê ngang không tham gia tính toán.</p></div><div id="pasonesControls" style="display:none"><label for="pasonesBase">Nền của pasón: <span id="pasonesBaseVal">2.0</span> nút</label><input id="pasonesBase" max="2.5" min="1.5" step="0.1" type="range" value="2.0"/><p class="small" style="margin:4px 0 10px;">Nền là khoảng cách, tính bằng nút, tại đó góc ¼ bi là trung tính trên bàn của bạn: với bi 3 trên đường của bi 2 và bi chủ ở khoảng cách đó, đường bi thành công với ép-phê 0. Tác giả đặt là 2.0. Nghi thức hiệu chuẩn: dựng thế bi ép-phê 0 và đánh vài lần theo hợp đồng của hệ thống; nếu các cú pasón của bạn luôn ngắn, hãy tăng nền; nếu luôn dài, hãy giảm. Giá trị được lưu và độc lập với hệ số Gương.</p><label style="display:flex; gap:8px; align-items:center; cursor:pointer; margin:0 0 6px;"><input checked="" id="pasonesShowChart" style="width:auto" type="checkbox"/> <span class="small">Hiện đồ thị ép-phê</span></label><p class="small" id="pasonesContract" style="margin:2px 0 10px;">Hệ Pasones: các đường bi pasón giữa hai băng dài, qua ba băng. Hợp đồng cố định: ¼ bi, cú đánh tiến thả cơ, tốc độ trung bình-cao. Đầu ra duy nhất của hệ thống là ép-phê.</p></div><div id="renverseControls" style="display:none"><label for="renverseVariant">Biến thể renversé</label><select id="renverseVariant"><option selected="" value="long">Renversé qua băng dài</option><option value="short">Renversé qua băng ngắn</option></select><label for="renverseAttack">Kiểu điểm đánh</label><select id="renverseAttack"><option selected="" value="cushion">Băng trước</option><option value="ball">Bi trước</option></select><div id="renverseImpactBlock" style="display:none"><label for="renverseImpactBall">Bi bị đánh hoặc bi nhận</label><select id="renverseImpactBall"><option value="white">Trắng</option><option selected="" value="yellow">Vàng</option><option value="red">Đỏ</option></select><p class="small" style="margin:4px 0 10px;">Điểm đến đọc trên bi còn lại, và chẩn đoán sẽ gọi tên nó.</p></div><div id="renverseArrivalBlock"><label for="renverseArrival">Bi đến</label><select id="renverseArrival"><option value="white">Trắng</option><option selected="" value="yellow">Vàng</option><option value="red">Đỏ</option><option value="midpoint">Đúng giữa bi vàng và bi đỏ</option></select></div><label for="renverseAjuste">Tinh chỉnh bàn: <span id="renverseAjusteVal">+0.0</span></label><input id="renverseAjuste" max="1" min="-1" step="0.1" type="range" value="0"/><p class="small" style="margin:4px 0 10px;">Mức chỉnh được cộng vào ép-phê tính được, để hệ thống phù hợp với bàn và lối chơi của bạn: nếu các cú renversé của bạn luôn ngắn, hãy tăng lên; nếu luôn dài, hãy giảm xuống. Mặc định là 0 và giá trị được lưu.</p><label style="display:flex; gap:8px; align-items:center; cursor:pointer; margin:0 0 6px;"><input checked="" id="renverseShowChart" style="width:auto" type="checkbox"/> <span class="small">Hiện đồ thị ép-phê</span></label><p class="small" id="renverseContract" style="margin:2px 0 10px;">Hệ Renversé: bi chủ luôn đánh vào góc chiếu (nút đầu tiên của băng dài ở góc, không phải chính góc), với ép-phê ngược, cú đánh tiến và không quá mạnh. Ép-phê = xuất phát + điểm đến, và ứng dụng luôn đọc bằng số nguyên.</p></div><p class="small" id="sequenceHelp">Chọn đường cơ bắt đầu bằng bi trước hay băng trước, rồi chỉ định trình tự băng.</p></div></details><details class="menuModule" id="moduleVideoReplay"><summary><span class="moduleTitle" style="color:#ff5a5a">Video thế bi kèm dữ liệu chồng lên</span><span class="moduleState" id="moduleVideoReplayState">Camera trên trần · chưa hiệu chuẩn</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><p class="small" style="margin:0 0 10px;">Ghi lại cú đánh thật bằng camera trên trần và xem lại với dữ liệu thế bi (điểm và đường Đánh, điểm Đến) chồng lên video, có quay chậm và đi từng khung hình. Bản ghi có âm thanh từ micro camera. Cần hiệu chuẩn bốn góc bàn một lần, chừng nào camera không dịch chuyển. <b>Nếu áp dụng vị trí từ ảnh chụp trần của bộ phát hiện tự động, hiệu chuẩn đó được tự dùng lại.</b></p><button class="cameraCaptureBtn" id="videoReplayRecordBtn" type="button">Ghi thế bi</button><button id="videoReplayCalibBtn" type="button">Hiệu chuẩn lớp phủ</button>
+<details id="tecladoAyuda" style="margin-top:10px;">
+<summary style="cursor:pointer;">Phím tắt và tùy chọn xuất video</summary>
+<p class="small">Phím tắt hoạt động khi chọn thẻ ứng dụng, kể cả khi đã tắt lệnh giọng nói. Chúng không kích hoạt khi đang nhập vào ô hoặc dùng danh sách chọn.</p>
+<p class="small">G: ghi cú đánh khác hoặc mở camera. 1 / 2 / 3: đếm ngược 5 / 10 / 15 giây. D: dừng ghi. DD: dừng ghi và đặt lại bi (nhấn hai lần trong vòng một giây). R: phát. E: xuất kèm dữ liệu vào thư mục đã chọn. O: lưu không kèm dữ liệu (Original) vào cùng thư mục. V: đặt lại bi. C: chụp bàn. W: lưu thiết lập màu hiện tại của camera trước khi đếm ngược. M: tắt hoặc bật lệnh giọng nói. T: theo dõi quỹ đạo. Phím cách: tạm dừng hoặc tiếp tục. L: tốc độ bình thường, một nửa hoặc một phần tư. X: đóng cửa sổ video hoặc màn hình đặt bi, mỗi lần nhấn đóng một màn hình. Esc cũng đóng cửa sổ video.</p>
+<button id="tecladoCarpetaBtn" type="button">Chọn hoặc đổi thư mục xuất</button>
+<p id="tecladoCarpetaEstado" class="small" role="status" aria-live="polite" style="margin:8px 0; overflow-wrap:anywhere;">Chưa chọn thư mục.</p>
+<button id="exportPrefijoBtn" type="button">Đặt tiền tố cho tên tệp video</button>
+<label class="exportChoice" for="exportFormatoFecha">Định dạng ngày</label>
+<select id="exportFormatoFecha"></select>
+<label class="exportChoice" for="exportZonaHoraria">Múi giờ khi xuất video</label>
+<select id="exportZonaHoraria"></select>
+<output id="exportEjemploNombre" class="small" aria-live="polite"></output>
+<p class="small">Chỉ cần cấp quyền cho thư mục một lần. Các nút “Tải xuống kèm dữ liệu”, “Tải xuống không kèm dữ liệu” và phím tắt E, O dùng chung thư mục này. Khi quyền truy cập còn hiệu lực, mọi video xuất sẽ được lưu tại đó mà không cần chọn lại thư mục và không ghi đè các video trước. Giữ thẻ này hiển thị trong khi xuất.</p>
+</details>
+<div aria-live="polite" class="cameraCaptureStatus" id="videoReplayModuleStatus" role="status">Dữ liệu chồng lên (Đánh và Đến) là dữ liệu đang được tính tại thời điểm đó (ví dụ LKL / Base 50 với bi chủ và trình tự băng đã chọn).</div></div></details><details class="menuModule" id="moduleEffect"><summary><span class="moduleTitle">Ép-phê và cú đánh</span><span class="moduleState" id="moduleEffectState">Dương · ép-phê 3 · Đâm sâu dài</span><span aria-hidden="true" class="moduleChevron">⌄</span></summary><div class="moduleBody"><div aria-controls="contiTooltip" aria-expanded="false" class="contiHelpAnchor" id="contiHelpAnchor" tabindex="0"><label for="english">Hướng ép-phê</label><span aria-hidden="true" class="contiHelpIcon">i</span></div><select id="english">
 <option value="positive">Dương: mở / kéo dài</option>
 <option value="neutral">Không ép-phê ngang</option>
 <option value="negative">Âm: đóng / rút ngắn</option>
@@ -18370,8 +18390,7 @@ function drawStartMarks(){
       if(!valid()) return;
       if(!rescue.blob.size) throw new Error("Bản ghi gốc trống.");
       const type=rescue.blob.type||videoReplay.blobType||'video/webm';
-      const stamp=new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
-      rescue.name='jugada-rescate-original-'+stamp+(/mp4/i.test(type)?'.mp4':'.webm');
+      rescue.name=nombreArchivoVideo('rescate-original',/mp4/i.test(type)?'mp4':'webm');
       if(!rescue.folder || await rescue.folder.queryPermission({mode:'readwrite'})!=='granted') throw new Error("Thư mục xuất không khả dụng.");
       const name=await tecladoGuardarExportacion(rescue.folder,rescue.blob,rescue.name,signal);
       if(!valid()) return;
@@ -18575,8 +18594,7 @@ function drawStartMarks(){
           const verified=await videoReplayVerifyExport(blob,total,vw,vh,signal);
           if(disposed) return;
           videoReplay.lastExportCheck={sourceDuration:total,outputDuration:verified.duration,samples:verified.samples,frames:frameCount,maxGap,paintMs};
-          const stamp=new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
-          const nombre=(withData?"the-bi-kem-du-lieu-":"the-bi-khong-du-lieu-")+stamp+'.mp4';
+          const nombre=nombreArchivoVideo(withData?'con-datos':'sin-datos');
           if(carpeta){
             phase='saving';document.removeEventListener('visibilitychange',visibility);
             setVideoReplayStatus("Đang lưu video đầy đủ vào "+carpeta.name+'…');
@@ -22653,7 +22671,125 @@ function drawStartMarks(){
     else if(lista && /^[123]$/.test(tecla)) orden={accion:'grabarEn',seg:{'1':5,'2':10,'3':15}[tecla]};
     if(orden) await ytVozEjecutar(orden,tecla.toUpperCase(),true);
   }
+  const formatosFechaVideo = [
+    ['iso',"Năm-tháng-ngày"], ['es',"Tiếng Tây Ban Nha"], ['dma',"Ngày-tháng-năm"],
+    ['en-US',"Tiếng Anh"], ['ko-KR',"Tiếng Hàn"], ['zh-CN',"Tiếng Trung"],
+    ['ru-RU',"Tiếng Nga"], ['tr-TR',"Tiếng Thổ Nhĩ Kỳ"], ['vi-VN',"Tiếng Việt"], ['fr-FR',"Tiếng Pháp"]
+  ];
+  const zonasVideoDestacadas = {
+    'UTC':'UTC', 'America/Bogota':"Bogotá", 'America/Mexico_City':"Thành phố México",
+    'America/New_York':"New York", 'America/Los_Angeles':"Los Angeles",
+    'Europe/Madrid':"Madrid", 'Europe/Paris':"Paris", 'Europe/London':"Luân Đôn",
+    'Europe/Moscow':"Moskva", 'Europe/Istanbul':"Istanbul", 'Asia/Seoul':"Seoul",
+    'Asia/Shanghai':"Thượng Hải", 'Asia/Ho_Chi_Minh':"Thành phố Hồ Chí Minh"
+  };
+  const claveNombreVideo = 'billar.exportacion.nombre.v1.';
+  const nombreVideoAjustes = {prefijo:'', formato:'iso', zona:'UTC'};
+
+  function prefijoVideoSeguro(texto){
+    // Mantener acentos y espacios al formar un único nombre válido en Windows.
+    let limpio = texto.normalize('NFC').replace(/[<>:"/\\|?*\u0000-\u001f\u007f]/g,' ')
+      .replace(/[\u202a-\u202e\u2066-\u2069]/g,'').replace(/\s+/g,' ').trim();
+    limpio = Array.from(limpio).slice(0,60).join('').replace(/^[. ]+|[. ]+$/g,'');
+    if(/^(con|prn|aux|nul|com[1-9¹²³]|lpt[1-9¹²³])\./i.test(limpio)) limpio = '_' + limpio;
+    // Dejar espacio para fecha, hora, extensión y número de copia en otros sistemas de archivos.
+    const encoder = new TextEncoder();
+    while(encoder.encode(limpio).length > 150) limpio = Array.from(limpio).slice(0,-1).join('');
+    return limpio.trimEnd();
+  }
+
+  function fechaVideo(fecha, formato, zona, partes){
+    if(formato === 'iso') return [partes.year,partes.month,partes.day].join('-');
+    if(formato === 'dma') return [partes.day,partes.month,partes.year].join('-');
+    if(formato === 'es'){
+      const mes = new Intl.DateTimeFormat('es',{month:'long',timeZone:zona}).format(fecha);
+      return mes[0].toUpperCase()+mes.slice(1)+' '+Number(partes.day)+' de '+partes.year;
+    }
+    return new Intl.DateTimeFormat(formato,{
+      timeZone:zona,calendar:'gregory',year:'numeric',month:'long',day:'numeric'
+    }).format(fecha);
+  }
+
+  function nombreArchivoVideo(tipo, extension='mp4', fecha=new Date(), ajustes=nombreVideoAjustes){
+    const campos = new Intl.DateTimeFormat('en-US',{
+      timeZone:ajustes.zona, year:'numeric', month:'2-digit', day:'2-digit',
+      hour:'2-digit', minute:'2-digit', second:'2-digit', hourCycle:'h12'
+    }).formatToParts(fecha);
+    const p = Object.fromEntries(campos.map(c=>[c.type,c.value]));
+    const dia = fechaVideo(fecha,ajustes.formato,ajustes.zona,p);
+    const hora = [p.hour,p.minute,p.second].join('-')+' '+p.dayPeriod;
+    const nombres = {
+      'con-datos': ["the-bi-kem-du-lieu", ''],
+      'sin-datos': ["the-bi-khong-du-lieu", "không có dữ liệu"],
+      'rescate-original': ["the-bi-ban-goc-khoi-phuc", "bản gốc đã khôi phục"]
+    };
+    const [nombreBase, etiqueta] = nombres[tipo];
+    const titulo = ajustes.prefijo ? ajustes.prefijo + (etiqueta ? ' - '+etiqueta : '') : nombreBase;
+    const marca = ajustes.formato==='iso' ? dia+'T'+hora : dia+' - '+hora;
+    return titulo + (ajustes.formato==='iso' && !ajustes.prefijo ? '-' : ' - ') + marca + '.' + extension;
+  }
+
+  function enlazarNombreVideo(){
+    const prefijo = ids('exportPrefijoBtn'), formato = ids('exportFormatoFecha'), zona = ids('exportZonaHoraria');
+    const ejemplo = ids('exportEjemploNombre');
+    const referencia = new Date(Date.UTC(2026,10,14,12));
+    const partesEjemplo = {year:'2026',month:'11',day:'14'};
+    for(const [valor,etiqueta] of formatosFechaVideo){
+      formato.add(new Option(etiqueta+' · '+fechaVideo(referencia,valor,'UTC',partesEjemplo),valor));
+    }
+
+    const zonas = new Set([...Object.keys(zonasVideoDestacadas),...(Intl.supportedValuesOf?.('timeZone') || [])]);
+    const local = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if(local) zonas.add(local);
+    const otras = document.createElement('optgroup');
+    otras.label = "Các múi giờ khác";
+    for(const id of zonas){
+      const ciudad = zonasVideoDestacadas[id];
+      if(ciudad){
+        const offset = new Intl.DateTimeFormat('en',{timeZone:id,timeZoneName:'shortOffset'}).formatToParts(new Date())
+          .find(p=>p.type==='timeZoneName').value.replace('GMT','UTC').replace('-','−');
+        zona.add(new Option(id==='UTC'?'UTC':ciudad+' ('+offset+')',id));
+      }else{
+        otras.append(new Option(id.replace(/_/g,' '),id));
+      }
+    }
+    if(otras.childElementCount) zona.append(otras);
+
+    function leer(){
+      try{
+        const guardado = k=>localStorage.getItem(claveNombreVideo+k);
+        nombreVideoAjustes.prefijo = prefijoVideoSeguro(guardado('prefijo') || '');
+        const formatoGuardado = guardado('formato'), zonaGuardada = guardado('zona');
+        nombreVideoAjustes.formato = formatosFechaVideo.some(([v])=>v===formatoGuardado) ? formatoGuardado : 'iso';
+        nombreVideoAjustes.zona = zonas.has(zonaGuardada) ? zonaGuardada : 'UTC';
+      }catch{}
+    }
+    function mostrar(){
+      formato.value = nombreVideoAjustes.formato;
+      zona.value = nombreVideoAjustes.zona;
+      ejemplo.textContent = "Ví dụ tên tệp có dữ liệu: "+nombreArchivoVideo('con-datos');
+    }
+    function guardar(campo,valor){
+      nombreVideoAjustes[campo] = valor;
+      mostrar();
+      try{ localStorage.setItem(claveNombreVideo+campo,valor); }
+      catch{ ejemplo.append(" · Thay đổi này chỉ có hiệu lực trong phiên hiện tại."); }
+    }
+    prefijo.addEventListener('click',()=>{
+      const texto = window.prompt("Nhập tiền tố cho tên tệp video. Để trống để dùng tên mặc định.",nombreVideoAjustes.prefijo);
+      if(texto!==null) guardar('prefijo',prefijoVideoSeguro(texto));
+    });
+    formato.addEventListener('change',()=>guardar('formato',formato.value));
+    zona.addEventListener('change',()=>guardar('zona',zona.value));
+    window.addEventListener('storage',e=>{
+      if(e.key===null || e.key.startsWith(claveNombreVideo)){ leer(); mostrar(); }
+    });
+    leer();
+    mostrar();
+  }
+
   function tecladoEnlazar(){
+    enlazarNombreVideo();
     tecladoExportacion.cargando=tecladoCarpetaMemoria().then(carpeta=>{
       if(carpeta && carpeta.kind==='directory'){tecladoExportacion.carpeta=carpeta;tecladoExportacion.memoria=true;}
     }).catch(()=>{}).finally(()=>{tecladoExportacion.cargando=null;tecladoCarpetaUi();});
