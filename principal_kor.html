@@ -77,9 +77,10 @@
     .title-red{color:#ff1f1f; font-size:.5em; font-weight:800; letter-spacing:0; white-space:nowrap; vertical-align:baseline}
     .subtitle{color:#fff3b0; font-size:13px; margin-top:5px; max-width:980px; line-height:1.3}
     .autoCabinBadge{
+      --badge-font-size:clamp(11px,1.275vw,21px);
       color:#ff9f1c;
       font-weight:950;
-      font-size:clamp(11px,1.275vw,21px);
+      font-size:var(--badge-font-size);
       letter-spacing:.02em;
       text-align:right;
       white-space:normal;
@@ -87,6 +88,14 @@
       text-shadow:0 2px 0 rgba(0,0,0,.95), 0 0 14px rgba(255,159,28,.28);
       line-height:1.08;
       padding-bottom:1px;
+    }
+    .autoCabinBadge.lklContiNotice{
+      font-size:calc(var(--badge-font-size) * .66);
+      background:#fff0ad;
+      color:#211800;
+      border-radius:8px;
+      padding:6px 12px;
+      text-shadow:none;
     }
     .autoCabinBadge .badgeHint{
       display:block;
@@ -540,7 +549,7 @@
 
       .autoCabinBadge{
         max-width:44vw;
-        font-size:clamp(10px,2.9vw,14px);
+        --badge-font-size:clamp(10px,2.9vw,14px);
         line-height:1.08;
       }
 
@@ -1864,7 +1873,8 @@
 <button class="connectorMapBtn" id="connectorMap56RtlBtn" title="공이 오른쪽→왼쪽일 때 5→6 연결선 표시" type="button">5→6 D a I</button>
 <button class="connectorMapBtn" id="connectorMap56LtrBtn" title="공이 왼쪽→오른쪽일 때 5→6 연결선 표시" type="button">5→6 I a D</button>
 </div>
-<div class="autoCabinBadge" id="autoCabinBadge">캐빈 —</div>
+<div class="autoCabinBadge lklContiNotice" id="lklContiNotice" hidden>콘티 기준 3단계 회전을 확실하게 주세요</div>
+<div class="autoCabinBadge" id="autoCabinBadge" style="display:none">캐빈 —</div>
 </div>
 </div>
 </header>
@@ -4212,7 +4222,7 @@
       el.style.display = (isMirror || isPasones || isRenverse) ? 'none' : '';
     });
     const cabinBadge = ids('autoCabinBadge');
-    if(cabinBadge) cabinBadge.style.display = (isMirror || isPasones || isRenverse) ? 'none' : '';
+    if(cabinBadge) cabinBadge.style.display = (isLkl || isMirror || isPasones || isRenverse) ? 'none' : '';
     const extra = ids('longRailsExtra');
     if(extra) extra.style.display = isLong ? 'block' : 'none';
 
@@ -10676,26 +10686,6 @@
     return 'xlarge';
   }
 
-  function visibleLklAttackValueForStudy(study){
-    if(!study) return NaN;
-
-    if(study.departureAttackResult &&
-       study.departureAttackResult.status === 'ok' &&
-       Number.isFinite(study.departureAttackResult.ataque)){
-      return study.departureAttackResult.ataque;
-    }
-
-    if(Number.isFinite(study.attackCorrCoord)) return study.attackCorrCoord;
-
-    return NaN;
-  }
-
-  function lklVisibleCabinEffectText(cabin){
-    if(cabin === 'small') return '회전 1';
-    if(cabin === 'medium') return '회전 2';
-    return '';
-  }
-
   function updateAutoCabinBadge(study){
     const badge = ids('autoCabinBadge');
     if(!badge) return;
@@ -10703,28 +10693,6 @@
     if(!study || !study.canNumberArrival){
       badge.innerHTML = '캐빈 —';
       return;
-    }
-
-    // Solo para LKL / Base 50:
-    // la denominación visible depende del ataque final calculado/mostrado.
-    // El motor puede seguir usando internamente otra cabaña para encontrar
-    // una solución, pero el usuario debe ver la cabaña que corresponde
-    // al número real de ataque.
-    if(study.c && study.c.systemMode === 'lkl'){
-      const visibleAttack = visibleLklAttackValueForStudy(study);
-      const visibleCabin = visibleLklCabinFromAttackValue(visibleAttack);
-
-      if(visibleCabin){
-        const label = (NEW_LKL_CABIN_LABELS[visibleCabin] || visibleCabin).toUpperCase();
-        const effectText = lklVisibleCabinEffectText(visibleCabin);
-
-        if(effectText){
-          badge.innerHTML = `${label} <span style="color:#39ff14;">(${effectText})</span>`;
-        } else {
-          badge.innerHTML = label;
-        }
-        return;
-      }
     }
 
     if(study.autoCabin && study.autoCabinLabel){
@@ -12304,6 +12272,7 @@
     resetCalculationState(reason);
 
     const c = controls();
+    ids('lklContiNotice').hidden = noPlanSequence || c.systemMode !== 'lkl';
     if(c.systemMode !== 'plus') lastSystemMode = c.systemMode;
     if(!loupeRenderMode) clcHideChoices();
     if(c.systemMode === 'clcClock') updateSystemModeUi(c);
@@ -12512,7 +12481,7 @@
     const study = studyArrivalBandForNewLkl(c);
     calculationState.shot = study;
     currentShot = study;
-    updateAutoCabinBadge(study);
+    if(c.systemMode !== 'lkl') updateAutoCabinBadge(study);
 
     drawTable();
     drawLklProlongationConnectors45And56(study);
