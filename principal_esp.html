@@ -88,6 +88,13 @@
       line-height:1.08;
       padding-bottom:1px;
     }
+    .autoCabinBadge.lklContiNotice{
+      background:#fff0ad;
+      color:#211800;
+      border-radius:8px;
+      padding:6px 12px;
+      text-shadow:none;
+    }
     .autoCabinBadge .badgeHint{
       display:block;
       margin-top:3px;
@@ -1864,7 +1871,8 @@
 <button class="connectorMapBtn" id="connectorMap56RtlBtn" title="Mostrar conectores 5→6 cuando la bola va de derecha a izquierda" type="button">5→6 D a I</button>
 <button class="connectorMapBtn" id="connectorMap56LtrBtn" title="Mostrar conectores 5→6 cuando la bola va de izquierda a derecha" type="button">5→6 I a D</button>
 </div>
-<div class="autoCabinBadge" id="autoCabinBadge">CABAÑA —</div>
+<div class="autoCabinBadge lklContiNotice" id="lklContiNotice" hidden>Use efecto 3 de Conti, bien marcado</div>
+<div class="autoCabinBadge" id="autoCabinBadge" style="display:none">CABAÑA —</div>
 </div>
 </div>
 </header>
@@ -4211,7 +4219,7 @@
       el.style.display = (isMirror || isPasones || isRenverse) ? 'none' : '';
     });
     const cabinBadge = ids('autoCabinBadge');
-    if(cabinBadge) cabinBadge.style.display = (isMirror || isPasones || isRenverse) ? 'none' : '';
+    if(cabinBadge) cabinBadge.style.display = (isLkl || isMirror || isPasones || isRenverse) ? 'none' : '';
     const extra = ids('longRailsExtra');
     if(extra) extra.style.display = isLong ? 'block' : 'none';
 
@@ -10675,26 +10683,6 @@
     return 'xlarge';
   }
 
-  function visibleLklAttackValueForStudy(study){
-    if(!study) return NaN;
-
-    if(study.departureAttackResult &&
-       study.departureAttackResult.status === 'ok' &&
-       Number.isFinite(study.departureAttackResult.ataque)){
-      return study.departureAttackResult.ataque;
-    }
-
-    if(Number.isFinite(study.attackCorrCoord)) return study.attackCorrCoord;
-
-    return NaN;
-  }
-
-  function lklVisibleCabinEffectText(cabin){
-    if(cabin === 'small') return 'efecto 1';
-    if(cabin === 'medium') return 'efecto 2';
-    return '';
-  }
-
   function updateAutoCabinBadge(study){
     const badge = ids('autoCabinBadge');
     if(!badge) return;
@@ -10702,28 +10690,6 @@
     if(!study || !study.canNumberArrival){
       badge.innerHTML = 'CABAÑA —';
       return;
-    }
-
-    // Solo para LKL / Base 50:
-    // la denominación visible depende del ataque final calculado/mostrado.
-    // El motor puede seguir usando internamente otra cabaña para encontrar
-    // una solución, pero el usuario debe ver la cabaña que corresponde
-    // al número real de ataque.
-    if(study.c && study.c.systemMode === 'lkl'){
-      const visibleAttack = visibleLklAttackValueForStudy(study);
-      const visibleCabin = visibleLklCabinFromAttackValue(visibleAttack);
-
-      if(visibleCabin){
-        const label = (NEW_LKL_CABIN_LABELS[visibleCabin] || visibleCabin).toUpperCase();
-        const effectText = lklVisibleCabinEffectText(visibleCabin);
-
-        if(effectText){
-          badge.innerHTML = `${label} <span style="color:#39ff14;">(${effectText})</span>`;
-        } else {
-          badge.innerHTML = label;
-        }
-        return;
-      }
     }
 
     if(study.autoCabin && study.autoCabinLabel){
@@ -12303,6 +12269,7 @@
     resetCalculationState(reason);
 
     const c = controls();
+    ids('lklContiNotice').hidden = noPlanSequence || c.systemMode !== 'lkl';
     if(c.systemMode !== 'plus') lastSystemMode = c.systemMode;
     if(!loupeRenderMode) clcHideChoices();
     if(c.systemMode === 'clcClock') updateSystemModeUi(c);
@@ -12511,7 +12478,7 @@
     const study = studyArrivalBandForNewLkl(c);
     calculationState.shot = study;
     currentShot = study;
-    updateAutoCabinBadge(study);
+    if(c.systemMode !== 'lkl') updateAutoCabinBadge(study);
 
     drawTable();
     drawLklProlongationConnectors45And56(study);
