@@ -17919,6 +17919,7 @@ function drawStartMarks(){
   }
 
   function beginVideoReplayRecordingNow(){
+    tecladoDobleDLimpiar();
     videoReplayRescueReset();
     videoReplayDownloadReadyCancel();
     videoReplayReadyCancel();
@@ -22114,13 +22115,14 @@ function drawStartMarks(){
   }
 
   // Lupa en vivo: cuando una bola está en ámbar (presente pero no
-  // exacta), un recuadro de un tercio del lienzo amplía esa zona a unos
-  // 3 aumentos: círculo de destino, anillo punteado de tolerancia, el
+  // exacta), un recuadro de un tercio del lienzo amplía esa zona con
+  // tamaño constante: círculo de destino, anillo punteado de tolerancia, el
   // punto donde el juez ve la bola y una flecha que dice hacia dónde
   // moverla. Se acomoda solo en la esquina más alejada del destino para
   // no tapar la faena, sigue a la bola que usted esté colocando y se
   // despide sola cuando la bola queda verde.
   // La lupa responde a actividad reciente, sin alterar el juez de colocación.
+  const YTG_NEAR_HOLD_MS = 2400;
   const ytgMotion={canvas:null,points:{},near:{},active:null,focus:null,intentAt:-Infinity,layout:null};
   function ytgMotionReset(){ytgMotion.points={};ytgMotion.near={};ytgMotion.active=null;ytgMotion.focus=null;ytgMotion.intentAt=-Infinity;ytgMotion.layout=null;}
   function ytgFindMovingBalls(source,H,objetivos){
@@ -22159,56 +22161,64 @@ function drawStartMarks(){
     let entry=null;
     for(const o of objetivos){
       const key=o.key,local=ytGuia.centroides[key];
-      const near=!!ytGuia.cerca[key]&&!ytGuia.puestas[key]&&local&&Number.isFinite(local.x)&&Number.isFinite(local.y);
-      // Una pérdida breve de presencia no crea una aproximación nueva ni cambia de bola.
-      // Una aproximación nueva sí renueva la ayuda, aunque ya se usó antes ese círculo.
+      let visit=ytgMotion.near[key],p=ytgMotion.points[key];
+      const options=(found[key]||[]).slice();
+      options.sort((a,b)=>{
+        const score=c=>c.quality+(p&&now-p.seen<1600?Math.hypot(c.x-p.x,c.y-p.y)/Math.max(o.r*3,1):0);
+        return score(a)-score(b);
+      });
+      const c=options[0],localNear=!ytGuia.puestas[key]&&local&&Number.isFinite(local.x)&&Number.isFinite(local.y);
+      // La detección global ya pasó los filtros de color, tamaño y forma.
+      // También puede abrir/sostener la lupa junto a una banda, sin exigir
+      // velocidad ni cambiar el juez que declara la bola bien colocada.
+      const radius=o.r*(visit&&now-visit.seen<YTG_NEAR_HOLD_MS?2.8:2.4);
+      const globalNear=!ytGuia.puestas[key]&&c&&Math.hypot(c.x-o.x,c.y-o.y)<=radius;
+      const near=!!(localNear||globalNear),at=localNear?local:c;
       if(ytGuia.puestas[key]) delete ytgMotion.near[key];
       else if(near){
-        let visit=ytgMotion.near[key];
-        if(!visit || now-visit.seen>=1400){
+        if(!visit || now-visit.seen>=YTG_NEAR_HOLD_MS){
           visit=ytgMotion.near[key]={entered:now,seen:now};
           if(!entry || visit.entered>entry.at) entry={key,at:visit.entered};
         }
         visit.seen=now;
       }
-      let p=ytgMotion.points[key];const options=found[key]||[];
-      options.sort((a,b)=>{
-        const score=c=>c.quality+(p&&now-p.seen<1600?Math.hypot(c.x-p.x,c.y-p.y)/Math.max(o.r*3,1):0);
-        return score(a)-score(b);
-      });
-      const c=options[0];
-      // La presencia local ya fue validada por el juez de colocación. Puede sostener
-      // el microajuste aunque la mano o un reflejo interrumpan la detección global.
-      const at = near ? local : c;
       if(!at) continue;
-      if(!p || now-p.seen >= 2200){
-        ytgMotion.points[key]={x:at.x,y:at.y,ax:at.x,ay:at.y,seen:now,moved:0,hits:0,amount:0};
+      const source=localNear?'local':'global';
+      if(!p || now-p.seen>=YTG_NEAR_HOLD_MS){
+        ytgMotion.points[key]={x:at.x,y:at.y,ax:at.x,ay:at.y,seen:now,moved:0,hits:0,amount:0,source};
         continue;
       }
       p.seen=now;
+      // No confundir el salto entre dos detectores con movimiento de la bola.
+      if(p.source!==source){p.x=p.ax=at.x;p.y=p.ay=at.y;p.hits=0;p.source=source;continue;}
       p.x=(p.x+at.x)/2;p.y=(p.y+at.y)/2;
       const distance=Math.hypot(p.x-p.ax,p.y-p.ay);
-      const ajustando = near && ytgMotion.focus === key;
-      const threshold = ajustando ? Math.max(cw/800*.8, o.r*.10) : Math.max(cw/800*1.5, o.r*.70);
-      if(distance > threshold){
+      // Se acumula el desplazamiento desde un punto fijo: un ajuste lento
+      // también cuenta. Dos lecturas confirman el cambio frente al ruido.
+      const threshold=near
+        ? Math.max(cw/800*.8,o.r*(ytgMotion.focus===key?.10:.25))
+        : Math.max(cw/800*1.5,o.r*.70);
+      if(distance>threshold){
         if(++p.hits>=2){p.moved=now;p.amount=distance;p.ax=p.x;p.ay=p.y;p.hits=0;}
       }else{p.hits=0;}
     }
     const recent=objetivos.filter(o=>{
-      const p=ytgMotion.points[o.key];return !ytGuia.puestas[o.key] && p && p.moved>0 && now-p.moved<3500 && now-p.seen<1400;
+      const p=ytgMotion.points[o.key];return !ytGuia.puestas[o.key]&&p&&p.moved>0&&now-p.moved<3500&&now-p.seen<YTG_NEAR_HOLD_MS;
     });
     recent.sort((a,b)=>{
       const pa=ytgMotion.points[a.key],pb=ytgMotion.points[b.key];
       return pb.moved-pa.moved || (a.key===ytgMotion.active?-1:b.key===ytgMotion.active?1:pb.amount-pa.amount);
     });
     ytgMotion.active=recent.length?recent[0].key:null;
-    if(entry && entry.at>ytgMotion.intentAt){ytgMotion.focus=entry.key;ytgMotion.intentAt=entry.at;}
+    if(entry&&entry.at>ytgMotion.intentAt){ytgMotion.focus=entry.key;ytgMotion.intentAt=entry.at;}
     const active=ytgMotion.active,p=active&&ytgMotion.points[active];
-    if(p && p.moved>ytgMotion.intentAt){ytgMotion.focus=active;ytgMotion.intentAt=p.moved;}
-    // Una prioridad ya vencida no debe ocultar un círculo que aún está en ámbar.
-    if(!active && !ytGuia.cerca[ytgMotion.focus]){
-      const local = objetivos.filter(o => ytGuia.cerca[o.key] && !ytGuia.puestas[o.key] && ytgMotion.near[o.key]);
-      local.sort((a,b) => ytgMotion.near[b.key].entered-ytgMotion.near[a.key].entered);
+    if(p&&p.moved>ytgMotion.intentAt){ytgMotion.focus=active;ytgMotion.intentAt=p.moved;}
+    // No volver a una bola quieta mientras la nueva elegida sigue visible,
+    // aunque aún esté lejos de su círculo y su movimiento se haya detenido.
+    const focused=ytgMotion.points[ytgMotion.focus];
+    if(!active&&(!focused||now-focused.seen>=YTG_NEAR_HOLD_MS||ytGuia.puestas[ytgMotion.focus])){
+      const local=objetivos.filter(o=>!ytGuia.puestas[o.key]&&ytgMotion.near[o.key]&&now-ytgMotion.near[o.key].seen<YTG_NEAR_HOLD_MS);
+      local.sort((a,b)=>ytgMotion.near[b.key].entered-ytgMotion.near[a.key].entered);
       if(local.length) ytgMotion.focus=local[0].key;
     }
   }
@@ -22219,45 +22229,78 @@ function drawStartMarks(){
   }
   function ytgElegirLupa(objetivos){
     const key=ytgMotion.focus,visit=key&&ytgMotion.near[key];
-    // Se sostiene la bola elegida mientras se afina su colocación. Al empezar a
-    // mover otra, incluso lejos de su destino, no se recupera la lupa vieja.
-    if(!visit || ytGuia.puestas[key] || performance.now()-visit.seen>=1400) return null;
+    // Tolerar una ocultación breve por la mano sin perder el microajuste.
+    // Una nueva bola con movimiento confirmado conserva la prioridad.
+    if(!visit || ytGuia.puestas[key] || performance.now()-visit.seen>=YTG_NEAR_HOLD_MS) return null;
     return objetivos.find(o=>o.key===key)||null;
   }
   function ytgLoupeLayout(objetivos,cw,ch){
     const o=ytgElegirLupa(objetivos);if(!o){ytgMotion.layout=null;return null;}
-    const now=performance.now(),margin=Math.max(8,cw/90),circles=objetivos.map(p=>({x:p.x,y:p.y,r:p.r*2}));
-    for(const target of objetivos){const p=ytgMotion.points[target.key];if(p&&now-p.seen<1400)circles.push({x:p.x,y:p.y,r:target.r*1.8});}
-    const free=b=>b.reserved.x>=0&&b.reserved.y>=0&&b.reserved.x+b.reserved.w<=cw&&b.reserved.y+b.reserved.h<=ch&&circles.every(c=>{
-      const r=b.reserved;return Math.hypot(c.x-Math.max(r.x,Math.min(c.x,r.x+r.w)),c.y-Math.max(r.y,Math.min(c.y,r.y+r.h)))>c.r;
-    });
-    const prev=ytgMotion.layout;if(prev&&prev.key===o.key&&prev.cw===cw&&prev.ch===ch&&free(prev))return {...prev,o};
-    for(const factor of [1,.85,.65,.5]){
-      const bw=Math.round(Math.min(cw/3,ch*.68)*factor);if(bw<100)continue;
-      const font=Math.max(22,Math.round(bw/7)),xs=[margin,(cw-bw)/2,cw-bw-margin],ys=[margin,(ch-bw)/2,ch-bw-margin],choices=[];
-      const measure=(ytgMotion.canvas||(ytgMotion.canvas=document.createElement('canvas'))).getContext('2d');
-      measure.font='900 '+font+'px system-ui';
-      const textWidth=measure.measureText({white:"BI TRẮNG",yellow:"BI VÀNG",red:"BI ĐỎ"}[o.key]).width;
-      for(const x of xs)for(const y of ys){
-        const below=y+bw+font+12<=ch,ay=below?y+bw+font+8:y-14;
-        const top=below?y-5:ay-font-5,bottom=below?ay+font*.3+5:y+bw+5;
-        const ax=Math.max(textWidth/2+8,Math.min(cw-textWidth/2-8,x+bw/2));
-        const left=Math.min(x-5,ax-textWidth/2-6),right=Math.max(x+bw+5,ax+textWidth/2+6);
-        const box={key:o.key,cw,ch,o,x,y,bw,bh:bw,font,ax,ay,reserved:{x:left,y:top,w:right-left,h:bottom-top}};
-        if(free(box))choices.push(box);
-      }
-      choices.sort((a,b)=>Math.hypot(b.x+bw/2-o.x,b.y+bw/2-o.y)-Math.hypot(a.x+bw/2-o.x,a.y+bw/2-o.y));
-      if(choices.length){ytgMotion.layout=choices[0];return choices[0];}
+    const now=performance.now(),margin=Math.max(8,cw/90);
+    // Un único tamaño: reubicar la lupa nunca reduce la ampliación.
+    const bw=Math.round(Math.min(cw/3,ch*.68));
+    const circles=objetivos.map(p=>({key:p.key,x:p.x,y:p.y,r:p.r*2}));
+    for(const target of objetivos){
+      const p=ytgMotion.points[target.key];
+      if(p&&now-p.seen<YTG_NEAR_HOLD_MS) circles.push({key:target.key,x:p.x,y:p.y,r:target.r*1.8});
     }
-    ytgMotion.layout=null;return null;
+    const measure=(ytgMotion.canvas||(ytgMotion.canvas=document.createElement('canvas'))).getContext('2d');
+    let font=Math.max(22,Math.round(bw/7));
+    measure.font='900 '+font+'px system-ui';
+    const title={white:"BI TRẮNG",yellow:"BI VÀNG",red:"BI ĐỎ"}[o.key];
+    font=Math.min(font,Math.floor(font*(cw-2*margin-20)/Math.max(1,measure.measureText(title).width)));
+    measure.font='900 '+font+'px system-ui';
+    const textWidth=measure.measureText(title).width,pad=Math.max(6,font/10+2);
+    const score=b=>{
+      const r=b.reserved;
+      if(r.x<0||r.y<0||r.x+r.w>cw||r.y+r.h>ch) return null;
+      let critical=0,other=0;
+      for(const c of circles){
+        const distance=Math.hypot(c.x-Math.max(r.x,Math.min(c.x,r.x+r.w)),c.y-Math.max(r.y,Math.min(c.y,r.y+r.h)));
+        if(distance<=c.r){if(c.key===o.key) critical++;else other++;}
+      }
+      return {critical,other};
+    };
+    const prev=ytgMotion.layout;
+    const previous=prev&&prev.key===o.key&&prev.cw===cw&&prev.ch===ch&&prev.bw===bw?score(prev):null;
+    if(previous&&!previous.critical&&!previous.other) return {...prev,o};
+    const choices=[];
+    // Más posiciones que las nueve antiguas; el rótulo puede ir dentro si
+    // no cabe fuera. Si la mesa está ocupada, priman la bola en ajuste y
+    // su destino sobre los otros círculos, sin encoger ni apagar la lupa.
+    for(let ix=0;ix<=8;ix++)for(let iy=0;iy<=6;iy++){
+      const x=margin+(cw-bw-2*margin)*ix/8,y=margin+(ch-bw-2*margin)*iy/6;
+      const ax=Math.max(textWidth/2+pad,Math.min(cw-textWidth/2-pad,x+bw/2));
+      for(const position of ['below','above','inside']){
+        const ay=position==='below'?y+bw+font+8:position==='above'?y-14:y+bw-pad-font*.3;
+        const top=Math.min(y-5,ay-font-pad),bottom=Math.max(y+bw+5,ay+font*.3+pad);
+        const left=Math.min(x-5,ax-textWidth/2-pad),right=Math.max(x+bw+5,ax+textWidth/2+pad);
+        const box={key:o.key,cw,ch,o,x,y,bw,bh:bw,font,ax,ay,reserved:{x:left,y:top,w:right-left,h:bottom-top}};
+        const overlap=score(box);if(overlap) choices.push({box,...overlap,inside:position==='inside'?1:0});
+      }
+    }
+    choices.sort((a,b)=>a.critical-b.critical||a.other-b.other||a.inside-b.inside||
+      Math.hypot(b.box.x+bw/2-o.x,b.box.y+bw/2-o.y)-Math.hypot(a.box.x+bw/2-o.x,a.box.y+bw/2-o.y));
+    const best=choices[0];
+    if(!best){ytgMotion.layout=null;return null;}
+    // Evitar saltos por variaciones pequeñas del centro detectado.
+    if(previous&&previous.critical<=best.critical&&previous.other<=best.other) return {...prev,o};
+    ytgMotion.layout=best.box;return best.box;
   }
-
-
   function ytgPintarLupa(g, v, cw, ch, objetivos){
     const layout=ytgLoupeLayout(objetivos,cw,ch);if(!layout)return;
     const {o,bw,bh}=layout,box=layout;
     const zr = Math.max(20, o.r * 3);
-    const rx0 = o.x - zr, ry0 = o.y - zr;
+    let rx0=o.x-zr,ry0=o.y-zr;
+    const tracked=ytgMotion.points[o.key];
+    const ball=ytGuia.centroides[o.key] || (tracked&&performance.now()-tracked.seen<YTG_NEAR_HOLD_MS?tracked:null);
+    if(ball&&Math.hypot(ball.x-o.x,ball.y-o.y)<=o.r*2.8){
+      // Desplazar el encuadre, sin alejarlo, para que quepan la bola y el
+      // círculo completos al entrar por el borde de la zona de ayuda.
+      const pad=o.r*1.2;
+      rx0=Math.max(Math.max(o.x,ball.x)+pad-2*zr,Math.min(Math.min(o.x,ball.x)-pad,rx0));
+      ry0=Math.max(Math.max(o.y,ball.y)+pad-2*zr,Math.min(Math.min(o.y,ball.y)-pad,ry0));
+    }
     const escala = bw / (2 * zr);
     // Ampliar el mismo cuadro corregido: el centroide y el destino ya
     // están expresados en estas coordenadas, sin volver a girar la imagen.
@@ -22629,47 +22672,72 @@ function drawStartMarks(){
     }}
     finally{tecladoExportacion.ocupado=false;tecladoCarpetaUi();}
   }
-  // DD solo enlaza la detención hecha por D con esa misma grabación.
-  const tecladoDobleD = { ultima:null, pendiente:null };
+  // DD y D sostenida enlazan únicamente la grabación detenida por esa D.
+  const tecladoDobleD = { ultima:null, pendiente:null, sostenida:null };
+  function tecladoDSoltar(){
+    const pulsacion=tecladoDobleD.sostenida;
+    if(pulsacion) clearTimeout(pulsacion.timer);
+    tecladoDobleD.sostenida=null;
+  }
   function tecladoDobleDLimpiar(){
-    tecladoDobleD.ultima = null;
-    tecladoDobleD.pendiente = null;
+    tecladoDSoltar();
+    tecladoDobleD.ultima=null;
+    tecladoDobleD.pendiente=null;
   }
   function tecladoDobleDValida(solicitud){
-    const modal = ids('videoReplayModal');
-    return !!(solicitud && solicitud.check
-      && solicitud.check === videoReplay.recordingCheck
-      && solicitud.apertura === videoReplay.apertura
-      && modal && modal.classList.contains('active'));
+    const modal=ids('videoReplayModal');
+    return !!(solicitud&&solicitud.check
+      && solicitud.check===videoReplay.recordingCheck
+      && solicitud.apertura===videoReplay.apertura
+      && modal&&modal.classList.contains('active'));
   }
   function tecladoDobleDContinuar(){
-    const solicitud = tecladoDobleD.pendiente;
+    const solicitud=tecladoDobleD.pendiente;
     if(!solicitud) return;
-    if(!tecladoDobleDValida(solicitud)){ tecladoDobleDLimpiar(); return; }
-    // El estado inactive del grabador no significa que el archivo esté listo.
-    if(!solicitud.check.finalizada) return;
+    if(!tecladoDobleDValida(solicitud)){tecladoDobleDLimpiar();return;}
+    // Inactive no significa que el archivo ya esté completo y comprobado.
+    if(!solicitud.detenida||!solicitud.check.finalizada) return;
     tecladoDobleDLimpiar();
-    if(videoReplay.recordingIssue || videoReplay.mode !== 'replay'
-      || !videoReplay.blobUrl || !(videoReplay.duration > 0)){
-      tecladoAvisar('DD', "Không thể hoàn tất kiểm tra bản ghi. Hãy xem thông báo của video trước khi đặt lại bi.", 'warn');
+    if(videoReplay.recordingIssue||videoReplay.mode!=='replay'
+      || !videoReplay.blobUrl||!(videoReplay.duration>0)){
+      tecladoAvisar(solicitud.tecla,"Không thể hoàn tất kiểm tra bản ghi. Hãy xem thông báo của video trước khi đặt lại bi.",'warn');
       return;
     }
-    ytVozPedirVolver('DD', true);
+    ytVozPedirVolver(solicitud.tecla,true);
+  }
+  function tecladoDPedirVolver(solicitud,tecla){
+    if(!tecladoDobleDValida(solicitud)||solicitud.solicitada) return;
+    solicitud.solicitada=true;solicitud.tecla=tecla;
+    tecladoDobleD.ultima=null;tecladoDobleD.pendiente=solicitud;
+    tecladoDSoltar();
+    if(!solicitud.check.finalizada) tecladoAvisar(tecla,"Khi bản ghi đã sẵn sàng, hướng dẫn đặt lại bi sẽ mở ra.");
+    tecladoDobleDContinuar();
   }
   async function tecladoDetenerDoble(ctx){
-    const ahora = performance.now(), anterior = tecladoDobleD.ultima;
-    tecladoDobleD.ultima = null;
-    if(ctx === 'grabando'){
-      tecladoDobleD.pendiente = null;
-      const solicitud = { check:videoReplay.recordingCheck, apertura:videoReplay.apertura, momento:ahora };
-      const detenida = await ytVozEjecutar({accion:'detener'}, 'D', true);
-      if(detenida && tecladoDobleDValida(solicitud)) tecladoDobleD.ultima = solicitud;
+    const ahora=performance.now(),anterior=tecladoDobleD.ultima;
+    if(ctx==='grabando'){
+      tecladoDobleDLimpiar();
+      const solicitud={check:videoReplay.recordingCheck,apertura:videoReplay.apertura,momento:ahora,detenida:false};
+      tecladoDobleD.ultima=solicitud;
+      // El reloj empieza al pulsar, independientemente de la repetición
+      // configurada en Windows o en el teclado Bluetooth. D detiene ya.
+      const pulsacion={solicitud,timer:0};
+      tecladoDobleD.sostenida=pulsacion;
+      pulsacion.timer=setTimeout(()=>{
+        if(tecladoDobleD.sostenida!==pulsacion) return;
+        tecladoDPedirVolver(solicitud,"Giữ phím D");
+      },1000);
+      const detenida=await ytVozEjecutar({accion:'detener'},'D',true);
+      // Un cierre u otra orden durante la espera no debe reactivar esta D.
+      if(tecladoDobleD.ultima!==solicitud&&tecladoDobleD.pendiente!==solicitud) return;
+      if(!detenida||!tecladoDobleDValida(solicitud)){tecladoDobleDLimpiar();return;}
+      solicitud.detenida=true;
+      tecladoDobleDContinuar();
       return;
     }
-    if(!tecladoDobleDValida(anterior) || ahora - anterior.momento > 1000) return;
-    tecladoDobleD.pendiente = anterior;
-    if(!anterior.check.finalizada) tecladoAvisar('DD', "Khi bản ghi đã sẵn sàng, hướng dẫn đặt lại bi sẽ mở ra.");
-    tecladoDobleDContinuar();
+    tecladoDobleD.ultima=null;
+    if(!tecladoDobleDValida(anterior)||ahora-anterior.momento>1000) return;
+    tecladoDPedirVolver(anterior,'DD');
   }
 
   async function tecladoEjecutar(tecla){
@@ -22841,7 +22909,14 @@ function drawStartMarks(){
       if(carpeta && carpeta.kind==='directory'){tecladoExportacion.carpeta=carpeta;tecladoExportacion.memoria=true;}
     }).catch(()=>{}).finally(()=>{tecladoExportacion.cargando=null;tecladoCarpetaUi();});
     const carpeta=ids('tecladoCarpetaBtn');if(carpeta) carpeta.addEventListener('click',tecladoElegirCarpeta);
+    // Soltar D conserva la ventana de doble pulsación, pero cancela la sostenida.
+    document.addEventListener('keyup',event=>{
+      if(event.key.toLowerCase()==='d') tecladoDSoltar();
+    },true);
+    window.addEventListener('blur',tecladoDSoltar);
+    document.addEventListener('visibilitychange',()=>{if(document.hidden) tecladoDSoltar();});
     document.addEventListener('keydown',event=>{
+      if(event.key.toLowerCase()!=='d' || event.ctrlKey || event.altKey || event.metaKey) tecladoDSoltar();
       if(event.defaultPrevented || event.isComposing || event.ctrlKey || event.altKey || event.metaKey) return;
       const tecla=event.key.toLowerCase();if(!['g','1','2','3','d','r','e','o','v','c','m','t',' ','l','x','w'].includes(tecla)) return;
       if(tecla==='w' && !colorPreviewTrack()) return;
