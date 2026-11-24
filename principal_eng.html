@@ -2148,7 +2148,7 @@
 <details id="tecladoAyuda" style="margin-top:10px;">
 <summary style="cursor:pointer;">Keyboard and export options</summary>
 <p class="small">Shortcuts work when the app tab is selected, even with voice commands muted. They do not run while you type in a field or use a drop-down list.</p>
-<p class="small">G: record another shot or open the camera. 1 / 2 / 3: 5 / 10 / 15-second countdown. D: stop recording. DD: stop and reposition the balls (two presses within one second). R: play. E: export with data to the selected folder. O: save without data (Original) in the same folder. V: reposition the balls. C: capture the table. W: save the current camera color before the countdown. M: mute or enable voice commands. T: trajectory tracking. Space: pause or resume. L: normal, half or quarter speed. X: close the video window or ball-placement screen, one per press. Esc also closes the video window.</p>
+<p class="small">G: record another shot or open the camera. 1 / 2 / 3: 5 / 10 / 15-second countdown. D: stop recording. DD: stop and reposition the balls (two presses within one second). V during recording: stop and reposition the balls. R: play. E: export with data to the selected folder. O: save without data (Original) in the same folder. V: reposition the balls. C: capture the table. W: save the current camera color before the countdown. M: mute or enable voice commands. T: trajectory tracking. Space: pause or resume. L: normal, half or quarter speed. X: close the video window or ball-placement screen, one per press. Esc also closes the video window.</p>
 <button id="tecladoCarpetaBtn" type="button">Choose or change export folder</button>
 <p id="tecladoCarpetaEstado" class="small" role="status" aria-live="polite" style="margin:8px 0; overflow-wrap:anywhere;">No folder selected.</p>
 <button id="exportPrefijoBtn" type="button">Set video filename prefix</button>
@@ -19696,75 +19696,120 @@ function drawStartMarks(){
   // Cada plantilla representa el texto completo, independientemente de dónde se dibuje.
   const YT_CUE_LABELS = [{"key":"white","aspect":12.28125,"mean":0.3929891748366013,"variance":280.2077171840959,"data":"rv////////9TAAAAcP//MgAAAAAAEJPi++mjIQAAAAAAcP/kAQAAAAAAAAAA3/8/AAAAAAAAAABw//8yAAAAAAAAAADt/////vTGOgAAaP+UAAAAAAAAAAAAxf+lAAAAAD//9x8AAADi/xAAABWT4vvpoyEAAAAAAMX/2wEAAACu/////////1MAAADB//+GAAAAAACi///////jCwAAAADB//8xAAAAAAAAAADf/z8AAAAAAAAAAMH//4YAAAAAAAAAAO3////////pBwBo/5QAAAAAAAAAABj//+QAAAAAP///jQAAAOL/EAAG0v//////4wsAAAAS////MQAAAAAAAJH/jQAAAAAAGPu/9tkBAAAAL/vbOQY64f96AAAAGPu/+IUAAAAAAAAAAN//PwAAAAAAAAAY+7/22QEAAAAAAAAA7f8xAAMn6f9EAGj/lAAAAAAAAAAAaP+2/zAAAAA////uEwAA4v8QAH//2zkGOuH/egAAAE7/tv+FAAAAAAAAkf+NAAAAAAB1/222/z8AAACh/z4AAABEik0AAAB1/23I5QQAAAAAAAAA3/8/AAAAAAAAAHX/bbb/PwAAAAAAAADt/zEAAADC/0sAaP+UAAAAAAAAAADK/in8lAAAAD//3/yOAADi/xAG8P8+AAAARIpNAAAAmP4p++UEAAAAAACR/40AAAAAAMf/MXn/kwAAANn8AwAAAAAAAAAAAMf/MZv/PgAAAAAAAADf/z8AAAAAAAAAx/8xef+TAAAAAAAAAO3/MQAERvzyDABo/5QAAAAAAAAAHf/bANrnAQAAP/+5tfYOAOL/EC//+wMAAAAAAAAAAADV2wDO/z4AAAAAAJH/jQAAAAAc/O8EPP/jAwAA8uwAAAAAAAAAAAAc/O8Ebf+SAAAAAAAAAN//PwAAAAAAABz87wQ8/+MDAAAAAAAA7f///////VkAAGj/lAAAAAAAAABu/54ArP89AAA//7lA/3kA4v8QSP/mAAAAAAAAAAAAHP2eAJH/kgAAAAAAkf+NAAAAAHv/qwAD7f9MAADx7QAAAAAAAAAAAHv/qwA1/+0IAAAAAAAA3/8/AAAAAAAAe/+rAAPt/0wAAAAAAADt/7qqrsf+7zcAaP+UAAAAAAAAAND/VgB1/6EAAD//uQCy8BXi/xBH/+cAAAAAAAAAAAB7/1YAR//tCAAAAACR/40AAAAAzf+9gIDg/6AAANz9BAAAAB8pAAAAzf+9gIj//0sAAAAAAADf/z8AAAAAAADN/72AgOD/oAAAAAAAAO3/MQAAAJn/swBo/5QAAAAAAAAj//+SgKj/8QQAP/+5AD7/e+L/EDL//AQAAAAfKQAAAM3/koCL//9LAAAAAJH/jQAAACD9////////7AcApf9AAAAAff6YACD9////////nwAAAAAAAN//PwAAAAAAIP3////////sBwAAAAAA7f8xAAAAW//XAGj/lAAAAAAAAHT/////////SgA//7kAAcfl6v8QB/P/QAAAAH3+mAAg/f///////58AAAAAkf+NAAAAgf/FVVVVVez/WQAz/No2Bk3z/10Agf/FVVVVe//0DgAAAAAA3/8/AAAAAACB/8VVVVVV7P9ZAAAAAADt/zEAAROx/7QAaP+UAAAAAAAA1f+MVVVVtP+uAD//uQAAPP///xAAg//aNgZN8/9dAIH/qVVVVXv/9A4AAACR/40AAADS/2kAAAAAof+tAACo///////KAQDS/2kAAAAE8v9YAAAAAADf////////L9L/aQAAAACh/60AAAAAAO3/////////UgBo////////2Sj//hUAAABM//gKP/+5AAAAxv//EAAH2f//////ygEA0v9PAAAABPL/WAAAAJH/jQAAJf79HAAAAABN//MNABOa5/zlmBYAJf79HAAAAACi/6sAAAAAAN////////9U/v0cAAAAAE3/8woAAAAA7f////3323YBAGj////////Zef/EAAAAAAnu/1Y//7kAAABR//8QAAAZmuf85ZgWACX+/RUAAAAAov+r"},{"key":"yellow","aspect":13.65625,"mean":0.3997217116013072,"variance":269.98651695461683,"data":"rv///////6gAAADF/6UAAAAAABWj8PbBSwAAAAAA0/9lAAAAAAAAAIr/bwAAAAAAAAAd/f8yAAAAAAAAAAAAVP//JgAAAEz//4IAAFn//4IAAAAW/P8yAAAAMv/////40koAAL//GDX/rwAAAAAANf+UAAAAAAAAABb8/2UAAACu////////qAAAEv//5AAAAAAE0v//////NAAAABj//6UAAAAAAAAAiv9vAAAAAAAAAGz//4YAAAAAAAAAAACR//9lAAAATP//rAAAgv//ggAAAFH//4YAAAAy////////4gEAv/8YNf+vAAAAAAA1/5QAAAAAAAAAUf//pQAAAAAAAOziAAAAAABO/7b/MAAAAF//vBsVrf+bAAAAaPy64gEAAAAAAACK/28AAAAAAAAAvc/22QEAAAAAAAAAAM6/9qMAAABM//rVAACs+v+CAAAAjvvM2QEAADL/pQAAFdP/MwC//xg1/68AAAAAADX/lAAAAAAAAACO+7riAQAAAAAA7OIAAAAAAJj+KfyUAAAAuf8vAAAOl1kAAADK0WH/PwAAAAAAAIr/bwAAAAAAABn+kbb/LwAAAAAAAAAi/m227AQAAEz/x/wOAN3G/4IAAADYwoj/PwAAMv+lAAAAjf9PAL//GDX/rwAAAAAANf+UAAAAAAAAANjCYf8/AAAAAADs4gAAAAAA1dsA2ucBAADi+wMAAAAAAAAAHf+kJP+TAAAAAAAAiv9vAAAAAAAAVv9kef9vAAAAAAAAAHL/MXn/PgAATP+T/0IM/pL/ggAAHf+GW/+TAAAy/6UAAADD/zEAv/8YNf+vAAAAAAA1/5QAAAAAAAAd/4Yk/5MAAAAAAOziAAAAABz9ngCs/y4AAPXmAAAAAAAAAABu/3cB6+MDAAAAAACK/28AAAAAAACS/zc8/60AAAAAAAAAw/MEPP+SAABM/2P7eUH/Xf+CAABu/0kt/+MCADL/4aqrxf/UAgC//xg1/68AAAAAADX/lAAAAAAAAG7/SQHr4wIAAAAA7OIAAAAAe/9WAHX/eQAA9ecAAAAAAAAAAND/QAC1/0wAAAAAAIr/bwAAAAAAANz2BwPt8ggAAAAAAB3+wAAD8u0GAEz/WNW8g/gn/4IAAND4CQPt/zkAMv/////+nyAAAL//GDX/rwAAAAAANf+UAAAAAAAA0PgJALX/OQAAAADs4gAAAADN/5KAqP+4AADl/AMAAABGAQAa//+OgMj/oAAAAAAAiv9vAAAAAAAj/+eAgOD/SwAAAAAAWv/OgIDo/zkATP9YrfK71iD/ggAj/+2AgOD/eAAy/6UNnf+xAQAAv/8YNf+vAAAAAAA1/5QAAAAAABr/7YCAyP94AAAAAOziAAAAGP3///////EHALz/LwAAKP+xAFf////////sBgAAAACK/28AAAAAAHT///////+fAAAAAACX////////dwBM/1iG//quIP+CAHT///////+3ADL/pQAH2P9XAAC//xg1/68AAAAAADX/lAAAAAAAV////////7cAAAAA7OIAAABh/6lVVVW0/1kAY/+7GRzJ/4UAoP+MVVVV7P9DAAAAAIr/bwAAAAAA1ftZVVVV8fQLAAAAAOD5WFVVcf/CAEz/WFf//38g/4IA1f9+VVVV7PcOMv+lAABW/9gDAL//GDX/rwAAAAAANf+UAAAAAACg/35VVVXs9w4AAADs4gAAAJ7/TwAAAEz/rQAG2f/////4HgDe/hUAAACh/4IAAAAAiv///////0H/zgAAAAC5/0IAAAAo/74AAAAD8voKTP9YL///VyD/gh7//hAAAACh/1gy/6UAAAPh/1YAv/8YNf///////y81////////L97+EAAAAKH/WAAAAOziAAAA2/0VAAAACfLzDQAZqfT1ujwAJf7EAAAAAE3/wAAAAACK////////fv+TAAAAAHr/gQAAAHn/bwAAAACi/1ZM/1gL/P8wIP+CW//EAAAAAE3/qzL/pQAAAFn/1ge//xg1////////LzX///////9U/sQAAAAATf+r"}];
 
-  function ytLeerTacadoraDelCuadro(frame) {
-    const scale = Math.min(1, 1440 / frame.width, 1100 / frame.height);
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.max(1, Math.round(frame.width * scale));
-    canvas.height = Math.max(1, Math.round(frame.height * scale));
-    const w = canvas.width, h = canvas.height;
-    const ctx = canvas.getContext('2d', {willReadFrequently:true});
-    ctx.drawImage(frame, 0, 0, w, h);
-    const rgba = ctx.getImageData(0, 0, w, h).data;
-    const ink = new Uint8Array(w * h);
-    for (let i = 0; i < ink.length; i++) {
-      const r = rgba[4*i], g = rgba[4*i+1], b = rgba[4*i+2];
-      ink[i] = r >= 149 && g >= 134 && Math.abs(r-g) <= 94 && b <= r+35 && b <= g+35 ? 1 : 0;
-    }
-    // Obtener los contornos de letras claras o amarillas, también sobre fondos contiguos al rótulo.
-    const seen = new Uint8Array(w*h), queue = new Int32Array(w*h), letters = [];
-    for (let start = 0; start < ink.length; start++) {
-      if (!ink[start] || seen[start]) continue;
-      let head = 0, tail = 1, left = w, right = 0, top = h, bottom = 0;
-      queue[0] = start; seen[start] = 1;
-      while (head < tail) {
-        const p = queue[head++], y = Math.floor(p/w), x = p-y*w;
-        left = Math.min(left,x); right = Math.max(right,x);
-        top = Math.min(top,y); bottom = Math.max(bottom,y);
-        if (x && ink[p-1] && !seen[p-1]) {seen[p-1]=1; queue[tail++]=p-1;}
-        if (x+1<w && ink[p+1] && !seen[p+1]) {seen[p+1]=1; queue[tail++]=p+1;}
-        if (y && ink[p-w] && !seen[p-w]) {seen[p-w]=1; queue[tail++]=p-w;}
-        if (y+1<h && ink[p+w] && !seen[p+w]) {seen[p+w]=1; queue[tail++]=p+w;}
+  // Buscar el rótulo en todo el cuadro; verificar cada candidato con los
+  // píxeles originales, antes del recorte/zoom de la mesa. Sin servicios externos.
+  let ytCueModelos = null;
+  function ytCueMascara(canvas, rect){
+    const cv=document.createElement('canvas');cv.width=128;cv.height=12;
+    const g=cv.getContext('2d',{willReadFrequently:true});
+    g.drawImage(canvas,rect.x,rect.y,rect.w,rect.h,0,0,128,12);
+    const rgba=g.getImageData(0,0,128,12).data, mask=new Float32Array(128*12);
+    let sum=0,sum2=0;
+    for(let i=0;i<mask.length;i++){const v=rgba[4*i]/255;mask[i]=v;sum+=v;sum2+=v*v;}
+    return {mask,mean:sum/mask.length,variance:sum2-sum*sum/mask.length,aspect:rect.w/rect.h};
+  }
+  function ytCueModelosTexto(){
+    if(ytCueModelos) return ytCueModelos;
+    const modelos=YT_CUE_LABELS.map(label=>({...label,
+      mask:Float32Array.from(atob(label.data),c=>c.charCodeAt(0)/255)}));
+    for(const font of ['700 40px Arial','400 40px Arial','600 40px "Segoe UI"',
+      '700 40px "Segoe UI"','700 40px Tahoma','700 40px Verdana','700 40px Georgia']){
+      for(const [key,text] of [['white','TACA LA BLANCA'],['yellow','TACA LA AMARILLA']]){
+        const cv=document.createElement('canvas');cv.width=700;cv.height=80;
+        const g=cv.getContext('2d',{willReadFrequently:true});
+        g.fillStyle='#000';g.fillRect(0,0,cv.width,cv.height);
+        g.font=font;g.fillStyle='#fff';g.fillText(text,5,55);
+        const d=g.getImageData(0,0,cv.width,cv.height).data;
+        let left=cv.width,right=0,top=cv.height,bottom=0;
+        for(let y=0;y<cv.height;y++)for(let x=0;x<cv.width;x++)if(d[(y*cv.width+x)*4]>127){
+          left=Math.min(left,x);right=Math.max(right,x);top=Math.min(top,y);bottom=Math.max(bottom,y);
+        }
+        modelos.push({key,...ytCueMascara(cv,{x:left,y:top,w:right-left+1,h:bottom-top+1})});
       }
-      const height = bottom-top+1, width = right-left+1;
-      if (height >= 6 && height <= h*.22 && width <= 3*height && tail >= height)
-        letters.push({left,right,top,bottom,height,width});
     }
-    letters.sort((a,b) => a.left-b.left);
-    const hits = new Set();
-    for (let i = 0; i < letters.length; i++) {
-      const first = letters[i], size = first.height;
-      if (first.width < size*.35 || first.width > size*1.6) continue;
-      let right = first.right, top = first.top, bottom = first.bottom, count = 1;
-      for (let j = i+1; j < letters.length; j++) {
-        const next = letters[j];
-        if (next.left-right > size || next.left-first.left > size*22) break;
-        if (next.left <= right || Math.abs(next.top-first.top) > size*.28 ||
-            Math.abs(next.bottom-first.bottom) > size*.28) continue;
-        right=next.right; top=Math.min(top,next.top); bottom=Math.max(bottom,next.bottom);
-        count++;
-        if (count < 7) continue;
-        const width=right-first.left+1, height=bottom-top+1;
-        for (const label of YT_CUE_LABELS) {
-          if (Math.abs(width/height / label.aspect - 1) > .23) continue;
-          // Comparación normalizada: acepta cambios de resolución, compresión y tamaño.
-          const mask = label.mask || (label.mask = Uint8Array.from(atob(label.data), c=>c.charCodeAt(0)));
-          let sum=0, sum2=0, cross=0;
-          for (let row=0; row<12; row++) for (let col=0; col<128; col++) {
-            let value=0;
-            for (const dy of [.25,.75]) for (const dx of [.25,.75]) {
-              const x=first.left+Math.floor((col+dx)*width/128);
-              const y=top+Math.floor((row+dy)*height/12);
-              value += ink[y*w+x]*.25;
+    ytCueModelos=modelos;return modelos;
+  }
+  function ytCueTinta(r,g,b,umbral){
+    return r>=umbral && g>=umbral-15 && Math.abs(r-g)<=94 && b<=r+35 && b<=g+35;
+  }
+  function ytLeerTacadoraDelCuadro(frame){
+    if(!frame || !frame.width || !frame.height) return null;
+    const modelos=ytCueModelosTexto(), hits=new Set(), revisados=new Set();
+    // Dos lecturas independientes: tamaño habitual y mayor detalle. El rótulo
+    // puede estar en cualquier esquina, sobre la mesa o fuera de ella.
+    const escalas=[Math.min(1,1440/frame.width,1100/frame.height),Math.min(1,2880/frame.width,2160/frame.height)];
+    const original=frame.getContext('2d',{willReadFrequently:true});
+    function revisar(box,sx,sy){
+      const x=Math.max(0,Math.floor(box.left/sx)-2),y=Math.max(0,Math.floor(box.top/sy)-2);
+      const w=Math.min(frame.width-x,Math.ceil((box.right+1)/sx)+2-x);
+      const h=Math.min(frame.height-y,Math.ceil((box.bottom+1)/sy)+2-y);
+      const id=[x,y,w,h].join(',');if(revisados.has(id)) return;revisados.add(id);
+      const rgba=original.getImageData(x,y,w,h).data;
+      const cv=document.createElement('canvas');cv.width=w;cv.height=h;
+      const g=cv.getContext('2d',{willReadFrequently:true}),pixels=g.createImageData(w,h);
+      const best={white:0,yellow:0};
+      for(const threshold of [135,175,210]){
+        let left=w,right=-1,top=h,bottom=-1;
+        for(let i=0;i<w*h;i++){
+          const on=ytCueTinta(rgba[4*i],rgba[4*i+1],rgba[4*i+2],threshold);
+          pixels.data[4*i]=pixels.data[4*i+1]=pixels.data[4*i+2]=on?255:0;pixels.data[4*i+3]=255;
+          if(on){const xx=i%w,yy=Math.floor(i/w);left=Math.min(left,xx);right=Math.max(right,xx);top=Math.min(top,yy);bottom=Math.max(bottom,yy);}
+        }
+        if(right<=left || bottom<=top) continue;
+        g.putImageData(pixels,0,0);
+        const sample=ytCueMascara(cv,{x:left,y:top,w:right-left+1,h:bottom-top+1});
+        if(sample.variance<8) continue;
+        for(const model of modelos){
+          if(Math.abs(sample.aspect/model.aspect-1)>.20) continue;
+          let cross=0;for(let i=0;i<sample.mask.length;i++)cross+=sample.mask[i]*model.mask[i];
+          const score=(cross-sample.mask.length*sample.mean*model.mean)/Math.sqrt(sample.variance*model.variance);
+          best[model.key]=Math.max(best[model.key],score);
+        }
+      }
+      // Exigir la frase completa y una separación clara entre los dos colores.
+      if(best.white>=.72 && best.white-best.yellow>=.12) hits.add('white');
+      if(best.yellow>=.72 && best.yellow-best.white>=.12) hits.add('yellow');
+    }
+    for(const scale of [...new Set(escalas)]){
+      const cv=document.createElement('canvas');cv.width=Math.max(1,Math.round(frame.width*scale));cv.height=Math.max(1,Math.round(frame.height*scale));
+      const w=cv.width,h=cv.height,g=cv.getContext('2d',{willReadFrequently:true});g.drawImage(frame,0,0,w,h);
+      const rgba=g.getImageData(0,0,w,h).data;
+      for(const threshold of [145,195]){
+        const ink=new Uint8Array(w*h),queue=new Int32Array(w*h),letters=[];
+        for(let i=0;i<ink.length;i++)ink[i]=ytCueTinta(rgba[4*i],rgba[4*i+1],rgba[4*i+2],threshold)?1:0;
+        for(let start=0;start<ink.length;start++){
+          if(!ink[start])continue;
+          let head=0,tail=1,left=w,right=0,top=h,bottom=0;queue[0]=start;ink[start]=0;
+          while(head<tail){
+            const p=queue[head++],x=p%w,y=Math.floor(p/w);
+            left=Math.min(left,x);right=Math.max(right,x);top=Math.min(top,y);bottom=Math.max(bottom,y);
+            for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+              if((!dx&&!dy)||x+dx<0||x+dx>=w||y+dy<0||y+dy>=h)continue;
+              const q=p+dy*w+dx;if(ink[q]){ink[q]=0;queue[tail++]=q;}
             }
-            sum+=value; sum2+=value*value; cross+=value*mask[row*128+col]/255;
           }
-          const n=mask.length, variance=sum2-sum*sum/n;
-          const score=(cross-sum*label.mean)/Math.sqrt(Math.max(.001,variance*label.variance));
-          if (score >= .69) hits.add(label.key);
+          const height=bottom-top+1,width=right-left+1;
+          // La compresión y las serifas pueden unir varias letras del mismo término.
+          if(height>=6&&height<=h*.22&&width<=height*6&&tail>=height)letters.push({left,right,top,bottom,height,width});
+        }
+        letters.sort((a,b)=>a.left-b.left);
+        for(let i=0;i<letters.length;i++){
+          const first=letters[i],size=first.height;
+          if(first.width<size*.35||first.width>size*6)continue;
+          let right=first.right,top=first.top,bottom=first.bottom,count=Math.max(1,Math.round(first.width/size));
+          for(let j=i+1;j<letters.length;j++){
+            const next=letters[j];
+            if(next.left-right>size*1.25||next.left-first.left>size*24)break;
+            if(next.right<=right||next.left<right-size*.15||Math.abs(next.top-first.top)>size*.28||Math.abs(next.bottom-first.bottom)>size*.28)continue;
+            right=next.right;top=Math.min(top,next.top);bottom=Math.max(bottom,next.bottom);count+=Math.max(1,Math.round(next.width/size));
+            const aspect=(right-first.left+1)/(bottom-top+1);
+            if(count>=7&&count<=18&&aspect>=8&&aspect<=18) revisar({left:first.left,right,top,bottom},w/frame.width,h/frame.height);
+          }
         }
       }
     }
-    return hits.size === 1 ? [...hits][0] : null;
+    // Nunca adivinar si hay dos avisos contradictorios en la fuente compartida.
+    return hits.size===1?[...hits][0]:null;
   }
 
   function ytAbrirMarcado(frameCanvas){
@@ -22791,7 +22836,27 @@ function drawStartMarks(){
     tecladoDPedirVolver(anterior,'DD');
   }
 
+  // V detiene ya y espera el cierre/comprobación del mismo video, igual que DD.
+  async function tecladoDetenerYVolver(){
+    if(tecladoDobleD.pendiente && tecladoDobleD.pendiente.tecla==='V') return;
+    tecladoDobleDLimpiar();
+    const solicitud={check:videoReplay.recordingCheck,apertura:videoReplay.apertura,
+      momento:performance.now(),detenida:false,solicitada:true,tecla:'V'};
+    if(!tecladoDobleDValida(solicitud)) return;
+    tecladoDobleD.pendiente=solicitud;
+    const detenida=await ytVozEjecutar({accion:'detener'},'V',true);
+    if(tecladoDobleD.pendiente!==solicitud) return;
+    if(!detenida || !tecladoDobleDValida(solicitud)){tecladoDobleDLimpiar();return;}
+    solicitud.detenida=true;
+    if(!solicitud.check.finalizada) tecladoAvisar('V',"Recording stopped. Preparing the video so you can reposition the balls.");
+    tecladoDobleDContinuar();
+  }
+
   async function tecladoEjecutar(tecla){
+    if(tecla==='v' && ((videoReplay.recorder && videoReplay.recorder.state==='recording')
+      || (tecladoDobleD.pendiente && tecladoDobleD.pendiente.tecla==='V'))){
+      await tecladoDetenerYVolver();return;
+    }
     if(tecla !== 'd') tecladoDobleDLimpiar();
     if(tecla==='x'){
       const modal=ids('videoReplayModal'),cerrar=ids('videoReplayClose');
