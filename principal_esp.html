@@ -2148,7 +2148,7 @@
 <details id="tecladoAyuda" style="margin-top:10px;">
 <summary style="cursor:pointer;">Teclado y opciones de exportación</summary>
 <p class="small">Los atajos funcionan con la pestaña de la app seleccionada, también con la voz silenciada. No actúan mientras escribe en un campo o utiliza un selector.</p>
-<p class="small">G: grabar otra jugada o abrir la cámara. 1 / 2 / 3: cuenta de 5 / 10 / 15 segundos. D: detener. DD: detener y volver a colocar (dos pulsaciones dentro de un segundo). V durante la grabación: detener y volver a colocar. R: reproducir. E: exportar con datos a la carpeta elegida. O: guardar sin datos (Original) en la misma carpeta. V: volver a colocar. C: capturar mesa. W: guardar el color actual de la cámara antes de la cuenta regresiva. M: silenciar o activar voz. T: seguimiento de la trayectoria. Espacio: pausar o continuar. L: velocidad normal, media o un cuarto. X: cerrar la ventana de video o la pantalla de colocación, una por pulsación. Esc también cierra la ventana de video.</p>
+<p class="small">G: grabar otra jugada o abrir la cámara. 1 / 2 / 3: cuenta de 5 / 10 / 15 segundos. D: detener. DD: detener y volver a colocar (dos pulsaciones dentro de un segundo). V durante la grabación: detener y volver a colocar. R: reproducir. E: exportar con datos a la carpeta elegida. O: guardar sin datos (Original) en la misma carpeta. V: volver a colocar. C: capturar mesa. W: guardar el color actual de la cámara antes de la cuenta regresiva. M: silenciar o activar voz. T: seguimiento de la trayectoria. Espacio: pausar o continuar. ← / →: pausar y retroceder o avanzar un cuadro. L: velocidad normal, media o un cuarto. X: cerrar la ventana de video o la pantalla de colocación, una por pulsación. Esc también cierra la ventana de video.</p>
 <button id="tecladoCarpetaBtn" type="button">Elegir o cambiar carpeta de exportación</button>
 <p id="tecladoCarpetaEstado" class="small" role="status" aria-live="polite" style="margin:8px 0; overflow-wrap:anywhere;">Sin carpeta elegida.</p>
 <button id="exportPrefijoBtn" type="button">Definir prefijo del video</button>
@@ -2228,11 +2228,12 @@
 </div>
 <div class="videoReplayGroup" id="videoReplayPlaybackPanel" style="display:none">
 <h3>Revisión de la jugada</h3>
+<p class="small" id="videoReplayFrameNote" role="status"></p>
 <input id="videoReplayScrub" max="1000" min="0" step="1" type="range" value="0"/>
 <div class="videoReplayRow">
 <button id="videoReplayPlayBtn" type="button">Reproducir</button>
-<button id="videoReplayStepBack" title="Un cuadro atrás" type="button">−1 cuadro</button>
-<button id="videoReplayStepFwd" title="Un cuadro adelante" type="button">+1 cuadro</button>
+<button id="videoReplayStepBack" title="Un cuadro atrás (←)" aria-keyshortcuts="ArrowLeft" type="button">−1 cuadro</button>
+<button id="videoReplayStepFwd" title="Un cuadro adelante (→)" aria-keyshortcuts="ArrowRight" type="button">+1 cuadro</button>
 </div>
 <div class="videoReplayRow">
 <label style="display:flex; gap:8px; align-items:center;"><span class="small">Velocidad</span><select id="videoReplaySpeed" style="flex:1"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option selected="" value="1">1×</option></select></label>
@@ -15037,6 +15038,168 @@ function drawStartMarks(){
     focusTouched:false
   };
 
+  // Índice de presentación y lectura puntual. Se reutiliza la biblioteca local
+  // del seguimiento, pero este lector no analiza bolas ni requiere activarlo.
+  function videoReplayFramesWorker(){
+    let input=null,sink=null,times=[],ends=[],canvas=null;
+    self.onmessage=async({data})=>{
+      try{
+        if(data.type==='index'){
+          const {Input,BlobSource,MP4,WEBM,MATROSKA,EncodedPacketSink,VideoSampleSink}=Mediabunny;
+          input=new Input({source:new BlobSource(data.blob),formats:[MP4,WEBM,MATROSKA].filter(Boolean)});
+          const track=await input.getPrimaryVideoTrack();
+          if(!track || !await track.canDecode()) throw new Error('No se puede leer cuadro a cuadro este formato de video.');
+          const rows=[];let last=performance.now();
+          for await(const packet of new EncodedPacketSink(track).packets(undefined,undefined,{metadataOnly:true})){
+            if(Number.isFinite(packet.timestamp) && packet.timestamp>=0){
+              rows.push([Math.round(packet.timestamp*1e6)/1e6,packet.timestamp+Math.max(0,packet.duration||0)]);
+            }
+            if(performance.now()-last>100){self.postMessage({type:'progress'});await new Promise(r=>setTimeout(r,0));last=performance.now();}
+          }
+          rows.sort((a,b)=>a[0]-b[0]);
+          for(const [t,end] of rows){
+            if(times.length && t===times.at(-1)){ends[ends.length-1]=Math.max(ends.at(-1),end);continue;}
+            times.push(t);ends.push(end);
+          }
+          if(!times.length) throw new Error('No se encontraron cuadros en la grabación.');
+          sink=new VideoSampleSink(track);
+          const width=await track.getDisplayWidth(),height=await track.getDisplayHeight();
+          canvas=new OffscreenCanvas(width,height);
+          self.postMessage({type:'ready',times:new Float64Array(times),ends:new Float64Array(ends)});
+        }else if(data.type==='frame'){
+          const {index,id}=data;
+          if(!sink || !Number.isInteger(index) || index<0 || index>=times.length) throw new Error('Cuadro solicitado fuera del video.');
+          const t=times[index],end=index+1<times.length?times[index+1]:ends[index];
+          // Buscar dentro del intervalo evita redondeos en su frontera inicial.
+          const at=t+Math.max(0,Math.min(.00005,(end-t)/4));
+          const sample=await sink.getSample(at);
+          if(!sample) throw new Error('No se pudo leer el cuadro solicitado.');
+          try{
+            if(Math.abs(sample.timestamp-t)>.000003) throw new Error('El cuadro leído no coincide con el solicitado.');
+            sample.draw(canvas.getContext('2d'),0,0,canvas.width,canvas.height);
+            const bitmap=canvas.transferToImageBitmap();
+            self.postMessage({type:'frame',id,index,time:sample.timestamp,bitmap},[bitmap]);
+          }finally{sample.close();}
+        }
+      }catch(error){self.postMessage({type:'error',message:String(error&&error.message||error)});}
+    };
+  }
+
+  let videoReplayFrames=null;
+  function videoReplayFramesUi(){
+    const f=videoReplayFrames,ready=!!(f&&f.status==='ready'&&f.url===videoReplay.blobUrl);
+    for(const id of ['videoReplayStepBack','videoReplayStepFwd']){
+      const b=ids(id);if(b)b.disabled=!ready||videoReplay.exporting||videoReplay.mode!=='replay';
+    }
+    const note=ids('videoReplayFrameNote');if(!note)return;
+    note.textContent=!f?'':f.status==='error'?f.error:f.status==='loading'?'Preparando recorrido cuadro a cuadro…'
+      :f.shown>=0?'Cuadro '+(f.shown+1)+' de '+f.times.length+' · ← / →'
+      :'Recorrido cuadro a cuadro listo · ← / →';
+  }
+  function videoReplayFramesCancel(){
+    const f=videoReplayFrames;if(!f)return;
+    f.epoch++;f.target=-1;f.shown=-1;f.seekTime=null;
+    if(f.picture){f.picture.width=f.picture.height=1;f.picture=null;}
+    videoReplayRender.last=null;videoReplayFramesUi();
+  }
+  function videoReplayFramesReset(){
+    const f=videoReplayFrames;
+    videoReplayFramesCancel();videoReplayFrames=null;
+    if(f){clearTimeout(f.timer);if(f.worker)f.worker.terminate();}
+    videoReplayFramesUi();
+  }
+  function videoReplayFramesFail(f,message){
+    if(videoReplayFrames!==f)return;
+    videoReplayFramesCancel();clearTimeout(f.timer);if(f.worker)f.worker.terminate();
+    f.worker=null;f.pending=null;f.status='error';
+    f.error='No se pudo preparar el recorrido cuadro a cuadro. '+message+' La reproducción normal sigue disponible.';
+    videoReplayFramesUi();
+  }
+  function videoReplayFramesWatch(f){
+    clearTimeout(f.timer);
+    f.timer=setTimeout(()=>videoReplayFramesFail(f,'La lectura tardó demasiado.'),30000);
+  }
+  function videoReplayFramesStart(blob,url){
+    videoReplayFramesReset();
+    const f=videoReplayFrames={url,status:'loading',times:[],ends:[],worker:null,timer:0,
+      pending:null,serial:0,epoch:0,target:-1,shown:-1,picture:null,seekTime:null,error:''};
+    videoReplayFramesUi();
+    let workerUrl;
+    try{
+      const library=JSON.parse(ids('videoReplayTraceWorkerSource').textContent);
+      // Sustituir el receptor del worker, manteniendo intacto el seguimiento existente.
+      workerUrl=URL.createObjectURL(new Blob([library,'\n(',videoReplayFramesWorker.toString(),')();'],{type:'text/javascript'}));
+      f.worker=new Worker(workerUrl);
+      f.worker.onmessage=({data})=>{
+        if(videoReplayFrames!==f||f.url!==videoReplay.blobUrl){if(data.bitmap)data.bitmap.close();return;}
+        if(data.type==='progress'){videoReplayFramesWatch(f);return;}
+        clearTimeout(f.timer);
+        if(data.type==='ready'){
+          f.times=data.times;f.ends=data.ends;f.status='ready';videoReplayFramesUi();return;
+        }
+        if(data.type==='error'){videoReplayFramesFail(f,data.message);return;}
+        if(data.type!=='frame')return;
+        const pending=f.pending;f.pending=null;
+        const playback=ids('videoReplayPlayback');
+        if(pending&&pending.id===data.id&&pending.epoch===f.epoch&&f.target===data.index
+          &&videoReplay.mode==='replay'&&!videoReplay.exporting&&playback&&playback.paused){
+          // Un canvas mantiene la orientación de los filtros WebGL existentes.
+          if(!f.picture)f.picture=document.createElement('canvas');
+          f.picture.width=data.bitmap.width;f.picture.height=data.bitmap.height;
+          f.picture.getContext('2d').drawImage(data.bitmap,0,0);
+          f.shown=data.index;
+          const start=f.times[data.index],end=data.index+1<f.times.length?f.times[data.index+1]:f.ends[data.index];
+          const at=clamp(start+Math.max(0,Math.min(.00005,(end-start)/4)),0,videoReplayDuration());
+          f.seekTime=at;playback.currentTime=at;
+          videoReplayRender.last=null;syncVideoReplayScrub();videoReplayFramesUi();
+        }
+        data.bitmap.close();videoReplayFramesPump();
+      };
+      f.worker.onerror=event=>{event.preventDefault();videoReplayFramesFail(f,event.message||'No se pudo abrir el lector de cuadros.');};
+      f.worker.onmessageerror=()=>videoReplayFramesFail(f,'No se pudo recibir la imagen.');
+      videoReplayFramesWatch(f);f.worker.postMessage({type:'index',blob});
+    }catch(error){videoReplayFramesFail(f,error.message);}
+    finally{if(workerUrl)URL.revokeObjectURL(workerUrl);}
+  }
+  function videoReplayFramesAt(times,time){
+    let lo=0,hi=times.length;
+    while(lo<hi){const mid=(lo+hi)>>>1;if(times[mid]<=time+.000003)lo=mid+1;else hi=mid;}
+    return Math.max(0,lo-1);
+  }
+  function videoReplayFramesPump(){
+    const f=videoReplayFrames;
+    if(!f||f.status!=='ready'||f.pending||f.target<0||f.shown===f.target)return;
+    f.pending={id:++f.serial,epoch:f.epoch,index:f.target};
+    videoReplayFramesWatch(f);
+    f.worker.postMessage({type:'frame',id:f.pending.id,index:f.target});
+  }
+  function videoReplayStepFrame(dir){
+    if(!tecladoRevision()||videoReplay.exporting)return;
+    const f=videoReplayFrames,playback=ids('videoReplayPlayback');
+    if(!f||f.status!=='ready'||f.url!==videoReplay.blobUrl){
+      tecladoAvisar(dir<0?'←':'→',f&&f.status==='error'?f.error:'Espere a que termine la preparación del recorrido cuadro a cuadro.');return;
+    }
+    const time=videoReplayView.mediaTime!==null&&!playback.seeking?videoReplayView.mediaTime:playback.currentTime;
+    playback.pause();
+    const current=f.target>=0?f.target:videoReplayFramesAt(f.times,time);
+    f.target=clamp(current+(dir<0?-1:1),0,f.times.length-1);
+    videoReplayFramesPump();
+  }
+  function videoReplayFramesBind(playback){
+    playback.addEventListener('play',videoReplayFramesCancel);
+    playback.addEventListener('emptied',videoReplayFramesReset);
+    playback.addEventListener('seeking',()=>{
+      const f=videoReplayFrames;if(!f)return;
+      if(f.seekTime!==null&&Math.abs(playback.currentTime-f.seekTime)<.00001)return;
+      videoReplayFramesCancel();
+    });
+    playback.addEventListener('seeked',()=>{
+      const f=videoReplayFrames;
+      if(f&&f.seekTime!==null&&Math.abs(playback.currentTime-f.seekTime)<.00001)f.seekTime=null;
+    });
+  }
+
+
   function loadVideoCalibration(){
     try{
       const raw = localStorage.getItem(VIDEO_CALIB_STORAGE_KEY);
@@ -17276,6 +17439,9 @@ function drawStartMarks(){
     const source = videoReplay.mode === 'replay' ? ids('videoReplayPlayback') : ids('videoReplayLive');
     const vw = source ? source.videoWidth : 0;
     const vh = source ? source.videoHeight : 0;
+    const exactFrame = replay && source && source.paused && videoReplayFrames
+      && videoReplayFrames.url===videoReplay.blobUrl && videoReplayFrames.shown>=0 ? videoReplayFrames.picture : null;
+    const picture = exactFrame || source;
 
     const paneW = pane.clientWidth, paneH = pane.clientHeight;
     if(!paneW || !paneH) return;
@@ -17306,7 +17472,7 @@ function drawStartMarks(){
       !!(ids('showNumLlegada') && ids('showNumLlegada').checked),
       !!(ids('showNumAtaque') && ids('showNumAtaque').checked)] : null;
     const imageTone = replay ? videoReplay.recordedTone : streamImageTone(videoReplay.stream);
-    const firma = [source, source && source.currentSrc, frame, imageTone,
+    const firma = [source, picture, source && source.currentSrc, frame, imageTone,
       source && source.readyState, source && source.seeking, source && source.paused,
       vw, vh, cw, ch, dpr, videoReplay.mode, videoReplay.blobUrl, calib,
       calib && calib.k1, calib && calib.dewarp, calib && calib.rectified,
@@ -17339,7 +17505,7 @@ function drawStartMarks(){
         if(rc.ok && Hh){
           try{
             const k1r = Number.isFinite(videoReplay.calib.k1) ? videoReplay.calib.k1 : 0;
-            rc.render(source, Math.max(2, Math.round(cw*dpr)), Math.max(2, Math.round(ch*dpr)), k1r, cw/ch, Hh);
+            rc.render(picture, Math.max(2, Math.round(cw*dpr)), Math.max(2, Math.round(ch*dpr)), k1r, cw/ch, Hh);
             g.drawImage(cameraColorFrame(rc.canvas,imageTone), 0, 0, cw, ch);
             pintado = true; traceView = 'rectified';
           }catch{}
@@ -17348,12 +17514,12 @@ function drawStartMarks(){
       if(!pintado){
         // Con "Enderezar lente" activo, el cuadro visible es el corregido
         // por el enderezador WebGL; si algo falla, se cae al crudo.
-        let cuadro = source;
+        let cuadro = picture;
         if(videoReplayDewarpActive()){
           const dw = getVideoDewarper('pantalla');
           if(dw.ok){
             try{
-              dw.render(source, Math.max(2, Math.round(cw*dpr)), Math.max(2, Math.round(ch*dpr)), videoReplay.calib.k1, vw/vh);
+              dw.render(picture, Math.max(2, Math.round(cw*dpr)), Math.max(2, Math.round(ch*dpr)), videoReplay.calib.k1, vw/vh);
               cuadro = dw.canvas; traceView = 'dewarped';
             }catch{}
           }
@@ -17428,8 +17594,8 @@ function drawStartMarks(){
     } else if(videoReplay.mode === 'replay'){
       const chk = ids('videoReplayShowGuide');
       if(!chk || chk.checked) drawVideoReplayViewGuide(g,cw,ch,dpr,guideKey);
-      const time=!source.paused && !source.seeking && videoReplayView.mediaTime!==null
-        ? videoReplayView.mediaTime : source.currentTime;
+      const time=exactFrame ? videoReplayFrames.times[videoReplayFrames.shown]
+        : !source.paused && !source.seeking && videoReplayView.mediaTime!==null ? videoReplayView.mediaTime : source.currentTime;
       drawVideoReplayTrace(g, cw, ch, time, traceView);
       syncVideoReplayScrub();
     }
@@ -17604,7 +17770,7 @@ function drawStartMarks(){
 
 
   function setVideoReplayMode(mode){
-    if(mode !== 'replay') videoReplayRescueReset();
+    if(mode !== 'replay'){videoReplayRescueReset();videoReplayFramesReset();}
     if(mode !== 'replay'){videoReplayDownloadReadyCancel();videoReplayDoneCancel();}
     videoReplayReadyCancel();
     if(mode === 'record' && videoReplay.mode !== 'record') videoReplayTraceNewRecording();
@@ -17704,6 +17870,7 @@ function drawStartMarks(){
   }
 
   function closeVideoReplayModal(){
+    videoReplayFramesReset();
     videoReplayDoneCancel();
     videoReplayRescueReset();
     videoReplayDownloadReadyCancel();
@@ -17920,6 +18087,7 @@ function drawStartMarks(){
   }
 
   function beginVideoReplayRecordingNow(){
+    videoReplayFramesReset();
     tecladoDobleDLimpiar();
     videoReplayRescueReset();
     videoReplayDownloadReadyCancel();
@@ -18030,6 +18198,7 @@ function drawStartMarks(){
       videoReplay.duration=duration;
       if(Math.abs(duration-elapsed)>.8) videoReplay.recordingIssue=videoReplay.recordingIssue||'La duración del archivo no coincide con el tiempo grabado. Revise el original: podría faltar un tramo.';
       if(videoReplay.recordingIssue){setVideoReplayStatus(videoReplay.recordingIssue,'bad');return;}
+      videoReplayFramesStart(blob,url);
       setVideoReplayStatus('Grabación lista. Reproduzca, avance cuadro a cuadro o use cámara lenta para comparar la ejecución con los puntos de Ataque y Llegada planeados.','good');
       videoReplayDownloadReadyEnqueue('plain',check,url);
       if(videoReplayTrace.enabled) videoReplayTraceAnalyze();else videoReplayTraceUi();
@@ -18287,7 +18456,7 @@ function drawStartMarks(){
   }
 
   function setVideoReplayExportUi(busy, withData=true){
-    if(busy){videoReplayDownloadReadyCancel();videoReplayDoneCancel();}
+    if(busy){videoReplayFramesCancel();videoReplayDownloadReadyCancel();videoReplayDoneCancel();}
     const exportBtn=ids('videoReplayExportBtn'), cleanBtn=ids('videoReplayDownloadBtn');
     if(exportBtn){exportBtn.disabled=busy;exportBtn.textContent=busy&&withData?'Exportando…':'Descargar con datos';}
     if(cleanBtn) cleanBtn.textContent=busy&&!withData?'Exportando…':'Descargar sin datos';
@@ -18301,7 +18470,7 @@ function drawStartMarks(){
       if(busy){el.dataset.exportWasDisabled=el.disabled?'1':'0';el.disabled=true;}
       else if('exportWasDisabled' in el.dataset){el.disabled=el.dataset.exportWasDisabled==='1';delete el.dataset.exportWasDisabled;}
     }
-    videoReplayRender.last=null;videoReplayTraceUi();
+    videoReplayRender.last=null;videoReplayTraceUi();videoReplayFramesUi();
   }
 
   // El archivo original queda intacto. La exportación sigue a cada imagen
@@ -18830,14 +18999,9 @@ function drawStartMarks(){
 
     const stepBack = ids('videoReplayStepBack');
     const stepFwd = ids('videoReplayStepFwd');
-    const frameStep = dir => {
-      if(!playback || !playback.src) return;
-      playback.pause();
-      const d = videoReplayDuration() || Infinity;
-      playback.currentTime = clamp(playback.currentTime + dir/30, 0, d);
-    };
-    if(stepBack) stepBack.addEventListener('click', () => frameStep(-1));
-    if(stepFwd) stepFwd.addEventListener('click', () => frameStep(1));
+    if(stepBack) stepBack.addEventListener('click', () => videoReplayStepFrame(-1));
+    if(stepFwd) stepFwd.addEventListener('click', () => videoReplayStepFrame(1));
+    if(playback) videoReplayFramesBind(playback);
 
     const speedSel = ids('videoReplaySpeed');
     if(speedSel && playback) speedSel.addEventListener('change', () => {
@@ -18847,6 +19011,7 @@ function drawStartMarks(){
     const scrub = ids('videoReplayScrub');
     if(scrub && playback){
       scrub.addEventListener('input', () => {
+        videoReplayFramesCancel();
         videoReplay.scrubbing = true;
         const d = videoReplayDuration();
         if(d) playback.currentTime = (Number(scrub.value)/1000) * d;
@@ -22841,6 +23006,7 @@ function drawStartMarks(){
   }
 
   async function tecladoEjecutar(tecla){
+    if(tecla==='arrowleft'||tecla==='arrowright'){videoReplayStepFrame(tecla==='arrowleft'?-1:1);return;}
     if(tecla==='v' && ((videoReplay.recorder && videoReplay.recorder.state==='recording')
       || (tecladoDobleD.pendiente && tecladoDobleD.pendiente.tecla==='V'))){
       await tecladoDetenerYVolver();return;
@@ -23016,10 +23182,16 @@ function drawStartMarks(){
     document.addEventListener('keydown',event=>{
       if(event.key.toLowerCase()!=='d' || event.ctrlKey || event.altKey || event.metaKey) tecladoDSoltar();
       if(event.defaultPrevented || event.isComposing || event.ctrlKey || event.altKey || event.metaKey) return;
-      const tecla=event.key.toLowerCase();if(!['g','1','2','3','d','r','e','o','v','c','m','t',' ','l','x','w'].includes(tecla)) return;
+      const tecla=event.key.toLowerCase();if(!['g','1','2','3','d','r','e','o','v','c','m','t',' ','l','x','w','arrowleft','arrowright'].includes(tecla)) return;
       if(tecla==='w' && !colorPreviewTrack()) return;
       const el=event.target instanceof Element?event.target:null;
       if(el && (el.isContentEditable || el.closest('textarea,select,[role="textbox"]') || (el.tagName==='INPUT' && !['checkbox','radio','range','button','submit','reset'].includes(el.type)))) return;
+      if(tecla==='arrowleft'||tecla==='arrowright'){
+        // Las flechas siguen ajustando campos, deslizadores y puntos fuera de la revisión.
+        const marcado=ids('ytMarkOverlay');
+        if(!tecladoRevision()||videoReplay.exporting||(el&&el.tagName==='INPUT')
+          ||(marcado&&getComputedStyle(marcado).display!=='none'))return;
+      }
       if(tecla===' ' && (!tecladoRevision() || (el && el.tagName==='INPUT'))) return;
       event.preventDefault();event.stopPropagation();
       if(event.repeat) return;
